@@ -1,0 +1,22 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Body -->
+  <path d="M25,65 Q15,55 25,40 L40,20 Q50,10 65,20 L80,35 Q90,45 85,60 L75,85 Q70,95 50,90 L30,85 Q20,80 25,65 Z" fill="#585A63" stroke="#4a4c55" stroke-width="3" stroke-linejoin="round"/>
+  
+  <!-- Face -->
+  <g transform="translate(0, 5)">
+    <!-- Eyes -->
+    <circle cx="40" cy="55" r="4" fill="#333">
+      <animate attributeName="ry" values="4;0.5;4" dur="3s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="70" cy="55" r="4" fill="#333">
+      <animate attributeName="ry" values="4;0.5;4" dur="3s" repeatCount="indefinite" />
+    </circle>
+    
+    <!-- Mouth -->
+    <path d="M50,60 Q55,65 60,60" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round"/>
+    
+    <!-- Cheeks -->
+    <circle cx="35" cy="62" r="3.5" fill="#FF77B8" opacity="0.6"/>
+    <circle cx="75" cy="62" r="3.5" fill="#FF77B8" opacity="0.6"/>
+  </g>
+</svg>

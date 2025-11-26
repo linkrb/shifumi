@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shifumi Online</title>
+    <link rel="stylesheet" href="/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="background-decor">
+        <div class="decor-shape shape-1"></div>
+        <div class="decor-shape shape-2"></div>
+        <div class="decor-shape shape-3"></div>
+        <div class="decor-icon icon-1">✦</div>
+        <div class="decor-icon icon-2">●</div>
+        <div class="decor-icon icon-3">●</div>
+        <div class="decor-icon icon-4">✦</div>
+        <div class="decor-icon icon-5">★</div>
+        <div class="decor-icon icon-6">●</div>
+        <div class="decor-icon icon-7">✦</div>
+        <div class="decor-icon icon-8">■</div>
+        <div class="decor-icon icon-9">●</div>
+        <div class="decor-icon icon-10">★</div>
+    </div>
+    <div class="container">
+        <header>
+            <h1>Shifumi Online</h1>
+        </header>
+
+        <main>
+            <!-- Home View -->
+            <section id="home" class="view active">
+                <div class="hero-section">
+                    <img src="/hero_mascots_processed.png" class="hero-image" alt="Rock Paper Scissors Mascots">
+                </div>
+
+                <div class="card">
+                    <h2>Bienvenue</h2>
+                    <p class="subtitle">Prêt à défier tes amis ?</p>
+                    <button id="create-btn" class="btn primary">Créer une partie</button>
+                    <div class="divider">OU</div>
+                    <div class="join-form">
+                        <input type="text" id="join-input" placeholder="Coller l'URL de la partie">
+                        <button id="join-btn" class="btn secondary">Rejoindre</button>
+                    </div>
+                </div>
+
+                <!-- Peeking Mascots -->
+                <div class="mascots-footer">
+                    <img src="/rock_user.png" class="mascot-peek rock-peek" alt="Rock">
+                    <img src="/paper_user.png" class="mascot-peek paper-peek" alt="Paper">
+                    <img src="/scissors_user.png" class="mascot-peek scissors-peek" alt="Scissors">
+                </div>
+            </section>
+
+            <!-- Lobby View -->
+            <section id="lobby" class="view">
+                <div class="card">
+                    <h2>En attente d'un adversaire...</h2>
+                    <div class="loader"></div>
+                    <p>Partagez ce lien avec votre ami :</p>
+                    <div class="url-box">
+                        <input type="text" id="game-url" readonly>
+                        <button id="copy-btn">Copier</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Game View -->
+            <section id="game" class="view">
+                <div class="score-board">
+                    <div class="player-score">
+                        <span class="label">Vous</span>
+                        <span id="my-score" class="score">0</span>
+                    </div>
+                    <div class="vs">VS</div>
+                    <div class="player-score">
+                        <span class="label">Adversaire</span>
+                        <span id="op-score" class="score">0</span>
+                    </div>
+                </div>
+
+                <div class="game-area">
+                    <div class="status-message" id="status-msg">À vous de jouer !</div>
+
+                    <div class="choices">
+                        <button class="choice-btn" data-move="rock">
+                            <img src="/rock_user.png" alt="Pierre" class="move-icon">
+                            <span class="name">Pierre</span>
+                        </button>
+                        <button class="choice-btn" data-move="paper">
+                            <img src="/paper_user.png" alt="Feuille" class="move-icon">
+                            <span class="name">Feuille</span>
+                        </button>
+                        <button class="choice-btn" data-move="scissors">
+                            <img src="/scissors_user.png" alt="Ciseaux" class="move-icon">
+                            <span class="name">Ciseaux</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Result View (Overlay) -->
+            <div id="result-overlay" class="overlay">
+                <div class="result-card">
+                    <h2 id="result-title">Gagné !</h2>
+                    <div class="moves-display">
+                        <div class="move">
+                            <span>Vous</span>
+                            <div id="my-move-display" class="move-display"></div>
+                        </div>
+                        <div class="move">
+                            <span>Adversaire</span>
+                            <div id="op-move-display" class="move-display"></div>
+                        </div>
+                    </div>
+                    <button id="replay-btn" class="btn primary">Rejouer</button>
+                    <p id="replay-status" class="subtext"></p>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/script.js"></script>
+</body>
+
+</html>

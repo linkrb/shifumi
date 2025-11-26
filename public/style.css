@@ -1,0 +1,682 @@
+:root {
+    /* Pastel Palette */
+    --pink: #FF8FAB;
+    --yellow: #FFD97D;
+    --cyan: #7AD3FF;
+    --grey: #6B7280;
+    --bg-color: #FFFDF5;
+    /* Warm cream background */
+    --card-bg: #FFFFFF;
+
+    --text-main: var(--grey);
+    --border-radius: 35px;
+    --shadow-soft: 0 20px 40px rgba(255, 217, 125, 0.15);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Nunito', sans-serif;
+    background-color: var(--bg-color);
+    background-image: radial-gradient(circle at 10% 20%, rgba(255, 245, 225, 1) 0%, rgba(255, 253, 245, 1) 90%);
+    color: var(--text-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+}
+
+.container {
+    width: 100%;
+    max-width: 420px;
+    /* Mobile-first width */
+    padding: 20px;
+    position: relative;
+    z-index: 1;
+}
+
+/* Background Decorations */
+.background-decor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    /* Force viewport width */
+    height: 100vh;
+    /* Force viewport height */
+    z-index: -1;
+    background-image: url('/background.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* Hide CSS shapes as we use an image now */
+.decor-shape,
+.decor-icon {
+    display: none;
+}
+
+/* Top Right Pink Blob */
+.shape-1 {
+    width: 600px;
+    height: 600px;
+    background: #FFDEE9;
+    /* Softer Pink */
+    top: -200px;
+    right: -100px;
+    animation: floatDecor 25s infinite alternate;
+}
+
+/* Bottom Right Blue Blob */
+.shape-2 {
+    width: 500px;
+    height: 500px;
+    background: #E0F7FA;
+    /* Very light Cyan */
+    bottom: -150px;
+    left: -100px;
+    animation: floatDecor 20s infinite alternate-reverse;
+}
+
+/* Top Left Faint Yellow/Orange Blob */
+.shape-3 {
+    width: 400px;
+    height: 400px;
+    background: #FFF3E0;
+    /* Light Orange/Cream */
+    top: 30%;
+    left: 20%;
+    animation: floatDecor 30s infinite alternate;
+}
+
+/* Texture Overlay */
+
+
+/* Small floating particles */
+.decor-icon {
+    position: absolute;
+    font-size: 1.2rem;
+    opacity: 0.4;
+    animation: twinkle 5s infinite;
+}
+
+.icon-1 {
+    top: 10%;
+    left: 5%;
+    color: #81D4FA;
+    font-size: 1.5rem;
+}
+
+.icon-2 {
+    top: 20%;
+    right: 15%;
+    color: #FFCC80;
+    font-size: 0.8rem;
+}
+
+.icon-3 {
+    bottom: 25%;
+    left: 10%;
+    color: #FFAB91;
+    font-size: 1.2rem;
+}
+
+.icon-4 {
+    bottom: 10%;
+    right: 5%;
+    color: #A5D6A7;
+    font-size: 1.5rem;
+}
+
+.icon-5 {
+    top: 40%;
+    left: 15%;
+    color: #FFD54F;
+    font-size: 1rem;
+    animation-delay: 1s;
+}
+
+/* Yellow Star */
+.icon-6 {
+    top: 15%;
+    right: 40%;
+    color: #4DB6AC;
+    font-size: 0.6rem;
+    animation-delay: 2s;
+}
+
+/* Teal Dot */
+.icon-7 {
+    bottom: 40%;
+    right: 10%;
+    color: #9575CD;
+    font-size: 1.2rem;
+    animation-delay: 0.5s;
+}
+
+/* Purple Sparkle */
+.icon-8 {
+    bottom: 15%;
+    left: 40%;
+    color: #FF8A65;
+    font-size: 1rem;
+    transform: rotate(15deg);
+    animation-delay: 1.5s;
+}
+
+/* Orange Square */
+.icon-9 {
+    top: 50%;
+    right: 5%;
+    color: #64B5F6;
+    font-size: 0.9rem;
+    animation-delay: 2.5s;
+}
+
+/* Blue Dot */
+.icon-10 {
+    top: 5%;
+    left: 50%;
+    color: #F06292;
+    font-size: 1.1rem;
+    animation-delay: 3s;
+}
+
+/* Pink Star */
+
+/* Green leaf-ish */
+
+header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+h1 {
+    font-size: 3rem;
+    font-weight: 900;
+    color: var(--pink);
+    letter-spacing: 1px;
+    text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.05);
+}
+
+/* Hero Section */
+.hero-section {
+    text-align: center;
+    margin-bottom: -50px;
+    /* Strong overlap */
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+}
+
+.hero-image {
+    width: 280px;
+    height: auto;
+    filter: drop-shadow(0 10px 20px rgba(255, 143, 171, 0.2));
+    animation: bounceHero 6s ease-in-out infinite;
+}
+
+.view {
+    display: none;
+    animation: slideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.view.active {
+    display: block;
+}
+
+.card {
+    background: #FFFFFF;
+    border-radius: 40px;
+    padding: 70px 30px 40px;
+    /* More padding for overlap */
+    box-shadow: 0 20px 50px rgba(189, 189, 189, 0.15);
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+
+h2 {
+    margin-bottom: 10px;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #333;
+}
+
+.subtitle {
+    color: #9CA3AF;
+    margin-bottom: 30px;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+p {
+    color: #888;
+    margin-bottom: 30px;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+/* Buttons */
+.btn {
+    display: block;
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: 20px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    font-family: inherit;
+    margin-bottom: 15px;
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+.btn.primary {
+    background-color: var(--pink);
+    color: white;
+    box-shadow: 0 4px 15px rgba(255, 119, 184, 0.3);
+}
+
+.btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 119, 184, 0.4);
+}
+
+.btn.secondary {
+    background-color: var(--cyan);
+    color: white;
+    box-shadow: 0 4px 15px rgba(100, 214, 255, 0.3);
+}
+
+.btn.secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(100, 214, 255, 0.4);
+}
+
+.divider {
+    margin: 20px 0;
+    color: #CCC;
+    font-weight: bold;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    height: 2px;
+    background: #EEE;
+    flex: 1;
+    margin: 0 15px;
+    border-radius: 2px;
+}
+
+/* Inputs */
+input[type="text"] {
+    width: 100%;
+    padding: 18px;
+    background: #F5F5F7;
+    border: 2px solid transparent;
+    border-radius: 20px;
+    font-size: 1rem;
+    color: var(--grey);
+    outline: none;
+    transition: all 0.3s;
+    text-align: center;
+    font-weight: 600;
+}
+
+input[type="text"]::placeholder {
+    color: #BBB;
+}
+
+input[type="text"]:focus {
+    background: white;
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 4px rgba(100, 214, 255, 0.1);
+}
+
+/* Game Elements */
+.score-board {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #F5F5F7;
+    padding: 15px 25px;
+    border-radius: 25px;
+    margin-bottom: 40px;
+}
+
+.player-score .label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #AAA;
+    margin-bottom: 5px;
+}
+
+.player-score .score {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--grey);
+}
+
+.vs {
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: #DDD;
+}
+
+.status-message {
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    min-height: 1.5em;
+    color: var(--grey);
+}
+
+.choices {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.choice-btn {
+    width: 100px;
+    height: 130px;
+    border-radius: 25px;
+    background: white;
+    border: 3px solid #F0F0F0;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 10px;
+}
+
+.choice-btn img {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    margin-bottom: 10px;
+    transition: transform 0.3s;
+}
+
+.choice-btn .name {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #AAA;
+    transition: color 0.3s;
+}
+
+.choice-btn:hover {
+    transform: translateY(-5px);
+    border-color: var(--yellow);
+    box-shadow: 0 10px 20px rgba(244, 201, 79, 0.2);
+}
+
+.choice-btn:hover img {
+    transform: scale(1.1) rotate(5deg);
+}
+
+.choice-btn.selected {
+    background: #FFF9E5;
+    /* Light yellow bg */
+    border-color: var(--yellow);
+    transform: scale(1.05);
+    box-shadow: 0 10px 25px rgba(244, 201, 79, 0.3);
+}
+
+.choice-btn.selected .name {
+    color: var(--yellow);
+}
+
+/* Result Overlay */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+    z-index: 100;
+    animation: fadeIn 0.3s;
+}
+
+.result-card {
+    background: white;
+    padding: 40px;
+    border-radius: 40px;
+    text-align: center;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+    border: 4px solid #F5F5F7;
+    animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.moves-display {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin: 30px 0;
+}
+
+.move span {
+    display: block;
+    margin-bottom: 10px;
+    color: #AAA;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.move-display img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+}
+
+#result-title {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: var(--pink);
+}
+
+/* Animations */
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes popIn {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+
+    100% {
+        transform: translateY(0px);
+    }
+}
+
+.move-icon {
+    animation: float 3s ease-in-out infinite;
+}
+
+.move-display-icon {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Loader */
+.loader {
+    border: 4px solid #F0F0F0;
+    border-top: 4px solid var(--cyan);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+
+/* Peeking Mascots Animation */
+.mascots-footer {
+    position: fixed;
+    bottom: -40px;
+    /* Adjusted for larger size */
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    pointer-events: none;
+    z-index: -1;
+    /* Behind the card if they overlap */
+}
+
+.mascot-peek {
+    width: 140px;
+    /* Much bigger */
+    height: 140px;
+    transition: transform 0.3s;
+    object-fit: contain;
+    /* Fix ratio */
+}
+
+.rock-peek {
+    animation: peek 4s ease-in-out infinite;
+    animation-delay: 0s;
+}
+
+.paper-peek {
+    animation: peek 4s ease-in-out infinite;
+    animation-delay: 1.5s;
+}
+
+.scissors-peek {
+    animation: peek 4s ease-in-out infinite;
+    animation-delay: 3s;
+}
+
+@keyframes peek {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    50% {
+        transform: translateY(-30px) rotate(5deg);
+    }
+
+    60% {
+        transform: translateY(-30px) rotate(-5deg);
+    }
+
+    70% {
+        transform: translateY(-30px) rotate(5deg);
+    }
+}
+
+@keyframes floatDecor {
+    0% {
+        transform: translate(0, 0);
+    }
+
+    100% {
+        transform: translate(30px, 30px);
+    }
+}
+
+@keyframes twinkle {
+
+    0%,
+    100% {
+        opacity: 0.3;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.8;
+        transform: scale(1.2);
+    }
+}
+
+@keyframes bounceHero {
+
+    0%,
+    100% {
+        transform: scale(1.2) translateY(0);
+    }
+
+    50% {
+        transform: scale(1.2) translateY(-10px);
+    }
+}
