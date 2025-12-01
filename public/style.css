@@ -394,44 +394,50 @@ input[type="text"]:focus {
 .choices {
     display: flex;
     justify-content: center;
-    gap: 15px;
+    gap: 30px;
+    margin-top: 50px;
 }
 
 .choice-btn {
-    width: 100px;
-    height: 130px;
-    border-radius: 25px;
     background: white;
-    border: 3px solid #F0F0F0;
+    border: 4px solid transparent;
+    border-radius: 30px;
+    padding: 20px;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    position: relative;
-    padding: 10px;
-}
-
-.choice-btn img {
-    width: 60px;
-    height: 60px;
-    object-fit: contain;
-    margin-bottom: 10px;
-    transition: transform 0.3s;
-}
-
-.choice-btn .name {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: #AAA;
-    transition: color 0.3s;
+    width: 160px;
+    /* Much wider */
+    height: 180px;
+    /* Taller */
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
 }
 
 .choice-btn:hover {
-    transform: translateY(-5px);
-    border-color: var(--yellow);
-    box-shadow: 0 10px 20px rgba(244, 201, 79, 0.2);
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border-color: var(--pink);
+}
+
+.move-icon {
+    width: 100px;
+    /* Much bigger icon */
+    height: 100px;
+    object-fit: contain;
+    margin-bottom: 15px;
+    filter: drop-shadow(0 4px 0px rgba(0, 0, 0, 0.1));
+}
+
+.choice-btn .name {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--grey);
+    transition: color 0.3s;
+}
+
+box-shadow: 0 10px 20px rgba(244, 201, 79, 0.2);
 }
 
 .choice-btn:hover img {
@@ -569,10 +575,12 @@ input[type="text"]:focus {
 }
 
 .move-display-icon {
-    width: 120px;
-    height: 120px;
+    width: 150px;
+    /* Huge result icons */
+    height: 150px;
     object-fit: contain;
-    animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.1));
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 /* Loader */
