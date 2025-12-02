@@ -12,6 +12,9 @@ let myAvatar = null;
 let opAvatar = null;
 let myUsername = 'Moi';
 let opUsername = 'Adversaire';
+let selectedWinRounds = 3; // Default: best of 3
+let gameWinRounds = 3; // Actual game win rounds
+let isCreatingGame = false; // Track if creating or joining
 
 // DOM Elements
 const views = {
@@ -31,6 +34,26 @@ const replayStatus = document.getElementById('replay-status');
 const chatInput = document.getElementById('chat-input');
 const chatSendBtn = document.getElementById('chat-send-btn');
 const chatMessages = document.getElementById('chat-messages');
+
+// Message Modal Elements
+const messageModal = document.getElementById('message-modal');
+const messageTitle = document.getElementById('message-title');
+const messageText = document.getElementById('message-text');
+const messageBtn = document.getElementById('message-btn');
+
+// Helper: Show Message Modal
+function showMessage(title, text, action = null) {
+    messageTitle.textContent = title;
+    messageText.textContent = text;
+
+    // Reset button
+    messageBtn.onclick = () => {
+        messageModal.style.display = 'none';
+        if (action) action();
+    };
+
+    messageModal.style.display = 'flex';
+}
 
 // Helper: Switch View
 function showView(viewName) {
@@ -75,6 +98,10 @@ socket.onmessage = (event) => {
             gameId = data.gameId;
             if (!playerId) playerId = data.playerId;
 
+            // Set game settings
+            gameWinRounds = data.winRounds;
+            updateGameModeUI(gameWinRounds);
+
             // Set avatars
             myAvatar = data.avatars[playerId];
             opAvatar = data.avatars[data.opponentId];
@@ -97,6 +124,10 @@ socket.onmessage = (event) => {
             showResult(data);
             break;
 
+        case 'game_won':
+            showGameWinner(data);
+            break;
+
         case 'new_round':
             resetRoundUI();
             break;
@@ -106,25 +137,31 @@ socket.onmessage = (event) => {
             break;
 
         case 'opponent_disconnected':
-            alert("L'adversaire s'est déconnecté.");
-            location.href = '/';
+            showMessage("Oups !", "L'adversaire s'est déconnecté.", () => {
+                location.href = '/';
+            });
             break;
 
         case 'error':
-            alert(data.message);
-            location.href = '/';
+            showMessage("Erreur", data.message, () => {
+                location.href = '/';
+            });
             break;
     }
 };
 
 // Actions
 document.getElementById('create-btn').addEventListener('click', () => {
+    isCreatingGame = true;
+    document.getElementById('win-rounds-section').style.display = 'block';
     showView('avatarSelection');
 });
 
 document.getElementById('join-btn').addEventListener('click', () => {
     const input = document.getElementById('join-input').value;
     if (input) {
+        isCreatingGame = false;
+        document.getElementById('win-rounds-section').style.display = 'none';
         // Store input for later
         document.getElementById('join-input').dataset.pendingJoin = input;
         showView('avatarSelection');
@@ -137,6 +174,17 @@ document.querySelectorAll('.avatar-option').forEach(opt => {
         document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
         opt.classList.add('selected');
         selectedAvatar = opt.dataset.id;
+    });
+});
+
+// Win Rounds Selection
+document.querySelectorAll('.win-round-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+        document.querySelectorAll('.win-round-option').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        const rounds = opt.dataset.rounds;
+        // Correctly handle 'null' string for no limit
+        selectedWinRounds = rounds === 'null' ? null : parseInt(rounds);
     });
 });
 
@@ -163,19 +211,86 @@ function proceedToGame() {
         socket.send(JSON.stringify({
             type: 'create_game',
             avatarId: selectedAvatar,
-            username: username
+            username: username,
+            winRounds: selectedWinRounds
         }));
     }
 }
 
-document.getElementById('copy-btn').addEventListener('click', () => {
+// Copy Button with modern Clipboard API
+document.getElementById('copy-btn').addEventListener('click', async () => {
     const urlInput = document.getElementById('game-url');
-    urlInput.select();
-    document.execCommand('copy');
     const btn = document.getElementById('copy-btn');
-    btn.textContent = 'Copié !';
-    setTimeout(() => btn.textContent = 'Copier', 2000);
+    const originalHTML = btn.innerHTML;
+
+    try {
+        await navigator.clipboard.writeText(urlInput.value);
+        btn.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Copié !
+        `;
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+        }, 2000);
+    } catch (err) {
+        // Fallback for older browsers
+        urlInput.select();
+        document.execCommand('copy');
+        btn.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Copié !
+        `;
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+        }, 2000);
+    }
 });
+
+// Share Button with Web Share API
+document.getElementById('share-btn').addEventListener('click', async () => {
+    const url = document.getElementById('game-url').value;
+
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: 'Shifumi Online',
+                text: 'Rejoins-moi pour une partie de Shifumi !',
+                url: url
+            });
+        } catch (err) {
+            // User cancelled or error occurred
+            if (err.name !== 'AbortError') {
+                console.error('Share failed:', err);
+                // Fallback: copy to clipboard
+                copyToClipboard(url);
+            }
+        }
+    } else {
+        // Fallback for browsers without Web Share API
+        copyToClipboard(url);
+    }
+});
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('share-btn');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Copié !
+        `;
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+        }, 2000);
+    });
+}
+
 
 choiceBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -195,6 +310,12 @@ choiceBtns.forEach(btn => {
 });
 
 replayBtn.addEventListener('click', () => {
+    // If game was won (final victory), redirect to home
+    if (replayBtn.textContent === 'Nouvelle Partie') {
+        window.location.href = '/';
+        return;
+    }
+
     socket.send(JSON.stringify({
         type: 'play_again',
         gameId: gameId
@@ -329,4 +450,46 @@ function updateUsernames(usernames, opponentId) {
 // Handle URL routing for direct access
 if (window.location.pathname.startsWith('/game/')) {
     // Wait for connection to open
+}
+
+function updateGameModeUI(rounds) {
+    const badge = document.getElementById('game-mode-badge');
+    const icon = document.getElementById('mode-icon');
+    const progress = document.getElementById('mode-progress');
+
+    if (!rounds) { // Handle null or 0
+        icon.textContent = '∞';
+        progress.textContent = 'Sans limite';
+    } else {
+        icon.textContent = rounds;
+        progress.textContent = rounds === 1 ? 'Partie rapide' : `Meilleur de ${rounds}`;
+    }
+}
+
+function showGameWinner(data) {
+    const title = document.getElementById('result-title');
+    const replayBtn = document.getElementById('replay-btn');
+
+    if (data.winner === playerId) {
+        title.textContent = "VICTOIRE FINALE ! 🏆";
+        title.style.color = "var(--success)";
+        // Trigger confetti or celebration here if available
+    } else {
+        title.textContent = "DÉFAITE... 😢";
+        title.style.color = "var(--danger)";
+    }
+
+    document.getElementById('my-move-display').innerHTML = '';
+    document.getElementById('op-move-display').innerHTML = '';
+
+    // Update scores one last time
+    myScore = data.scores[playerId];
+    opScore = data.scores[data.opponentId];
+    myScoreEl.textContent = myScore;
+    opScoreEl.textContent = opScore;
+
+    replayBtn.textContent = 'Nouvelle Partie';
+    replayBtn.disabled = false; // Ensure button is enabled
+
+    resultOverlay.style.display = 'flex';
 }

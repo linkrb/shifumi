@@ -1,6 +1,6 @@
 {
   "name": "shifumi-app",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Real-time Rock-Paper-Scissors game",
   "main": "server.js",
   "scripts": {

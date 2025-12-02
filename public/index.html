@@ -30,13 +30,14 @@
             <h1>Shifumi Online</h1>
         </header>
 
+        <!-- Hero Section - Always visible -->
+        <div class="hero-section">
+            <img src="/hero_mascots_processed.png" class="hero-image" alt="Rock Paper Scissors Mascots">
+        </div>
+
         <main>
             <!-- Home View -->
             <section id="home" class="view active">
-                <div class="hero-section">
-                    <img src="/hero_mascots_processed.png" class="hero-image" alt="Rock Paper Scissors Mascots">
-                </div>
-
                 <div class="card">
                     <h2>Bienvenue</h2>
                     <p class="subtitle">Prêt à défier tes amis ?</p>
@@ -46,13 +47,6 @@
                         <input type="text" id="join-input" placeholder="Coller l'URL de la partie">
                         <button id="join-btn" class="btn secondary">Rejoindre</button>
                     </div>
-                </div>
-
-                <!-- Peeking Mascots -->
-                <div class="mascots-footer">
-                    <img src="/rock_user.png" class="mascot-peek rock-peek" alt="Rock">
-                    <img src="/paper_user.png" class="mascot-peek paper-peek" alt="Paper">
-                    <img src="/scissors_user.png" class="mascot-peek scissors-peek" alt="Scissors">
                 </div>
             </section>
 
@@ -78,6 +72,25 @@
                         <div class="avatar-option" data-id="8"><img src="/avatars/avatar_8.png" alt="Avatar 8"></div>
                     </div>
 
+                    <!-- Win Rounds Selection (only visible when creating game) -->
+                    <div id="win-rounds-section" class="win-rounds-section" style="display: none;">
+                        <h3 class="win-rounds-title">Nombre de manches</h3>
+                        <div class="win-rounds-options">
+                            <div class="win-round-option" data-rounds="1">
+                                <div class="win-round-icon">1</div>
+                                <div class="win-round-label">Rapide</div>
+                            </div>
+                            <div class="win-round-option selected" data-rounds="3">
+                                <div class="win-round-icon">3</div>
+                                <div class="win-round-label">Meilleur de 3</div>
+                            </div>
+                            <div class="win-round-option" data-rounds="null">
+                                <div class="win-round-icon">∞</div>
+                                <div class="win-round-label">Sans limite</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <button id="random-avatar-btn" class="btn secondary">Aléatoire / Passer</button>
                 </div>
             </section>
@@ -90,10 +103,31 @@
                     <p>Partagez ce lien avec votre ami :</p>
                     <div class="url-box">
                         <input type="text" id="game-url" readonly>
-                        <button id="copy-btn">Copier</button>
+                    </div>
+                    <div class="share-buttons">
+                        <button id="copy-btn" class="btn-share btn-copy">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            Copier
+                        </button>
+                        <button id="share-btn" class="btn-share btn-native-share">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="18" cy="5" r="3"></circle>
+                                <circle cx="6" cy="12" r="3"></circle>
+                                <circle cx="18" cy="19" r="3"></circle>
+                                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                            </svg>
+                            Partager
+                        </button>
                     </div>
                 </div>
             </section>
+
 
             <!-- Game View -->
             <section id="game" class="view">
@@ -102,7 +136,12 @@
                         <span class="label">Vous</span>
                         <span id="my-score" class="score">0</span>
                     </div>
-                    <div class="vs">VS</div>
+                    <div class="game-mode-indicator">
+                        <div id="game-mode-badge" class="mode-badge">
+                            <span id="mode-icon">3</span>
+                        </div>
+                        <div id="mode-progress" class="mode-progress">Meilleur de 3</div>
+                    </div>
                     <div class="player-score">
                         <span class="label">Adversaire</span>
                         <span id="op-score" class="score">0</span>
@@ -156,7 +195,23 @@
                     <p id="replay-status" class="subtext"></p>
                 </div>
             </div>
+
+            <!-- Generic Message Modal -->
+            <div id="message-modal" class="overlay">
+                <div class="result-card message-card">
+                    <h2 id="message-title">Attention</h2>
+                    <p id="message-text">Une erreur est survenue.</p>
+                    <button id="message-btn" class="btn primary">OK</button>
+                </div>
+            </div>
         </main>
+
+        <!-- Peeking Mascots - Always visible -->
+        <div class="mascots-footer">
+            <img src="/rock_user.png" class="mascot-peek rock-peek" alt="Rock">
+            <img src="/paper_user.png" class="mascot-peek paper-peek" alt="Paper">
+            <img src="/scissors_user.png" class="mascot-peek scissors-peek" alt="Scissors">
+        </div>
     </div>
     <script src="/script.js"></script>
 </body>

@@ -7,6 +7,17 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+## [1.2.0] - 2025-12-02
+
+### Ajouté
+- **Système de manches gagnantes** : Le créateur de la partie peut choisir le nombre de manches pour gagner (1, 3 ou Sans limite).
+- **Indicateur de mode de jeu** : Affichage visuel du mode de jeu (ex: "Meilleur de 3") dans l'interface.
+- **Modales personnalisées** : Remplacement des alertes natives par des modales stylisées pour les erreurs et déconnexions.
+
+### Modifié
+- Amélioration de la stabilité du serveur lors des déconnexions de joueurs.
+- Mise à jour de l'écran de fin de partie pour distinguer la victoire d'une manche de la victoire finale.
+
 ## [1.1.0] - 2025-12-02
 
 ### Ajouté

@@ -19,6 +19,17 @@ app.get('*', (req, res) => {
 // Game state storage
 const games = {};
 
+// Helper: Safe Send to prevent crashes
+function safeSend(ws, data) {
+    if (ws.readyState === WebSocket.OPEN) {
+        try {
+            ws.send(JSON.stringify(data));
+        } catch (e) {
+            console.error('Error sending message:', e);
+        }
+    }
+}
+
 wss.on('connection', (ws) => {
     ws.id = uuidv4();
     console.log(`Client connected: ${ws.id}`);
@@ -41,6 +52,13 @@ function handleMessage(ws, data) {
     switch (data.type) {
         case 'create_game':
             const gameId = uuidv4().slice(0, 8).toUpperCase();
+            // Validate winRounds (allow 1, 3, or null/undefined for no limit)
+            // ParseInt ensures "3" becomes 3.
+            let winRounds = parseInt(data.winRounds);
+            if (winRounds !== 1 && winRounds !== 3) {
+                winRounds = null; // Default to no limit if invalid or not provided
+            }
+
             games[gameId] = {
                 id: gameId,
                 players: [ws],
@@ -48,14 +66,15 @@ function handleMessage(ws, data) {
                 scores: { [ws.id]: 0 },
                 avatars: { [ws.id]: data.avatarId },
                 usernames: { [ws.id]: data.username || 'Joueur 1' },
+                winRounds: winRounds,
                 round: 1
             };
             ws.gameId = gameId;
-            ws.send(JSON.stringify({
+            safeSend(ws, {
                 type: 'game_created',
                 gameId: gameId,
                 playerId: ws.id
-            }));
+            });
             break;
 
         case 'join_game':
@@ -69,17 +88,18 @@ function handleMessage(ws, data) {
 
                 // Notify both players
                 game.players.forEach(player => {
-                    player.send(JSON.stringify({
+                    safeSend(player, {
                         type: 'game_start',
                         gameId: game.id,
                         playerId: player.id,
                         opponentId: game.players.find(p => p.id !== player.id).id,
                         avatars: game.avatars,
-                        usernames: game.usernames
-                    }));
+                        usernames: game.usernames,
+                        winRounds: game.winRounds
+                    });
                 });
             } else {
-                ws.send(JSON.stringify({ type: 'error', message: 'Game not found or full' }));
+                safeSend(ws, { type: 'error', message: 'Game not found or full' });
             }
             break;
 
@@ -88,12 +108,12 @@ function handleMessage(ws, data) {
             if (chatGame) {
                 const senderUsername = chatGame.usernames[ws.id];
                 chatGame.players.forEach(player => {
-                    player.send(JSON.stringify({
+                    safeSend(player, {
                         type: 'chat_message',
                         senderId: ws.id,
                         senderUsername: senderUsername,
                         message: data.message
-                    }));
+                    });
                 });
             }
             break;
@@ -106,7 +126,7 @@ function handleMessage(ws, data) {
                 // Notify opponent that a move was made (without revealing it)
                 const opponent = activeGame.players.find(p => p.id !== ws.id);
                 if (opponent) {
-                    opponent.send(JSON.stringify({ type: 'opponent_moved' }));
+                    safeSend(opponent, { type: 'opponent_moved' });
                 }
 
                 // Check if both players moved
@@ -127,13 +147,20 @@ function handleMessage(ws, data) {
                     restartGame.wantsRestart.clear();
                     restartGame.round++;
 
+                    // Reset scores if game was won previously
+                    if (restartGame.gameWon) {
+                        Object.keys(restartGame.scores).forEach(pid => restartGame.scores[pid] = 0);
+                        restartGame.gameWon = false;
+                        restartGame.round = 1; // Reset round count too
+                    }
+
                     restartGame.players.forEach(player => {
-                        player.send(JSON.stringify({ type: 'new_round', round: restartGame.round }));
+                        safeSend(player, { type: 'new_round', round: restartGame.round });
                     });
                 } else {
                     const opponentRestart = restartGame.players.find(p => p.id !== ws.id);
                     if (opponentRestart) {
-                        opponentRestart.send(JSON.stringify({ type: 'opponent_wants_replay' }));
+                        safeSend(opponentRestart, { type: 'opponent_wants_replay' });
                     }
                 }
             }
@@ -170,7 +197,22 @@ function resolveRound(game) {
         scores: game.scores
     };
 
-    game.players.forEach(player => player.send(JSON.stringify(result)));
+    game.players.forEach(player => safeSend(player, result));
+
+    // Check for game winner if winRounds is set
+    if (game.winRounds && winner) {
+        if (game.scores[winner] >= game.winRounds) {
+            game.gameWon = true;
+            const gameResult = {
+                type: 'game_won',
+                winner: winner,
+                scores: game.scores
+            };
+            setTimeout(() => {
+                game.players.forEach(player => safeSend(player, gameResult));
+            }, 1500); // Delay slightly after round result
+        }
+    }
 }
 
 function handleDisconnect(ws) {
@@ -179,7 +221,7 @@ function handleDisconnect(ws) {
         const opponent = game.players.find(p => p.id !== ws.id);
 
         if (opponent) {
-            opponent.send(JSON.stringify({ type: 'opponent_disconnected' }));
+            safeSend(opponent, { type: 'opponent_disconnected' });
         }
 
         delete games[ws.gameId];
