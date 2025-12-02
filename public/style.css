@@ -1166,3 +1166,14 @@ input[type="text"]:focus {
     margin: 20px 0 30px;
     line-height: 1.6;
 }
+/* Result Buttons */
+.result-buttons {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.result-buttons .btn {
+    flex: 1;
+    margin-bottom: 0;
+}

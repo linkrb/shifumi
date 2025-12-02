@@ -30,6 +30,7 @@ const myScoreEl = document.getElementById('my-score');
 const opScoreEl = document.getElementById('op-score');
 const choiceBtns = document.querySelectorAll('.choice-btn');
 const replayBtn = document.getElementById('replay-btn');
+const newGameBtn = document.getElementById('new-game-btn');
 const replayStatus = document.getElementById('replay-status');
 const chatInput = document.getElementById('chat-input');
 const chatSendBtn = document.getElementById('chat-send-btn');
@@ -310,18 +311,16 @@ choiceBtns.forEach(btn => {
 });
 
 replayBtn.addEventListener('click', () => {
-    // If game was won (final victory), redirect to home
-    if (replayBtn.textContent === 'Nouvelle Partie') {
-        window.location.href = '/';
-        return;
-    }
-
     socket.send(JSON.stringify({
         type: 'play_again',
         gameId: gameId
     }));
     replayBtn.textContent = 'En attente...';
     replayBtn.disabled = true;
+});
+
+newGameBtn.addEventListener('click', () => {
+    window.location.href = '/';
 });
 
 function joinGame(id) {
@@ -397,6 +396,7 @@ function resetRoundUI() {
     setStatus("Nouvelle manche ! Faites votre choix.");
     replayBtn.textContent = 'Rejouer';
     replayBtn.disabled = false;
+    newGameBtn.style.display = 'none'; // Hide new game button for regular rounds
     replayStatus.textContent = '';
 }
 
@@ -468,12 +468,10 @@ function updateGameModeUI(rounds) {
 
 function showGameWinner(data) {
     const title = document.getElementById('result-title');
-    const replayBtn = document.getElementById('replay-btn');
 
     if (data.winner === playerId) {
         title.textContent = "VICTOIRE FINALE ! 🏆";
         title.style.color = "var(--success)";
-        // Trigger confetti or celebration here if available
     } else {
         title.textContent = "DÉFAITE... 😢";
         title.style.color = "var(--danger)";
@@ -488,8 +486,10 @@ function showGameWinner(data) {
     myScoreEl.textContent = myScore;
     opScoreEl.textContent = opScore;
 
-    replayBtn.textContent = 'Nouvelle Partie';
-    replayBtn.disabled = false; // Ensure button is enabled
+    // Show both buttons for final victory
+    replayBtn.textContent = 'Rejouer';
+    replayBtn.disabled = false;
+    newGameBtn.style.display = 'block';
 
     resultOverlay.style.display = 'flex';
 }
