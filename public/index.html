@@ -56,6 +56,32 @@
                 </div>
             </section>
 
+            <!-- Avatar Selection View -->
+            <section id="avatar-selection" class="view">
+                <div class="card">
+                    <h2>Choisis ton Avatar !</h2>
+                    <p class="subtitle">Ou laisse le destin décider...</p>
+
+                    <div class="username-input-container">
+                        <input type="text" id="username-input" placeholder="Ton pseudo" maxlength="15">
+                    </div>
+
+                    <div class="avatar-grid">
+                        <!-- Avatars will be injected here or hardcoded -->
+                        <div class="avatar-option" data-id="1"><img src="/avatars/avatar_1.png" alt="Avatar 1"></div>
+                        <div class="avatar-option" data-id="2"><img src="/avatars/avatar_2.png" alt="Avatar 2"></div>
+                        <div class="avatar-option" data-id="3"><img src="/avatars/avatar_3.png" alt="Avatar 3"></div>
+                        <div class="avatar-option" data-id="4"><img src="/avatars/avatar_4.png" alt="Avatar 4"></div>
+                        <div class="avatar-option" data-id="5"><img src="/avatars/avatar_5.png" alt="Avatar 5"></div>
+                        <div class="avatar-option" data-id="6"><img src="/avatars/avatar_6.png" alt="Avatar 6"></div>
+                        <div class="avatar-option" data-id="7"><img src="/avatars/avatar_7.png" alt="Avatar 7"></div>
+                        <div class="avatar-option" data-id="8"><img src="/avatars/avatar_8.png" alt="Avatar 8"></div>
+                    </div>
+
+                    <button id="random-avatar-btn" class="btn secondary">Aléatoire / Passer</button>
+                </div>
+            </section>
+
             <!-- Lobby View -->
             <section id="lobby" class="view">
                 <div class="card">
@@ -99,6 +125,15 @@
                             <img src="/scissors_user.png" alt="Ciseaux" class="move-icon">
                             <span class="name">Ciseaux</span>
                         </button>
+                    </div>
+                </div>
+
+                <!-- Chat Interface -->
+                <div class="chat-container">
+                    <div class="chat-messages" id="chat-messages"></div>
+                    <div class="chat-input-area">
+                        <input type="text" id="chat-input" placeholder="Message..." maxlength="50">
+                        <button id="chat-send-btn">Envoyer</button>
                     </div>
                 </div>
             </section>

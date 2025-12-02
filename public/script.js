@@ -7,10 +7,16 @@ let playerId = null;
 let currentView = 'home';
 let myScore = 0;
 let opScore = 0;
+let selectedAvatar = null;
+let myAvatar = null;
+let opAvatar = null;
+let myUsername = 'Moi';
+let opUsername = 'Adversaire';
 
 // DOM Elements
 const views = {
     home: document.getElementById('home'),
+    avatarSelection: document.getElementById('avatar-selection'),
     lobby: document.getElementById('lobby'),
     game: document.getElementById('game')
 };
@@ -22,6 +28,9 @@ const opScoreEl = document.getElementById('op-score');
 const choiceBtns = document.querySelectorAll('.choice-btn');
 const replayBtn = document.getElementById('replay-btn');
 const replayStatus = document.getElementById('replay-status');
+const chatInput = document.getElementById('chat-input');
+const chatSendBtn = document.getElementById('chat-send-btn');
+const chatMessages = document.getElementById('chat-messages');
 
 // Helper: Switch View
 function showView(viewName) {
@@ -42,7 +51,9 @@ socket.onopen = () => {
     const pathParts = window.location.pathname.split('/');
     if (pathParts[1] === 'game' && pathParts[2]) {
         const id = pathParts[2];
-        joinGame(id);
+        // Don't join immediately, show avatar selection first
+        document.getElementById('join-input').dataset.pendingJoin = id;
+        showView('avatarSelection');
     }
 };
 
@@ -63,8 +74,19 @@ socket.onmessage = (event) => {
         case 'game_start':
             gameId = data.gameId;
             if (!playerId) playerId = data.playerId;
+
+            // Set avatars
+            myAvatar = data.avatars[playerId];
+            opAvatar = data.avatars[data.opponentId];
+
+            updateGameAvatars();
+            updateUsernames(data.usernames, data.opponentId);
             showView('game');
             setStatus("C'est parti ! Faites votre choix.");
+            break;
+
+        case 'chat_message':
+            addChatMessage(data.senderUsername, data.message, data.senderId === playerId);
             break;
 
         case 'opponent_moved':
@@ -97,18 +119,54 @@ socket.onmessage = (event) => {
 
 // Actions
 document.getElementById('create-btn').addEventListener('click', () => {
-    socket.send(JSON.stringify({ type: 'create_game' }));
+    showView('avatarSelection');
 });
 
 document.getElementById('join-btn').addEventListener('click', () => {
     const input = document.getElementById('join-input').value;
-    // Extract ID from URL if full URL pasted
-    let id = input;
-    if (input.includes('/game/')) {
-        id = input.split('/game/')[1];
+    if (input) {
+        // Store input for later
+        document.getElementById('join-input').dataset.pendingJoin = input;
+        showView('avatarSelection');
     }
-    if (id) joinGame(id);
 });
+
+// Avatar Selection
+document.querySelectorAll('.avatar-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+        document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        selectedAvatar = opt.dataset.id;
+    });
+});
+
+document.getElementById('random-avatar-btn').addEventListener('click', () => {
+    if (!selectedAvatar) {
+        selectedAvatar = Math.floor(Math.random() * 8) + 1;
+    }
+    proceedToGame();
+});
+
+function proceedToGame() {
+    const pendingJoin = document.getElementById('join-input').dataset.pendingJoin;
+
+    if (pendingJoin) {
+        // Join Game
+        let id = pendingJoin;
+        if (pendingJoin.includes('/game/')) {
+            id = pendingJoin.split('/game/')[1];
+        }
+        if (id) joinGame(id);
+    } else {
+        // Create Game
+        const username = document.getElementById('username-input').value.trim() || 'Joueur 1';
+        socket.send(JSON.stringify({
+            type: 'create_game',
+            avatarId: selectedAvatar,
+            username: username
+        }));
+    }
+}
 
 document.getElementById('copy-btn').addEventListener('click', () => {
     const urlInput = document.getElementById('game-url');
@@ -146,10 +204,33 @@ replayBtn.addEventListener('click', () => {
 });
 
 function joinGame(id) {
+    const username = document.getElementById('username-input').value.trim() || 'Joueur 2';
     socket.send(JSON.stringify({
         type: 'join_game',
-        gameId: id
+        gameId: id,
+        avatarId: selectedAvatar || (Math.floor(Math.random() * 8) + 1),
+        username: username
     }));
+}
+
+function updateGameAvatars() {
+    // Inject avatars into score board
+    const myScoreContainer = document.querySelector('#my-score').parentElement;
+    const opScoreContainer = document.querySelector('#op-score').parentElement;
+
+    // Remove existing avatars if any
+    myScoreContainer.querySelectorAll('.player-avatar').forEach(el => el.remove());
+    opScoreContainer.querySelectorAll('.player-avatar').forEach(el => el.remove());
+
+    const myAvatarImg = document.createElement('img');
+    myAvatarImg.src = `/avatars/avatar_${myAvatar}.png`;
+    myAvatarImg.className = 'player-avatar';
+    myScoreContainer.insertBefore(myAvatarImg, myScoreContainer.firstChild);
+
+    const opAvatarImg = document.createElement('img');
+    opAvatarImg.src = `/avatars/avatar_${opAvatar}.png`;
+    opAvatarImg.className = 'player-avatar';
+    opScoreContainer.insertBefore(opAvatarImg, opScoreContainer.firstChild);
 }
 
 function showResult(data) {
@@ -196,6 +277,53 @@ function resetRoundUI() {
     replayBtn.textContent = 'Rejouer';
     replayBtn.disabled = false;
     replayStatus.textContent = '';
+}
+
+// Chat Functions
+function sendChatMessage() {
+    const text = chatInput.value.trim();
+    if (text) {
+        socket.send(JSON.stringify({
+            type: 'chat_message',
+            gameId: gameId,
+            message: text
+        }));
+        // Removed optimistic update to avoid duplication (server broadcasts back)
+        chatInput.value = '';
+    }
+}
+
+chatSendBtn.addEventListener('click', sendChatMessage);
+chatInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendChatMessage();
+});
+
+function addChatMessage(sender, text, isMe) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `chat-message ${isMe ? 'me' : 'opponent'}`;
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'chat-name';
+    nameSpan.textContent = isMe ? 'Moi' : sender;
+
+    const textSpan = document.createElement('span');
+    textSpan.className = 'chat-text';
+    textSpan.textContent = text;
+
+    msgDiv.appendChild(nameSpan);
+    msgDiv.appendChild(textSpan);
+    chatMessages.appendChild(msgDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function updateUsernames(usernames, opponentId) {
+    if (usernames) {
+        myUsername = usernames[playerId];
+        opUsername = usernames[opponentId];
+
+        document.querySelector('#my-score').previousElementSibling.textContent = myUsername; // Was "Vous"
+        document.querySelector('#op-score').previousElementSibling.textContent = opUsername; // Was "Adversaire"
+    }
 }
 
 // Handle URL routing for direct access

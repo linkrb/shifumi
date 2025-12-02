@@ -46,6 +46,8 @@ function handleMessage(ws, data) {
                 players: [ws],
                 moves: {},
                 scores: { [ws.id]: 0 },
+                avatars: { [ws.id]: data.avatarId },
+                usernames: { [ws.id]: data.username || 'Joueur 1' },
                 round: 1
             };
             ws.gameId = gameId;
@@ -61,6 +63,8 @@ function handleMessage(ws, data) {
             if (game && game.players.length < 2) {
                 game.players.push(ws);
                 game.scores[ws.id] = 0;
+                game.avatars[ws.id] = data.avatarId;
+                game.usernames[ws.id] = data.username || 'Joueur 2';
                 ws.gameId = data.gameId;
 
                 // Notify both players
@@ -69,11 +73,28 @@ function handleMessage(ws, data) {
                         type: 'game_start',
                         gameId: game.id,
                         playerId: player.id,
-                        opponentId: game.players.find(p => p.id !== player.id).id
+                        opponentId: game.players.find(p => p.id !== player.id).id,
+                        avatars: game.avatars,
+                        usernames: game.usernames
                     }));
                 });
             } else {
                 ws.send(JSON.stringify({ type: 'error', message: 'Game not found or full' }));
+            }
+            break;
+
+        case 'chat_message':
+            const chatGame = games[ws.gameId];
+            if (chatGame) {
+                const senderUsername = chatGame.usernames[ws.id];
+                chatGame.players.forEach(player => {
+                    player.send(JSON.stringify({
+                        type: 'chat_message',
+                        senderId: ws.id,
+                        senderUsername: senderUsername,
+                        message: data.message
+                    }));
+                });
             }
             break;
 
