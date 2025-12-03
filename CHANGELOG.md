@@ -7,6 +7,13 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+## [1.3.0] - 2025-12-03
+
+### Ajouté
+- **Célébration de Victoire** : Pluie de confettis lorsqu'un joueur remporte la victoire finale ! 🎉
+- **Réactions Rapides (Emotes)** : Barre d'émojis flottants (👍, 😂, 😱, 😡, 👏) pour réagir en direct pendant la partie.
+- **Animations** : Les émojis flottent et disparaissent gracieusement sur l'écran des deux joueurs.
+
 ## [1.2.0] - 2025-12-02
 
 ### Ajouté

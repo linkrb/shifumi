@@ -118,6 +118,19 @@ function handleMessage(ws, data) {
             }
             break;
 
+        case 'send_emote':
+            const emoteGame = games[ws.gameId];
+            if (emoteGame) {
+                emoteGame.players.forEach(player => {
+                    safeSend(player, {
+                        type: 'emote_received',
+                        senderId: ws.id,
+                        emote: data.emote
+                    });
+                });
+            }
+            break;
+
         case 'make_move':
             const activeGame = games[ws.gameId];
             if (activeGame) {

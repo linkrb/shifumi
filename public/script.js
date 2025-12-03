@@ -117,6 +117,12 @@ socket.onmessage = (event) => {
             addChatMessage(data.senderUsername, data.message, data.senderId === playerId);
             break;
 
+        case 'emote_received':
+            if (data.senderId !== playerId) {
+                showFloatingEmote(data.emote, false);
+            }
+            break;
+
         case 'opponent_moved':
             setStatus("L'adversaire a joué. À vous !");
             break;
@@ -437,6 +443,39 @@ function addChatMessage(sender, text, isMe) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
+// Emote Functions
+document.querySelectorAll('.emote-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const emote = btn.dataset.emote;
+        socket.send(JSON.stringify({
+            type: 'send_emote',
+            gameId: gameId,
+            emote: emote
+        }));
+        // Show local feedback immediately
+        showFloatingEmote(emote, true);
+    });
+});
+
+function showFloatingEmote(emote, isMe) {
+    const el = document.createElement('div');
+    el.textContent = emote;
+    el.className = 'floating-emote';
+
+    // Randomize position slightly
+    const randomX = (Math.random() - 0.5) * 100; // -50 to +50 px
+    const startX = isMe ? '70%' : '30%'; // Right side for me, left for opponent
+
+    el.style.left = `calc(${startX} + ${randomX}px)`;
+
+    document.body.appendChild(el);
+
+    // Remove after animation
+    setTimeout(() => {
+        el.remove();
+    }, 3000);
+}
+
 function updateUsernames(usernames, opponentId) {
     if (usernames) {
         myUsername = usernames[playerId];
@@ -472,6 +511,12 @@ function showGameWinner(data) {
     if (data.winner === playerId) {
         title.textContent = "VICTOIRE FINALE ! 🏆";
         title.style.color = "var(--success)";
+        // Trigger Confetti
+        confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 }
+        });
     } else {
         title.textContent = "DÉFAITE... 😢";
         title.style.color = "var(--danger)";
