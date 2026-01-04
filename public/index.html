@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shifumi Online</title>
+    <title>Kawaii Clash</title>
     <link rel="stylesheet" href="/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
@@ -28,7 +28,7 @@
     </div>
     <div class="container">
         <header>
-            <h1>Shifumi Online</h1>
+            <h1>Kawaii Clash</h1>
         </header>
 
         <!-- Hero Section - Always visible -->
@@ -63,7 +63,7 @@
 
                     <div class="avatar-grid">
                         <!-- Avatars will be injected here or hardcoded -->
-                        <div class="avatar-option" data-id="1"><img src="/avatars/avatar_1.png" alt="Avatar 1"></div>
+                        <div class="avatar-option" data-id="1"><img src="/avatars/fox.png" alt="Fox"></div>
                         <div class="avatar-option" data-id="2"><img src="/avatars/avatar_2.png" alt="Avatar 2"></div>
                         <div class="avatar-option" data-id="3"><img src="/avatars/avatar_3.png" alt="Avatar 3"></div>
                         <div class="avatar-option" data-id="4"><img src="/avatars/avatar_4.png" alt="Avatar 4"></div>
@@ -73,8 +73,37 @@
                         <div class="avatar-option" data-id="8"><img src="/avatars/avatar_8.png" alt="Avatar 8"></div>
                     </div>
 
-                    <!-- Win Rounds Selection (only visible when creating game) -->
-                    <div id="win-rounds-section" class="win-rounds-section" style="display: none;">
+
+
+                    <button id="random-avatar-btn" class="btn secondary">Aléatoire / Passer</button>
+                </div>
+            </section>
+
+            <!-- Game Selection View (New) -->
+            <section id="game-selection" class="view">
+                <div class="card">
+                    <h2>À quoi on joue ?</h2>
+                    <p class="subtitle">Choisis ton champ de bataille</p>
+
+                    <div class="game-options">
+                        <div class="game-option" data-game="shifumi">
+                            <div class="game-icon">
+                                <img src="/shifumi-select.png" alt="Shifumi Icon">
+                            </div>
+                            <h3>Shifumi</h3>
+                            <p>Le classique indémodable</p>
+                        </div>
+                        <div class="game-option" data-game="morpion">
+                            <div class="game-icon">
+                                <img src="/morpion-select.png" alt="Morpion Icon">
+                            </div>
+                            <h3>Morpion</h3>
+                            <p>Alignes-en 3 pour gagner</p>
+                        </div>
+                    </div>
+
+                    <!-- Win Rounds Selection (Moved) -->
+                    <div id="win-rounds-section" class="win-rounds-section">
                         <h3 class="win-rounds-title">Nombre de manches</h3>
                         <div class="win-rounds-options">
                             <div class="win-round-option" data-rounds="1">
@@ -92,7 +121,7 @@
                         </div>
                     </div>
 
-                    <button id="random-avatar-btn" class="btn secondary">Aléatoire / Passer</button>
+                    <button id="start-game-btn" class="btn primary" style="margin-top: 30px;">C'est parti !</button>
                 </div>
             </section>
 
@@ -152,21 +181,40 @@
                 <div class="game-area">
                     <div class="status-message" id="status-msg">À vous de jouer !</div>
 
-                    <div class="choices">
-                        <button class="choice-btn" data-move="rock">
-                            <img src="/rock_user.png" alt="Pierre" class="move-icon">
-                            <span class="name">Pierre</span>
-                        </button>
-                        <button class="choice-btn" data-move="paper">
-                            <img src="/paper_user.png" alt="Feuille" class="move-icon">
-                            <span class="name">Feuille</span>
-                        </button>
-                        <button class="choice-btn" data-move="scissors">
-                            <img src="/scissors_user.png" alt="Ciseaux" class="move-icon">
-                            <span class="name">Ciseaux</span>
-                        </button>
-                    </div>
                 </div>
+
+                <!-- Morpion Area -->
+                <div id="morpion-area" class="game-board-container" style="display: none;">
+                    <div class="morpion-grid">
+                        <div class="cell" data-index="0"></div>
+                        <div class="cell" data-index="1"></div>
+                        <div class="cell" data-index="2"></div>
+                        <div class="cell" data-index="3"></div>
+                        <div class="cell" data-index="4"></div>
+                        <div class="cell" data-index="5"></div>
+                        <div class="cell" data-index="6"></div>
+                        <div class="cell" data-index="7"></div>
+                        <div class="cell" data-index="8"></div>
+                    </div>
+                    <div id="turn-indicator" class="turn-indicator">En attente...</div>
+                </div>
+
+                <!-- Shifumi Area -->
+                <div id="shifumi-area" class="choices">
+                    <button class="choice-btn" data-move="rock">
+                        <img src="/rock_user.png" alt="Pierre" class="move-icon">
+                        <span class="name">Pierre</span>
+                    </button>
+                    <button class="choice-btn" data-move="paper">
+                        <img src="/paper_user.png" alt="Feuille" class="move-icon">
+                        <span class="name">Feuille</span>
+                    </button>
+                    <button class="choice-btn" data-move="scissors">
+                        <img src="/scissors_user.png" alt="Ciseaux" class="move-icon">
+                        <span class="name">Ciseaux</span>
+                    </button>
+                </div>
+
 
                 <!-- Chat Interface -->
                 <div class="chat-container">

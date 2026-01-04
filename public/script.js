@@ -15,11 +15,14 @@ let opUsername = 'Adversaire';
 let selectedWinRounds = 3; // Default: best of 3
 let gameWinRounds = 3; // Actual game win rounds
 let isCreatingGame = false; // Track if creating or joining
+let currentGameType = 'shifumi'; // 'shifumi' or 'morpion'
+let isMyTurn = false; // For Morpion
 
 // DOM Elements
 const views = {
     home: document.getElementById('home'),
     avatarSelection: document.getElementById('avatar-selection'),
+    gameSelection: document.getElementById('game-selection'),
     lobby: document.getElementById('lobby'),
     game: document.getElementById('game')
 };
@@ -35,6 +38,12 @@ const replayStatus = document.getElementById('replay-status');
 const chatInput = document.getElementById('chat-input');
 const chatSendBtn = document.getElementById('chat-send-btn');
 const chatMessages = document.getElementById('chat-messages');
+
+// Morpion Elements
+const morpionArea = document.getElementById('morpion-area');
+const shifumiArea = document.getElementById('shifumi-area');
+const morpionCells = document.querySelectorAll('.cell');
+const turnIndicator = document.getElementById('turn-indicator');
 
 // Message Modal Elements
 const messageModal = document.getElementById('message-modal');
@@ -89,6 +98,7 @@ socket.onmessage = (event) => {
         case 'game_created':
             gameId = data.gameId;
             playerId = data.playerId;
+            currentGameType = data.gameType;
             document.getElementById('game-url').value = `${window.location.origin}/game/${gameId}`;
             showView('lobby');
             // Update URL without reload
@@ -97,11 +107,15 @@ socket.onmessage = (event) => {
 
         case 'game_start':
             gameId = data.gameId;
-            if (!playerId) playerId = data.playerId;
+            if (!playerId) playerId = data.playerId; // For joiner
 
             // Set game settings
             gameWinRounds = data.winRounds;
+            currentGameType = data.gameType;
+            isMyTurn = (data.turn === playerId);
+
             updateGameModeUI(gameWinRounds);
+            setupGameUI(currentGameType);
 
             // Set avatars
             myAvatar = data.avatars[playerId];
@@ -110,7 +124,13 @@ socket.onmessage = (event) => {
             updateGameAvatars();
             updateUsernames(data.usernames, data.opponentId);
             showView('game');
-            setStatus("C'est parti ! Faites votre choix.");
+
+            if (currentGameType === 'morpion') {
+                updateTurnIndicator();
+                setStatus("La partie commence !");
+            } else {
+                setStatus("C'est parti ! Faites votre choix.");
+            }
             break;
 
         case 'chat_message':
@@ -124,11 +144,25 @@ socket.onmessage = (event) => {
             break;
 
         case 'opponent_moved':
-            setStatus("L'adversaire a joué. À vous !");
+            // Only for Shifumi really, but safe to ignore for Morpion as board updates come separate
+            if (currentGameType === 'shifumi') {
+                setStatus("L'adversaire a joué. À vous !");
+            }
+            break;
+
+        case 'morpion_update':
+            updateMorpionBoard(data.board);
+            isMyTurn = (data.turn === playerId);
+            updateTurnIndicator();
             break;
 
         case 'round_result':
             showResult(data);
+            if (currentGameType === 'morpion' && data.winner !== undefined) {
+                // Update board one last time to ensure sync (e.g. if winner move)
+                if (data.board) updateMorpionBoard(data.board);
+                isMyTurn = false; // Stop input
+            }
             break;
 
         case 'game_won':
@@ -137,6 +171,12 @@ socket.onmessage = (event) => {
 
         case 'new_round':
             resetRoundUI();
+            if (currentGameType === 'morpion') {
+                isMyTurn = (data.turn === playerId);
+                updateTurnIndicator();
+                resetMorpionBoard();
+                setStatus("Nouvelle manche !");
+            }
             break;
 
         case 'opponent_wants_replay':
@@ -199,29 +239,64 @@ document.getElementById('random-avatar-btn').addEventListener('click', () => {
     if (!selectedAvatar) {
         selectedAvatar = Math.floor(Math.random() * 8) + 1;
     }
-    proceedToGame();
+    proceedToGameSelection();
 });
 
-function proceedToGame() {
+// Game Type Selection
+document.querySelectorAll('.game-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+        document.querySelectorAll('.game-option').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        currentGameType = opt.dataset.game;
+        // Optional: Provide visual feedback? The 'selected' class handles it.
+    });
+});
+
+document.getElementById('start-game-btn').addEventListener('click', () => {
+    // If no game type selected, maybe default or shake?
+    if (!currentGameType) {
+        // Select Shifumi by default if not selected?
+        // Or default was already set.
+        // Let's ensure one is visually selected.
+        currentGameType = 'shifumi';
+    }
+    createGame(currentGameType);
+});
+
+
+function proceedToGameSelection() {
     const pendingJoin = document.getElementById('join-input').dataset.pendingJoin;
 
     if (pendingJoin) {
-        // Join Game
+        // Joining: Skip Game selection, join directly
         let id = pendingJoin;
         if (pendingJoin.includes('/game/')) {
             id = pendingJoin.split('/game/')[1];
         }
         if (id) joinGame(id);
     } else {
-        // Create Game
-        const username = document.getElementById('username-input').value.trim() || 'Joueur 1';
-        socket.send(JSON.stringify({
-            type: 'create_game',
-            avatarId: selectedAvatar,
-            username: username,
-            winRounds: selectedWinRounds
-        }));
+        // Creating: Show Game Selection
+        // Pre-select Shifumi by default
+        if (!currentGameType) currentGameType = 'shifumi';
+        document.querySelectorAll('.game-option').forEach(o => o.classList.remove('selected'));
+        document.querySelector(`.game-option[data-game="${currentGameType}"]`).classList.add('selected');
+
+        // Show Win Rounds (it's now on this screen)
+        // document.getElementById('win-rounds-section').style.display = 'block'; // Should be always visible in this view now
+
+        showView('gameSelection');
     }
+}
+
+function createGame(type) {
+    const username = document.getElementById('username-input').value.trim() || 'Joueur 1';
+    socket.send(JSON.stringify({
+        type: 'create_game',
+        avatarId: selectedAvatar,
+        username: username,
+        winRounds: selectedWinRounds,
+        gameType: type
+    }));
 }
 
 // Copy Button with modern Clipboard API
@@ -264,20 +339,17 @@ document.getElementById('share-btn').addEventListener('click', async () => {
     if (navigator.share) {
         try {
             await navigator.share({
-                title: 'Shifumi Online',
-                text: 'Rejoins-moi pour une partie de Shifumi !',
+                title: 'Kawaii Clash',
+                text: 'Rejoins-moi pour une partie !',
                 url: url
             });
         } catch (err) {
-            // User cancelled or error occurred
             if (err.name !== 'AbortError') {
                 console.error('Share failed:', err);
-                // Fallback: copy to clipboard
                 copyToClipboard(url);
             }
         }
     } else {
-        // Fallback for browsers without Web Share API
         copyToClipboard(url);
     }
 });
@@ -298,7 +370,7 @@ function copyToClipboard(text) {
     });
 }
 
-
+// Shifumi Logic
 choiceBtns.forEach(btn => {
     btn.addEventListener('click', () => {
         // Deselect others
@@ -313,8 +385,128 @@ choiceBtns.forEach(btn => {
         }));
 
         setStatus("Choix envoyé. En attente de l'adversaire...");
+
+        // Trigger combat animation if available
+        const myAvatarImg = document.querySelector('#my-score').parentElement.querySelector('.player-avatar');
+        if (myAvatarImg) {
+            const combatSrc = getAvatarPath(myAvatar, 'combat');
+            if (combatSrc) {
+                myAvatarImg.src = combatSrc;
+            }
+        }
     });
 });
+
+// Morpion Logic
+morpionCells.forEach(cell => {
+    cell.addEventListener('click', () => {
+        if (!isMyTurn) {
+            // Visual feedback that it's not turn
+            shakeElement(turnIndicator);
+            return;
+        }
+        if (cell.classList.contains('taken')) return;
+
+        const index = parseInt(cell.dataset.index);
+
+        // Optimistic update? No, let's wait for server to allow it to keep sync clean
+        // Or yes for responsiveness? 
+        // Let's send it.
+        socket.send(JSON.stringify({
+            type: 'make_move',
+            gameId: gameId,
+            move: index
+        }));
+    });
+});
+
+function updateMorpionBoard(board) {
+    board.forEach((val, idx) => {
+        const cell = document.querySelector(`.cell[data-index="${idx}"]`);
+        if (val) {
+            cell.classList.add('taken');
+            // Check if it's me or opponent
+            if (val === playerId) {
+                cell.classList.add('x'); // Assuming Creator/Me is X style, Opponent O style or vice versa. 
+                // Wait, X and O is universal. 
+                // Let's assume Player 1 (creator) is X, Player 2 is O.
+                // But we don't know who is P1 easily in frontend without passing it. 
+                // Let's just use "myself = Blue/X", "opponent = Red/O" ? 
+                // Or simplified: Just render X or O based on ID.
+                // We need consistent X/O assignment.
+                // Let's rely on server for symbol? Or just assign consistent symbols.
+                // Simplified: if val == me -> 'X' (or check ID order).
+                // Actually server doesn't send "X" or "O", sends ID.
+                // We can't consistently assign X/O without knowing who is P1/P2.
+                // Hack: Use 'x' and 'o' classes based on whether it equals *my* ID or not?
+                // No, that would swap symbols on each screen.
+                // We need stable symbols.
+                // Ideally server sends Board as ['X', 'O', null].
+                // But server sends [clientID1, clientID2, null].
+                // We can determine P1 vs P2?
+                // Let's just make "Me" always Blue (X) and "Them" always Red (O) for local view? 
+                // That's confusing if we talk about "Put X there".
+                // Let's try to infer from data. 
+                // Just using 'x' class for me, 'o' class for opponent for now. 
+
+                if (val === playerId) {
+                    cell.textContent = 'X';
+                    cell.classList.add('x');
+                } else {
+                    cell.textContent = 'O';
+                    cell.classList.add('o');
+                }
+            } else {
+                // Opponent
+                if (val === playerId) { // Logic error in copy paste above
+                    // Should match ID
+                }
+                // Correct logic:
+                if (val === playerId) {
+                    cell.textContent = 'X';
+                    cell.classList.add('x');
+                } else {
+                    cell.textContent = 'O';
+                    cell.classList.add('o');
+                }
+            }
+        }
+    });
+}
+// Correction for X/O consistency: 
+// To make it truly consistent (P1 always X, P2 always O), we need to know if we are P1 or P2.
+// But we didn't store that. 
+// For now, "Me = X" is fine for gameplay feeling.
+
+function updateTurnIndicator() {
+    if (currentGameType !== 'morpion') return;
+
+    if (isMyTurn) {
+        turnIndicator.textContent = "C'est à votre tour ! (X)";
+        turnIndicator.style.color = "var(--cyan)";
+        turnIndicator.style.border = "2px solid var(--cyan)";
+    } else {
+        turnIndicator.textContent = "Tour de l'adversaire (O)";
+        turnIndicator.style.color = "var(--pink)";
+        turnIndicator.style.border = "2px solid var(--pink)";
+    }
+}
+
+function resetMorpionBoard() {
+    morpionCells.forEach(cell => {
+        cell.className = 'cell';
+        cell.textContent = '';
+    });
+}
+
+function shakeElement(el) {
+    el.classList.add('shake'); // Need to add shake keyframes if not exists, but simple feedback is fine
+    el.style.transform = "translateX(5px)";
+    setTimeout(() => { el.style.transform = "translateX(-5px)"; }, 50);
+    setTimeout(() => { el.style.transform = "translateX(5px)"; }, 100);
+    setTimeout(() => { el.style.transform = "translateX(0)"; }, 150);
+}
+
 
 replayBtn.addEventListener('click', () => {
     socket.send(JSON.stringify({
@@ -339,6 +531,19 @@ function joinGame(id) {
     }));
 }
 
+function setupGameUI(type) {
+    if (type === 'morpion') {
+        shifumiArea.style.display = 'none';
+        morpionArea.style.display = 'flex';
+        // Hide standard status msg for morpion as we have turn indicator
+        // statusMsg.style.display = 'none'; // Optional
+    } else {
+        shifumiArea.style.display = 'flex';
+        morpionArea.style.display = 'none';
+        // statusMsg.style.display = 'block';
+    }
+}
+
 function updateGameAvatars() {
     // Inject avatars into score board
     const myScoreContainer = document.querySelector('#my-score').parentElement;
@@ -349,43 +554,67 @@ function updateGameAvatars() {
     opScoreContainer.querySelectorAll('.player-avatar').forEach(el => el.remove());
 
     const myAvatarImg = document.createElement('img');
-    myAvatarImg.src = `/avatars/avatar_${myAvatar}.png`;
+    myAvatarImg.src = getAvatarPath(myAvatar, 'static');
     myAvatarImg.className = 'player-avatar';
     myScoreContainer.insertBefore(myAvatarImg, myScoreContainer.firstChild);
 
     const opAvatarImg = document.createElement('img');
-    opAvatarImg.src = `/avatars/avatar_${opAvatar}.png`;
+    opAvatarImg.src = getAvatarPath(opAvatar, 'static');
     opAvatarImg.className = 'player-avatar';
     opScoreContainer.insertBefore(opAvatarImg, opScoreContainer.firstChild);
 }
 
+function getAvatarPath(id, type = 'static') {
+    // Special case for Fox (Avatar 1)
+    if (id == 1) {
+        if (type === 'combat') return '/avatars/fox_combat.gif';
+        return '/avatars/fox.png';
+    }
+    // Default
+    if (type === 'combat') return null;
+    return `/avatars/avatar_${id}.png`;
+}
+
 function showResult(data) {
-    const myMove = data.moves[playerId];
-    const opId = Object.keys(data.moves).find(id => id !== playerId);
-    const opMove = data.moves[opId];
+    // Differentiate result display for Shifumi vs Morpion?
+    const movesDisplay = document.querySelector('.moves-display');
+    if (currentGameType === 'shifumi') {
+        movesDisplay.style.display = 'flex';
+        const myMove = data.moves[playerId];
+        const opId = Object.keys(data.moves).find(id => id !== playerId);
+        const opMove = data.moves[opId];
 
-    const assets = {
-        rock: '/rock_user.png',
-        paper: '/paper_user.png',
-        scissors: '/scissors_user.png'
-    };
+        const assets = {
+            rock: '/rock_user.png',
+            paper: '/paper_user.png',
+            scissors: '/scissors_user.png'
+        };
 
-    document.getElementById('my-move-display').innerHTML = `<img src="${assets[myMove]}" alt="${myMove}" class="move-display-icon">`;
-    document.getElementById('op-move-display').innerHTML = `<img src="${assets[opMove]}" alt="${opMove}" class="move-display-icon">`;
+        document.getElementById('my-move-display').innerHTML = `<img src="${assets[myMove]}" alt="${myMove}" class="move-display-icon">`;
+        document.getElementById('op-move-display').innerHTML = `<img src="${assets[opMove]}" alt="${opMove}" class="move-display-icon">`;
+    } else {
+        // Morpion Result
+        // Hide the move display area entirely as it's irrelevant
+        movesDisplay.style.display = 'none';
+        document.getElementById('my-move-display').innerHTML = '';
+        document.getElementById('op-move-display').innerHTML = '';
+    }
 
     const title = document.getElementById('result-title');
     if (data.winner === playerId) {
-        title.textContent = "Vous avez gagné ! 🎉";
+        title.textContent = "Manche gagnée ! 🎉";
         title.style.color = "var(--success)";
     } else if (data.winner === null) {
         title.textContent = "Égalité ! 🤝";
         title.style.color = "var(--warning)";
     } else {
-        title.textContent = "Perdu... 😢";
+        title.textContent = "Manche perdue... 😢";
         title.style.color = "var(--danger)";
     }
 
     // Update scores
+    // Find opponent ID again
+    const opId = Object.keys(data.scores).find(id => id !== playerId);
     myScore = data.scores[playerId];
     opScore = data.scores[opId];
     myScoreEl.textContent = myScore;
@@ -399,11 +628,18 @@ function showResult(data) {
 function resetRoundUI() {
     resultOverlay.style.display = 'none';
     choiceBtns.forEach(b => b.classList.remove('selected'));
-    setStatus("Nouvelle manche ! Faites votre choix.");
+
+    if (currentGameType === 'shifumi') {
+        setStatus("Nouvelle manche ! Choisissez.");
+    }
+
     replayBtn.textContent = 'Rejouer';
     replayBtn.disabled = false;
-    newGameBtn.style.display = 'none'; // Hide new game button for regular rounds
+    newGameBtn.style.display = 'none';
     replayStatus.textContent = '';
+
+    // Reset avatars to static state
+    updateGameAvatars();
 }
 
 // Chat Functions
@@ -415,7 +651,6 @@ function sendChatMessage() {
             gameId: gameId,
             message: text
         }));
-        // Removed optimistic update to avoid duplication (server broadcasts back)
         chatInput.value = '';
     }
 }
@@ -452,7 +687,6 @@ document.querySelectorAll('.emote-btn').forEach(btn => {
             gameId: gameId,
             emote: emote
         }));
-        // Show local feedback immediately
         showFloatingEmote(emote, true);
     });
 });
@@ -462,15 +696,13 @@ function showFloatingEmote(emote, isMe) {
     el.textContent = emote;
     el.className = 'floating-emote';
 
-    // Randomize position slightly
-    const randomX = (Math.random() - 0.5) * 100; // -50 to +50 px
-    const startX = isMe ? '70%' : '30%'; // Right side for me, left for opponent
+    const randomX = (Math.random() - 0.5) * 100;
+    const startX = isMe ? '70%' : '30%';
 
     el.style.left = `calc(${startX} + ${randomX}px)`;
 
     document.body.appendChild(el);
 
-    // Remove after animation
     setTimeout(() => {
         el.remove();
     }, 3000);
@@ -481,8 +713,8 @@ function updateUsernames(usernames, opponentId) {
         myUsername = usernames[playerId];
         opUsername = usernames[opponentId];
 
-        document.querySelector('#my-score').previousElementSibling.textContent = myUsername; // Was "Vous"
-        document.querySelector('#op-score').previousElementSibling.textContent = opUsername; // Was "Adversaire"
+        document.querySelector('#my-score').previousElementSibling.textContent = myUsername;
+        document.querySelector('#op-score').previousElementSibling.textContent = opUsername;
     }
 }
 
@@ -496,7 +728,7 @@ function updateGameModeUI(rounds) {
     const icon = document.getElementById('mode-icon');
     const progress = document.getElementById('mode-progress');
 
-    if (!rounds) { // Handle null or 0
+    if (!rounds) {
         icon.textContent = '∞';
         progress.textContent = 'Sans limite';
     } else {
@@ -511,7 +743,6 @@ function showGameWinner(data) {
     if (data.winner === playerId) {
         title.textContent = "VICTOIRE FINALE ! 🏆";
         title.style.color = "var(--success)";
-        // Trigger Confetti
         confetti({
             particleCount: 150,
             spread: 70,
@@ -525,13 +756,12 @@ function showGameWinner(data) {
     document.getElementById('my-move-display').innerHTML = '';
     document.getElementById('op-move-display').innerHTML = '';
 
-    // Update scores one last time
+    const opId = Object.keys(data.scores).find(id => id !== playerId);
     myScore = data.scores[playerId];
-    opScore = data.scores[data.opponentId];
+    opScore = data.scores[opId];
     myScoreEl.textContent = myScore;
     opScoreEl.textContent = opScore;
 
-    // Show both buttons for final victory
     replayBtn.textContent = 'Rejouer';
     replayBtn.disabled = false;
     newGameBtn.style.display = 'block';

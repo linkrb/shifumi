@@ -1,4 +1,4 @@
-# Shifumi Online
+# Kawaii Clash
 
 Une application web moderne et responsive pour jouer au Pierre-Feuille-Ciseaux en temps réel.
 

@@ -52,17 +52,21 @@ function handleMessage(ws, data) {
     switch (data.type) {
         case 'create_game':
             const gameId = uuidv4().slice(0, 8).toUpperCase();
-            // Validate winRounds (allow 1, 3, or null/undefined for no limit)
-            // ParseInt ensures "3" becomes 3.
+            // Validate winRounds
             let winRounds = parseInt(data.winRounds);
             if (winRounds !== 1 && winRounds !== 3) {
-                winRounds = null; // Default to no limit if invalid or not provided
+                winRounds = null;
             }
+
+            const gameType = data.gameType || 'shifumi'; // Default to shifumi
 
             games[gameId] = {
                 id: gameId,
+                gameType: gameType,
                 players: [ws],
-                moves: {},
+                moves: {}, // For Shifumi
+                board: Array(9).fill(null), // For Morpion
+                turn: ws.id, // For Morpion (creator starts)
                 scores: { [ws.id]: 0 },
                 avatars: { [ws.id]: data.avatarId },
                 usernames: { [ws.id]: data.username || 'Joueur 1' },
@@ -73,13 +77,17 @@ function handleMessage(ws, data) {
             safeSend(ws, {
                 type: 'game_created',
                 gameId: gameId,
-                playerId: ws.id
+                playerId: ws.id,
+                gameType: gameType
             });
             break;
 
         case 'join_game':
             const game = games[data.gameId];
             if (game && game.players.length < 2) {
+                // Determine if joining player is compatible (though usually they just join by ID)
+                // In this case, they accept the gameType of the room.
+
                 game.players.push(ws);
                 game.scores[ws.id] = 0;
                 game.avatars[ws.id] = data.avatarId;
@@ -91,18 +99,21 @@ function handleMessage(ws, data) {
                     safeSend(player, {
                         type: 'game_start',
                         gameId: game.id,
+                        gameType: game.gameType,
                         playerId: player.id,
                         opponentId: game.players.find(p => p.id !== player.id).id,
                         avatars: game.avatars,
                         usernames: game.usernames,
-                        winRounds: game.winRounds
+                        winRounds: game.winRounds,
+                        turn: game.turn // Send whose turn it is
                     });
                 });
             } else {
-                safeSend(ws, { type: 'error', message: 'Game not found or full' });
+                safeSend(ws, { type: 'error', message: 'Partie introuvable ou complète' });
             }
             break;
 
+        // ... chat and emote handlers remain the same ...
         case 'chat_message':
             const chatGame = games[ws.gameId];
             if (chatGame) {
@@ -134,17 +145,70 @@ function handleMessage(ws, data) {
         case 'make_move':
             const activeGame = games[ws.gameId];
             if (activeGame) {
-                activeGame.moves[ws.id] = data.move;
+                if (activeGame.gameType === 'morpion') {
+                    // MORPION LOGIC
+                    if (activeGame.turn !== ws.id) return; // Not your turn
 
-                // Notify opponent that a move was made (without revealing it)
-                const opponent = activeGame.players.find(p => p.id !== ws.id);
-                if (opponent) {
-                    safeSend(opponent, { type: 'opponent_moved' });
-                }
+                    const index = data.move; // 0-8
+                    if (activeGame.board[index] === null) {
+                        activeGame.board[index] = ws.id;
 
-                // Check if both players moved
-                if (Object.keys(activeGame.moves).length === 2) {
-                    resolveRound(activeGame);
+                        // Check win
+                        const winner = checkMorpionWin(activeGame.board);
+
+                        // Notify update
+                        activeGame.players.forEach(p => {
+                            safeSend(p, {
+                                type: 'morpion_update',
+                                board: activeGame.board,
+                                lastMove: index,
+                                turn: activeGame.players.find(pl => pl.id !== ws.id).id // Switch turn
+                            });
+                        });
+
+                        if (winner) {
+                            // Winner found
+                            activeGame.scores[winner]++;
+                            activeGame.gameWon = true; // Instant win for Morpion usually? Or rounds? 
+                            // Using standard round resolution for consistency
+                            const result = {
+                                type: 'round_result',
+                                winner: winner,
+                                scores: activeGame.scores,
+                                board: activeGame.board
+                            };
+                            activeGame.players.forEach(player => safeSend(player, result));
+                            checkGameWin(activeGame, winner);
+
+                        } else if (!activeGame.board.includes(null)) {
+                            // Draw
+                            const result = {
+                                type: 'round_result',
+                                winner: null,
+                                scores: activeGame.scores,
+                                board: activeGame.board
+                            };
+                            activeGame.players.forEach(player => safeSend(player, result));
+                        } else {
+                            // Switch turn locally
+                            activeGame.turn = activeGame.players.find(p => p.id !== ws.id).id;
+                        }
+                    }
+
+                } else {
+                    // SHIFUMI LOGIC
+                    activeGame.moves[ws.id] = data.move;
+
+                    // Notify opponent that a move was made (without revealing it)
+                    const opponent = activeGame.players.find(p => p.id !== ws.id);
+                    if (opponent) {
+                        safeSend(opponent, { type: 'opponent_moved' });
+                    }
+
+                    // Check if both players moved
+                    if (Object.keys(activeGame.moves).length === 2) {
+                        resolveShifumiRound(activeGame);
+                    }
                 }
             }
             break;
@@ -157,6 +221,7 @@ function handleMessage(ws, data) {
 
                 if (restartGame.wantsRestart.size === 2) {
                     restartGame.moves = {};
+                    restartGame.board = Array(9).fill(null); // Reset board
                     restartGame.wantsRestart.clear();
                     restartGame.round++;
 
@@ -164,11 +229,28 @@ function handleMessage(ws, data) {
                     if (restartGame.gameWon) {
                         Object.keys(restartGame.scores).forEach(pid => restartGame.scores[pid] = 0);
                         restartGame.gameWon = false;
-                        restartGame.round = 1; // Reset round count too
+                        restartGame.round = 1;
                     }
 
+                    // Randomize start turn for Morpion or keep loser starts? Let's just swap or keep creator? 
+                    // Simple: Creator always starts round 1, maybe swap for next rounds? 
+                    // Let's swap start turn for fairness logic if updated, but for now keep it simple or swap
+                    if (restartGame.gameType === 'morpion') {
+                        // Swap turn logic: whoever didn't start last time? 
+                        // Or just random. currently defaults to creator in object init.
+                        // Let's set it to the winner of previous? Or loser? 
+                        // We will just set it to players[0] for simplicity or current logic.
+                        // Ideally: restartGame.turn = restartGame.players[ (restartGame.round % 2) ].id;
+                        restartGame.turn = restartGame.players[(restartGame.round % 2)].id; // Swap starter
+                    }
+
+
                     restartGame.players.forEach(player => {
-                        safeSend(player, { type: 'new_round', round: restartGame.round });
+                        safeSend(player, {
+                            type: 'new_round',
+                            round: restartGame.round,
+                            turn: restartGame.turn // Important for Morpion
+                        });
                     });
                 } else {
                     const opponentRestart = restartGame.players.find(p => p.id !== ws.id);
@@ -181,13 +263,13 @@ function handleMessage(ws, data) {
     }
 }
 
-function resolveRound(game) {
+function resolveShifumiRound(game) {
     const p1 = game.players[0];
     const p2 = game.players[1];
     const m1 = game.moves[p1.id];
     const m2 = game.moves[p2.id];
 
-    let winner = null; // null = draw, p1.id, or p2.id
+    let winner = null;
 
     if (m1 !== m2) {
         if (
@@ -212,7 +294,25 @@ function resolveRound(game) {
 
     game.players.forEach(player => safeSend(player, result));
 
-    // Check for game winner if winRounds is set
+    checkGameWin(game, winner);
+}
+
+function checkMorpionWin(board) {
+    const lines = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // Cols
+        [0, 4, 8], [2, 4, 6]             // Diagonals
+    ];
+
+    for (const [a, b, c] of lines) {
+        if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+            return board[a];
+        }
+    }
+    return null;
+}
+
+function checkGameWin(game, winner) {
     if (game.winRounds && winner) {
         if (game.scores[winner] >= game.winRounds) {
             game.gameWon = true;
@@ -223,7 +323,7 @@ function resolveRound(game) {
             };
             setTimeout(() => {
                 game.players.forEach(player => safeSend(player, gameResult));
-            }, 1500); // Delay slightly after round result
+            }, 1000);
         }
     }
 }

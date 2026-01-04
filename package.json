@@ -1,7 +1,7 @@
 {
-  "name": "shifumi-app",
-  "version": "1.2.0",
-  "description": "Real-time Rock-Paper-Scissors game",
+  "name": "kawaii-clash",
+  "version": "1.3.0",
+  "description": "Real-time Multiplayer Arcade Game",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
