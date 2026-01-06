@@ -50,6 +50,18 @@ const puissance4Area = document.getElementById('puissance4-area');
 const p4Cells = document.querySelectorAll('.p4-cell');
 const p4TurnIndicator = document.getElementById('p4-turn-indicator');
 
+// Chess Elements
+const chessArea = document.getElementById('chess-area');
+const chessBoard = document.getElementById('chess-board');
+const chessTurnIndicator = document.getElementById('chess-turn-indicator');
+
+// Chess State
+let myColor = null; // 'w' or 'b'
+let currentFen = null;
+let selectedSquare = null;
+let legalMoves = [];
+let lastMoveSquares = { from: null, to: null };
+
 // Message Modal Elements
 const messageModal = document.getElementById('message-modal');
 const messageTitle = document.getElementById('message-title');
@@ -130,7 +142,16 @@ socket.onmessage = (event) => {
             updateUsernames(data.usernames, data.opponentId);
             showView('game');
 
-            if (currentGameType === 'morpion' || currentGameType === 'puissance4') {
+            if (currentGameType === 'chess') {
+                // Chess specific setup
+                myColor = data.myColor;
+                currentFen = data.fen;
+                isMyTurn = (data.myColor === 'w'); // White starts
+                initChessBoard();
+                updateChessBoard(data.fen);
+                updateTurnIndicator();
+                setStatus("La partie commence !");
+            } else if (currentGameType === 'morpion' || currentGameType === 'puissance4') {
                 updateTurnIndicator();
                 setStatus("La partie commence !");
             } else {
@@ -167,6 +188,17 @@ socket.onmessage = (event) => {
             updateTurnIndicator();
             break;
 
+        case 'chess_update':
+            currentFen = data.fen;
+            isMyTurn = (data.turn === myColor);
+            lastMoveSquares = data.lastMove || { from: null, to: null };
+            updateChessBoard(data.fen, data.isCheck);
+            updateTurnIndicator(data.isCheck);
+            // Clear selection after move
+            selectedSquare = null;
+            legalMoves = [];
+            break;
+
         case 'round_result':
             showResult(data);
             if (currentGameType === 'morpion' && data.winner !== undefined) {
@@ -176,6 +208,9 @@ socket.onmessage = (event) => {
             }
             if (currentGameType === 'puissance4' && data.winner !== undefined) {
                 if (data.board) updatePuissance4Board(data.board);
+                isMyTurn = false; // Stop input
+            }
+            if (currentGameType === 'chess') {
                 isMyTurn = false; // Stop input
             }
             break;
@@ -196,6 +231,17 @@ socket.onmessage = (event) => {
                 isMyTurn = (data.turn === playerId);
                 updateTurnIndicator();
                 resetPuissance4Board();
+                setStatus("Nouvelle manche !");
+            }
+            if (currentGameType === 'chess') {
+                // Reset chess board
+                currentFen = data.fen;
+                isMyTurn = (myColor === 'w'); // White always starts
+                selectedSquare = null;
+                legalMoves = [];
+                lastMoveSquares = { from: null, to: null };
+                updateChessBoard(data.fen);
+                updateTurnIndicator();
                 setStatus("Nouvelle manche !");
             }
             break;
@@ -499,7 +545,7 @@ function updateMorpionBoard(board) {
 // But we didn't store that. 
 // For now, "Me = X" is fine for gameplay feeling.
 
-function updateTurnIndicator() {
+function updateTurnIndicator(isCheck = false) {
     if (currentGameType === 'morpion') {
         if (isMyTurn) {
             turnIndicator.textContent = "C'est à votre tour ! (X)";
@@ -519,6 +565,25 @@ function updateTurnIndicator() {
             p4TurnIndicator.textContent = "Tour de l'adversaire (Jaune)";
             p4TurnIndicator.style.color = "#FFD93D";
             p4TurnIndicator.style.border = "2px solid #FFD93D";
+        }
+    } else if (currentGameType === 'chess') {
+        const myColorName = myColor === 'w' ? 'Blancs' : 'Noirs';
+        const opColorName = myColor === 'w' ? 'Noirs' : 'Blancs';
+
+        chessTurnIndicator.className = 'turn-indicator';
+
+        if (isCheck && isMyTurn) {
+            chessTurnIndicator.textContent = "ÉCHEC ! À vous de jouer";
+            chessTurnIndicator.classList.add('in-check');
+        } else if (isCheck && !isMyTurn) {
+            chessTurnIndicator.textContent = "Échec à l'adversaire !";
+            chessTurnIndicator.classList.add('in-check');
+        } else if (isMyTurn) {
+            chessTurnIndicator.textContent = `C'est à vous ! (${myColorName})`;
+            chessTurnIndicator.classList.add(myColor === 'w' ? 'white-turn' : 'black-turn');
+        } else {
+            chessTurnIndicator.textContent = `Tour de l'adversaire (${opColorName})`;
+            chessTurnIndicator.classList.add(myColor === 'w' ? 'black-turn' : 'white-turn');
         }
     }
 }
@@ -589,6 +654,385 @@ function resetPuissance4Board() {
     });
 }
 
+// ========================================
+// CHESS FUNCTIONS
+// ========================================
+
+const CHESS_PIECES = {
+    'wk': '♔', 'wq': '♕', 'wr': '♖', 'wb': '♗', 'wn': '♘', 'wp': '♙',
+    'bk': '♚', 'bq': '♛', 'br': '♜', 'bb': '♝', 'bn': '♞', 'bp': '♟'
+};
+
+const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
+
+// Starting piece counts for calculating captures
+const STARTING_PIECES = {
+    'w': { 'k': 1, 'q': 1, 'r': 2, 'b': 2, 'n': 2, 'p': 8 },
+    'b': { 'k': 1, 'q': 1, 'r': 2, 'b': 2, 'n': 2, 'p': 8 }
+};
+
+// Piece values for material calculation
+const PIECE_VALUES = { 'q': 9, 'r': 5, 'b': 3, 'n': 3, 'p': 1, 'k': 0 };
+
+function initChessBoard() {
+    chessBoard.innerHTML = '';
+
+    for (let rank = 0; rank < 8; rank++) {
+        for (let file = 0; file < 8; file++) {
+            const square = document.createElement('div');
+            const squareName = FILES[file] + RANKS[rank];
+            const isLight = (rank + file) % 2 === 0;
+
+            square.className = `chess-square ${isLight ? 'light' : 'dark'}`;
+            square.dataset.square = squareName;
+
+            square.addEventListener('click', () => handleChessSquareClick(squareName));
+
+            chessBoard.appendChild(square);
+        }
+    }
+}
+
+function updateChessBoard(fen, isCheck = false) {
+    const board = parseFen(fen);
+
+    // Update captured pieces display
+    updateCapturedPieces(fen);
+
+    // Clear all squares
+    document.querySelectorAll('.chess-square').forEach(sq => {
+        sq.innerHTML = '';
+        sq.classList.remove('selected', 'legal-move', 'has-piece', 'last-move', 'in-check');
+    });
+
+    // Place pieces
+    for (let rank = 0; rank < 8; rank++) {
+        for (let file = 0; file < 8; file++) {
+            const piece = board[rank][file];
+            const squareName = FILES[file] + RANKS[rank];
+            const squareEl = document.querySelector(`.chess-square[data-square="${squareName}"]`);
+
+            if (piece && squareEl) {
+                const pieceEl = document.createElement('span');
+                pieceEl.className = `chess-piece ${piece.color === 'w' ? 'white' : 'black'}`;
+                pieceEl.textContent = CHESS_PIECES[piece.color + piece.type];
+                squareEl.appendChild(pieceEl);
+
+                // Highlight king if in check
+                if (isCheck && piece.type === 'k') {
+                    // Find whose turn it is from FEN
+                    const turnColor = fen.split(' ')[1];
+                    if (piece.color === turnColor) {
+                        squareEl.classList.add('in-check');
+                    }
+                }
+            }
+        }
+    }
+
+    // Highlight last move
+    if (lastMoveSquares.from) {
+        const fromSq = document.querySelector(`.chess-square[data-square="${lastMoveSquares.from}"]`);
+        if (fromSq) fromSq.classList.add('last-move');
+    }
+    if (lastMoveSquares.to) {
+        const toSq = document.querySelector(`.chess-square[data-square="${lastMoveSquares.to}"]`);
+        if (toSq) toSq.classList.add('last-move');
+    }
+
+    // Re-apply selection and legal moves if any
+    if (selectedSquare) {
+        const selSq = document.querySelector(`.chess-square[data-square="${selectedSquare}"]`);
+        if (selSq) selSq.classList.add('selected');
+
+        legalMoves.forEach(move => {
+            const moveSq = document.querySelector(`.chess-square[data-square="${move}"]`);
+            if (moveSq) {
+                moveSq.classList.add('legal-move');
+                if (moveSq.querySelector('.chess-piece')) {
+                    moveSq.classList.add('has-piece');
+                }
+            }
+        });
+    }
+}
+
+function parseFen(fen) {
+    const board = [];
+    const rows = fen.split(' ')[0].split('/');
+
+    for (const row of rows) {
+        const boardRow = [];
+        for (const char of row) {
+            if (isNaN(char)) {
+                // It's a piece
+                const color = char === char.toUpperCase() ? 'w' : 'b';
+                const type = char.toLowerCase();
+                boardRow.push({ color, type });
+            } else {
+                // Empty squares
+                for (let i = 0; i < parseInt(char); i++) {
+                    boardRow.push(null);
+                }
+            }
+        }
+        board.push(boardRow);
+    }
+    return board;
+}
+
+function handleChessSquareClick(squareName) {
+    if (!isMyTurn) {
+        shakeElement(chessTurnIndicator);
+        return;
+    }
+
+    const clickedSquare = document.querySelector(`.chess-square[data-square="${squareName}"]`);
+    const pieceOnSquare = clickedSquare.querySelector('.chess-piece');
+
+    // If a square is already selected
+    if (selectedSquare) {
+        // If clicking on a legal move, make the move
+        if (legalMoves.includes(squareName)) {
+            socket.send(JSON.stringify({
+                type: 'make_move',
+                gameId: gameId,
+                from: selectedSquare,
+                to: squareName
+            }));
+            // Clear selection (will be cleared on update anyway)
+            selectedSquare = null;
+            legalMoves = [];
+            return;
+        }
+
+        // If clicking on same square, deselect
+        if (selectedSquare === squareName) {
+            clearChessSelection();
+            return;
+        }
+
+        // If clicking on another of my pieces, select that instead
+        if (pieceOnSquare && isPieceMyColor(pieceOnSquare)) {
+            selectChessSquare(squareName);
+            return;
+        }
+
+        // Otherwise, just clear selection
+        clearChessSelection();
+        return;
+    }
+
+    // No square selected yet - select if it's my piece
+    if (pieceOnSquare && isPieceMyColor(pieceOnSquare)) {
+        selectChessSquare(squareName);
+    }
+}
+
+function isPieceMyColor(pieceEl) {
+    if (myColor === 'w') {
+        return pieceEl.classList.contains('white');
+    } else {
+        return pieceEl.classList.contains('black');
+    }
+}
+
+function selectChessSquare(squareName) {
+    clearChessSelection();
+
+    selectedSquare = squareName;
+    const squareEl = document.querySelector(`.chess-square[data-square="${squareName}"]`);
+    squareEl.classList.add('selected');
+
+    // Calculate legal moves for this piece
+    legalMoves = getLegalMovesForSquare(squareName);
+
+    // Highlight legal moves
+    legalMoves.forEach(move => {
+        const moveSq = document.querySelector(`.chess-square[data-square="${move}"]`);
+        if (moveSq) {
+            moveSq.classList.add('legal-move');
+            if (moveSq.querySelector('.chess-piece')) {
+                moveSq.classList.add('has-piece');
+            }
+        }
+    });
+}
+
+function clearChessSelection() {
+    selectedSquare = null;
+    legalMoves = [];
+
+    document.querySelectorAll('.chess-square').forEach(sq => {
+        sq.classList.remove('selected', 'legal-move', 'has-piece');
+    });
+}
+
+function getLegalMovesForSquare(squareName) {
+    // Parse current position to find legal moves
+    // This is a simplified version - the server validates anyway
+    const moves = [];
+    const board = parseFen(currentFen);
+    const file = FILES.indexOf(squareName[0]);
+    const rank = RANKS.indexOf(squareName[1]);
+    const piece = board[rank][file];
+
+    if (!piece || piece.color !== myColor) return moves;
+
+    // Generate pseudo-legal moves (server will validate)
+    const directions = {
+        'p': piece.color === 'w' ? [[-1, 0], [-2, 0], [-1, -1], [-1, 1]] : [[1, 0], [2, 0], [1, -1], [1, 1]],
+        'n': [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]],
+        'b': 'diagonal',
+        'r': 'straight',
+        'q': 'both',
+        'k': [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1], [0, -2], [0, 2]] // Including castling
+    };
+
+    const addMove = (r, f) => {
+        if (r >= 0 && r < 8 && f >= 0 && f < 8) {
+            const targetSquare = FILES[f] + RANKS[r];
+            const targetPiece = board[r][f];
+            if (!targetPiece || targetPiece.color !== piece.color) {
+                moves.push(targetSquare);
+            }
+        }
+    };
+
+    const addSlidingMoves = (dirs) => {
+        for (const [dr, df] of dirs) {
+            for (let i = 1; i < 8; i++) {
+                const newR = rank + dr * i;
+                const newF = file + df * i;
+                if (newR < 0 || newR >= 8 || newF < 0 || newF >= 8) break;
+                const target = board[newR][newF];
+                if (!target) {
+                    moves.push(FILES[newF] + RANKS[newR]);
+                } else {
+                    if (target.color !== piece.color) {
+                        moves.push(FILES[newF] + RANKS[newR]);
+                    }
+                    break;
+                }
+            }
+        }
+    };
+
+    const type = piece.type;
+    if (type === 'p') {
+        // Pawn moves
+        const dir = piece.color === 'w' ? -1 : 1;
+        const startRank = piece.color === 'w' ? 6 : 1;
+
+        // Forward move
+        if (rank + dir >= 0 && rank + dir < 8 && !board[rank + dir][file]) {
+            moves.push(FILES[file] + RANKS[rank + dir]);
+            // Double move from start
+            if (rank === startRank && !board[rank + 2 * dir][file]) {
+                moves.push(FILES[file] + RANKS[rank + 2 * dir]);
+            }
+        }
+        // Captures
+        for (const df of [-1, 1]) {
+            const newF = file + df;
+            const newR = rank + dir;
+            if (newF >= 0 && newF < 8 && newR >= 0 && newR < 8) {
+                const target = board[newR][newF];
+                if (target && target.color !== piece.color) {
+                    moves.push(FILES[newF] + RANKS[newR]);
+                }
+                // En passant would need additional FEN parsing
+            }
+        }
+    } else if (type === 'n') {
+        for (const [dr, df] of directions.n) {
+            addMove(rank + dr, file + df);
+        }
+    } else if (type === 'k') {
+        for (const [dr, df] of directions.k) {
+            addMove(rank + dr, file + df);
+        }
+    } else if (type === 'b') {
+        addSlidingMoves([[-1, -1], [-1, 1], [1, -1], [1, 1]]);
+    } else if (type === 'r') {
+        addSlidingMoves([[-1, 0], [1, 0], [0, -1], [0, 1]]);
+    } else if (type === 'q') {
+        addSlidingMoves([[-1, -1], [-1, 1], [1, -1], [1, 1], [-1, 0], [1, 0], [0, -1], [0, 1]]);
+    }
+
+    return moves;
+}
+
+function updateCapturedPieces(fen) {
+    // Count current pieces on board
+    const currentPieces = { 'w': {}, 'b': {} };
+    const boardPart = fen.split(' ')[0];
+
+    for (const char of boardPart) {
+        if (char === '/' || !isNaN(char)) continue;
+        const color = char === char.toUpperCase() ? 'w' : 'b';
+        const type = char.toLowerCase();
+        currentPieces[color][type] = (currentPieces[color][type] || 0) + 1;
+    }
+
+    // Calculate captured pieces (what's missing from starting position)
+    const capturedByWhite = []; // Black pieces captured by white
+    const capturedByBlack = []; // White pieces captured by black
+
+    // Order: Queen, Rook, Bishop, Knight, Pawn (most valuable first)
+    const pieceOrder = ['q', 'r', 'b', 'n', 'p'];
+
+    for (const type of pieceOrder) {
+        // Black pieces captured (by white)
+        const blackStart = STARTING_PIECES['b'][type] || 0;
+        const blackCurrent = currentPieces['b'][type] || 0;
+        const blackCaptured = blackStart - blackCurrent;
+        for (let i = 0; i < blackCaptured; i++) {
+            capturedByWhite.push({ type, color: 'b' });
+        }
+
+        // White pieces captured (by black)
+        const whiteStart = STARTING_PIECES['w'][type] || 0;
+        const whiteCurrent = currentPieces['w'][type] || 0;
+        const whiteCaptured = whiteStart - whiteCurrent;
+        for (let i = 0; i < whiteCaptured; i++) {
+            capturedByBlack.push({ type, color: 'w' });
+        }
+    }
+
+    // Calculate material advantage
+    let whiteMaterial = 0;
+    let blackMaterial = 0;
+    for (const type of pieceOrder) {
+        whiteMaterial += (currentPieces['w'][type] || 0) * PIECE_VALUES[type];
+        blackMaterial += (currentPieces['b'][type] || 0) * PIECE_VALUES[type];
+    }
+    const materialDiff = whiteMaterial - blackMaterial;
+
+    // Update DOM
+    const whiteCaptures = document.getElementById('white-captures');
+    const blackCaptures = document.getElementById('black-captures');
+
+    whiteCaptures.innerHTML = capturedByWhite.map(p =>
+        `<span class="captured-piece black">${CHESS_PIECES['b' + p.type]}</span>`
+    ).join('');
+
+    blackCaptures.innerHTML = capturedByBlack.map(p =>
+        `<span class="captured-piece white">${CHESS_PIECES['w' + p.type]}</span>`
+    ).join('');
+
+    // Add material advantage indicator
+    if (materialDiff !== 0) {
+        const advantage = Math.abs(materialDiff);
+        if (materialDiff > 0) {
+            whiteCaptures.innerHTML += `<span class="material-advantage">+${advantage}</span>`;
+        } else {
+            blackCaptures.innerHTML += `<span class="material-advantage">+${advantage}</span>`;
+        }
+    }
+}
+
 function shakeElement(el) {
     el.classList.add('shake'); // Need to add shake keyframes if not exists, but simple feedback is fine
     el.style.transform = "translateX(5px)";
@@ -626,11 +1070,14 @@ function setupGameUI(type) {
     shifumiArea.style.display = 'none';
     morpionArea.style.display = 'none';
     puissance4Area.style.display = 'none';
+    chessArea.style.display = 'none';
 
     if (type === 'morpion') {
         morpionArea.style.display = 'flex';
     } else if (type === 'puissance4') {
         puissance4Area.style.display = 'flex';
+    } else if (type === 'chess') {
+        chessArea.style.display = 'flex';
     } else {
         shifumiArea.style.display = 'flex';
     }

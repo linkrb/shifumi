@@ -108,6 +108,13 @@
                             <h3>Puissance 4</h3>
                             <p>Alignes-en 4 pour gagner</p>
                         </div>
+                        <div class="game-option" data-game="chess">
+                            <div class="game-icon chess-icon">
+                                <span class="chess-piece-icon">♞</span>
+                            </div>
+                            <h3>Échecs</h3>
+                            <p>Le roi des jeux de stratégie</p>
+                        </div>
                     </div>
 
                     <!-- Win Rounds Selection (Moved) -->
@@ -261,6 +268,22 @@
                         <div class="p4-cell" data-index="41" data-col="6"></div>
                     </div>
                     <div id="p4-turn-indicator" class="turn-indicator">En attente...</div>
+                </div>
+
+                <!-- Chess Area -->
+                <div id="chess-area" class="game-board-container" style="display: none;">
+                    <div class="captured-pieces captured-by-white" id="captured-by-white">
+                        <span class="captured-label">Prises par les Blancs :</span>
+                        <div class="captured-list" id="white-captures"></div>
+                    </div>
+                    <div class="chess-board" id="chess-board">
+                        <!-- 64 squares will be generated dynamically in JS -->
+                    </div>
+                    <div class="captured-pieces captured-by-black" id="captured-by-black">
+                        <span class="captured-label">Prises par les Noirs :</span>
+                        <div class="captured-list" id="black-captures"></div>
+                    </div>
+                    <div id="chess-turn-indicator" class="turn-indicator">En attente...</div>
                 </div>
 
                 <!-- Shifumi Area -->

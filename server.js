@@ -3,6 +3,7 @@ const http = require('http');
 const WebSocket = require('ws');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
+const { Chess } = require('chess.js');
 
 const app = express();
 const server = http.createServer(app);
@@ -66,12 +67,19 @@ function handleMessage(ws, data) {
                 boardSize = 42; // 6 rows × 7 columns
             }
 
+            // Chess engine for chess games
+            let chessEngine = null;
+            if (gameType === 'chess') {
+                chessEngine = new Chess();
+            }
+
             games[gameId] = {
                 id: gameId,
                 gameType: gameType,
                 players: [ws],
                 moves: {}, // For Shifumi
                 board: Array(boardSize).fill(null), // For Morpion/Puissance4
+                chessEngine: chessEngine, // For Chess
                 turn: ws.id, // For turn-based games (creator starts)
                 scores: { [ws.id]: 0 },
                 avatars: { [ws.id]: data.avatarId },
@@ -102,7 +110,7 @@ function handleMessage(ws, data) {
 
                 // Notify both players
                 game.players.forEach(player => {
-                    safeSend(player, {
+                    const startData = {
                         type: 'game_start',
                         gameId: game.id,
                         gameType: game.gameType,
@@ -112,7 +120,16 @@ function handleMessage(ws, data) {
                         usernames: game.usernames,
                         winRounds: game.winRounds,
                         turn: game.turn // Send whose turn it is
-                    });
+                    };
+
+                    // For chess, add color info and initial position
+                    if (game.gameType === 'chess') {
+                        // Creator (player 0) is white, joiner (player 1) is black
+                        startData.myColor = player === game.players[0] ? 'w' : 'b';
+                        startData.fen = game.chessEngine.fen();
+                    }
+
+                    safeSend(player, startData);
                 });
             } else {
                 safeSend(ws, { type: 'error', message: 'Partie introuvable ou complète' });
@@ -262,6 +279,81 @@ function handleMessage(ws, data) {
                         activeGame.turn = activeGame.players.find(p => p.id !== ws.id).id;
                     }
 
+                } else if (activeGame.gameType === 'chess') {
+                    // CHESS LOGIC
+                    const chess = activeGame.chessEngine;
+
+                    // Check if it's this player's turn
+                    const playerColor = ws === activeGame.players[0] ? 'w' : 'b';
+                    if (chess.turn() !== playerColor) return; // Not your turn
+
+                    // Try to make the move
+                    const moveData = {
+                        from: data.from,
+                        to: data.to
+                    };
+
+                    // Auto-promote to queen
+                    if (data.promotion) {
+                        moveData.promotion = data.promotion;
+                    } else {
+                        // Check if this is a pawn promotion move
+                        const piece = chess.get(data.from);
+                        if (piece && piece.type === 'p') {
+                            const toRank = data.to[1];
+                            if ((piece.color === 'w' && toRank === '8') || (piece.color === 'b' && toRank === '1')) {
+                                moveData.promotion = 'q'; // Auto-promote to queen
+                            }
+                        }
+                    }
+
+                    let move;
+                    try {
+                        move = chess.move(moveData);
+                    } catch (e) {
+                        return; // Invalid move
+                    }
+
+                    if (!move) return; // Invalid move
+
+                    // Broadcast update
+                    activeGame.players.forEach(p => {
+                        safeSend(p, {
+                            type: 'chess_update',
+                            fen: chess.fen(),
+                            turn: chess.turn(),
+                            lastMove: { from: move.from, to: move.to },
+                            isCheck: chess.isCheck(),
+                            isCheckmate: chess.isCheckmate(),
+                            isStalemate: chess.isStalemate(),
+                            isDraw: chess.isDraw()
+                        });
+                    });
+
+                    // Check for game end
+                    if (chess.isCheckmate()) {
+                        // Current player (who just moved) wins
+                        const winnerId = ws.id;
+                        activeGame.scores[winnerId]++;
+                        const result = {
+                            type: 'round_result',
+                            winner: winnerId,
+                            scores: activeGame.scores,
+                            reason: 'checkmate'
+                        };
+                        activeGame.players.forEach(player => safeSend(player, result));
+                        checkGameWin(activeGame, winnerId);
+                    } else if (chess.isStalemate() || chess.isDraw()) {
+                        // Draw
+                        const result = {
+                            type: 'round_result',
+                            winner: null,
+                            scores: activeGame.scores,
+                            reason: chess.isStalemate() ? 'stalemate' : 'draw'
+                        };
+                        activeGame.players.forEach(player => safeSend(player, result));
+                    }
+
                 } else {
                     // SHIFUMI LOGIC
                     activeGame.moves[ws.id] = data.move;
@@ -294,6 +386,11 @@ function handleMessage(ws, data) {
                     restartGame.wantsRestart.clear();
                     restartGame.round++;
 
+                    // Reset chess engine if chess game
+                    if (restartGame.gameType === 'chess') {
+                        restartGame.chessEngine = new Chess();
+                    }
+
                     // Reset scores if game was won previously
                     if (restartGame.gameWon) {
                         Object.keys(restartGame.scores).forEach(pid => restartGame.scores[pid] = 0);
@@ -301,21 +398,25 @@ function handleMessage(ws, data) {
                         restartGame.round = 1;
                     }
 
-                    // Randomize start turn for Morpion or keep loser starts? Let's just swap or keep creator? 
-                    // Simple: Creator always starts round 1, maybe swap for next rounds? 
-                    // Let's swap start turn for fairness logic if updated, but for now keep it simple or swap
+                    // Swap starter each round for fairness (for turn-based games)
                     if (restartGame.gameType === 'morpion' || restartGame.gameType === 'puissance4') {
-                        // Swap starter each round for fairness
                         restartGame.turn = restartGame.players[(restartGame.round % 2)].id;
                     }
 
+                    // Prepare new round data
+                    const newRoundData = {
+                        type: 'new_round',
+                        round: restartGame.round,
+                        turn: restartGame.turn
+                    };
+
+                    // For chess, add initial FEN
+                    if (restartGame.gameType === 'chess') {
+                        newRoundData.fen = restartGame.chessEngine.fen();
+                    }
 
                     restartGame.players.forEach(player => {
-                        safeSend(player, {
-                            type: 'new_round',
-                            round: restartGame.round,
-                            turn: restartGame.turn // Important for Morpion
-                        });
+                        safeSend(player, newRoundData);
                     });
                 } else {
                     const opponentRestart = restartGame.players.find(p => p.id !== ws.id);
