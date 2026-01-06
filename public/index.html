@@ -100,6 +100,14 @@
                             <h3>Morpion</h3>
                             <p>Alignes-en 3 pour gagner</p>
                         </div>
+                        <div class="game-option" data-game="puissance4">
+                            <div class="game-icon puissance4-icon">
+                                <span class="p4-red"></span>
+                                <span class="p4-yellow"></span>
+                            </div>
+                            <h3>Puissance 4</h3>
+                            <p>Alignes-en 4 pour gagner</p>
+                        </div>
                     </div>
 
                     <!-- Win Rounds Selection (Moved) -->
@@ -197,6 +205,62 @@
                         <div class="cell" data-index="8"></div>
                     </div>
                     <div id="turn-indicator" class="turn-indicator">En attente...</div>
+                </div>
+
+                <!-- Puissance 4 Area -->
+                <div id="puissance4-area" class="game-board-container" style="display: none;">
+                    <div class="puissance4-grid">
+                        <!-- 42 cells: 6 rows × 7 columns -->
+                        <!-- Row 0 (top) -->
+                        <div class="p4-cell" data-index="0" data-col="0"></div>
+                        <div class="p4-cell" data-index="1" data-col="1"></div>
+                        <div class="p4-cell" data-index="2" data-col="2"></div>
+                        <div class="p4-cell" data-index="3" data-col="3"></div>
+                        <div class="p4-cell" data-index="4" data-col="4"></div>
+                        <div class="p4-cell" data-index="5" data-col="5"></div>
+                        <div class="p4-cell" data-index="6" data-col="6"></div>
+                        <!-- Row 1 -->
+                        <div class="p4-cell" data-index="7" data-col="0"></div>
+                        <div class="p4-cell" data-index="8" data-col="1"></div>
+                        <div class="p4-cell" data-index="9" data-col="2"></div>
+                        <div class="p4-cell" data-index="10" data-col="3"></div>
+                        <div class="p4-cell" data-index="11" data-col="4"></div>
+                        <div class="p4-cell" data-index="12" data-col="5"></div>
+                        <div class="p4-cell" data-index="13" data-col="6"></div>
+                        <!-- Row 2 -->
+                        <div class="p4-cell" data-index="14" data-col="0"></div>
+                        <div class="p4-cell" data-index="15" data-col="1"></div>
+                        <div class="p4-cell" data-index="16" data-col="2"></div>
+                        <div class="p4-cell" data-index="17" data-col="3"></div>
+                        <div class="p4-cell" data-index="18" data-col="4"></div>
+                        <div class="p4-cell" data-index="19" data-col="5"></div>
+                        <div class="p4-cell" data-index="20" data-col="6"></div>
+                        <!-- Row 3 -->
+                        <div class="p4-cell" data-index="21" data-col="0"></div>
+                        <div class="p4-cell" data-index="22" data-col="1"></div>
+                        <div class="p4-cell" data-index="23" data-col="2"></div>
+                        <div class="p4-cell" data-index="24" data-col="3"></div>
+                        <div class="p4-cell" data-index="25" data-col="4"></div>
+                        <div class="p4-cell" data-index="26" data-col="5"></div>
+                        <div class="p4-cell" data-index="27" data-col="6"></div>
+                        <!-- Row 4 -->
+                        <div class="p4-cell" data-index="28" data-col="0"></div>
+                        <div class="p4-cell" data-index="29" data-col="1"></div>
+                        <div class="p4-cell" data-index="30" data-col="2"></div>
+                        <div class="p4-cell" data-index="31" data-col="3"></div>
+                        <div class="p4-cell" data-index="32" data-col="4"></div>
+                        <div class="p4-cell" data-index="33" data-col="5"></div>
+                        <div class="p4-cell" data-index="34" data-col="6"></div>
+                        <!-- Row 5 (bottom) -->
+                        <div class="p4-cell" data-index="35" data-col="0"></div>
+                        <div class="p4-cell" data-index="36" data-col="1"></div>
+                        <div class="p4-cell" data-index="37" data-col="2"></div>
+                        <div class="p4-cell" data-index="38" data-col="3"></div>
+                        <div class="p4-cell" data-index="39" data-col="4"></div>
+                        <div class="p4-cell" data-index="40" data-col="5"></div>
+                        <div class="p4-cell" data-index="41" data-col="6"></div>
+                    </div>
+                    <div id="p4-turn-indicator" class="turn-indicator">En attente...</div>
                 </div>
 
                 <!-- Shifumi Area -->

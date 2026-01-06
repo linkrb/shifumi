@@ -60,13 +60,19 @@ function handleMessage(ws, data) {
 
             const gameType = data.gameType || 'shifumi'; // Default to shifumi
 
+            // Board size depends on game type
+            let boardSize = 9; // Default for Morpion
+            if (gameType === 'puissance4') {
+                boardSize = 42; // 6 rows × 7 columns
+            }
+
             games[gameId] = {
                 id: gameId,
                 gameType: gameType,
                 players: [ws],
                 moves: {}, // For Shifumi
-                board: Array(9).fill(null), // For Morpion
-                turn: ws.id, // For Morpion (creator starts)
+                board: Array(boardSize).fill(null), // For Morpion/Puissance4
+                turn: ws.id, // For turn-based games (creator starts)
                 scores: { [ws.id]: 0 },
                 avatars: { [ws.id]: data.avatarId },
                 usernames: { [ws.id]: data.username || 'Joueur 1' },
@@ -169,7 +175,7 @@ function handleMessage(ws, data) {
                         if (winner) {
                             // Winner found
                             activeGame.scores[winner]++;
-                            activeGame.gameWon = true; // Instant win for Morpion usually? Or rounds? 
+                            activeGame.gameWon = true; // Instant win for Morpion usually? Or rounds?
                             // Using standard round resolution for consistency
                             const result = {
                                 type: 'round_result',
@@ -193,6 +199,67 @@ function handleMessage(ws, data) {
                             // Switch turn locally
                             activeGame.turn = activeGame.players.find(p => p.id !== ws.id).id;
                         }
+                    }
+
+                } else if (activeGame.gameType === 'puissance4') {
+                    // PUISSANCE 4 LOGIC
+                    if (activeGame.turn !== ws.id) return; // Not your turn
+
+                    const column = data.move; // 0-6
+                    if (column < 0 || column > 6) return; // Invalid column
+
+                    // Find the lowest empty row in this column (gravity)
+                    let row = -1;
+                    for (let r = 5; r >= 0; r--) {
+                        const idx = r * 7 + column;
+                        if (activeGame.board[idx] === null) {
+                            row = r;
+                            break;
+                        }
+                    }
+
+                    if (row === -1) return; // Column is full
+
+                    const index = row * 7 + column;
+                    activeGame.board[index] = ws.id;
+
+                    // Check win
+                    const winner = checkPuissance4Win(activeGame.board);
+
+                    // Notify update
+                    activeGame.players.forEach(p => {
+                        safeSend(p, {
+                            type: 'puissance4_update',
+                            board: activeGame.board,
+                            lastMove: index,
+                            turn: activeGame.players.find(pl => pl.id !== ws.id).id // Switch turn
+                        });
+                    });
+
+                    if (winner) {
+                        // Winner found
+                        activeGame.scores[winner]++;
+                        const result = {
+                            type: 'round_result',
+                            winner: winner,
+                            scores: activeGame.scores,
+                            board: activeGame.board
+                        };
+                        activeGame.players.forEach(player => safeSend(player, result));
+                        checkGameWin(activeGame, winner);
+
+                    } else if (!activeGame.board.includes(null)) {
+                        // Draw - board is full
+                        const result = {
+                            type: 'round_result',
+                            winner: null,
+                            scores: activeGame.scores,
+                            board: activeGame.board
+                        };
+                        activeGame.players.forEach(player => safeSend(player, result));
+                    } else {
+                        // Switch turn locally
+                        activeGame.turn = activeGame.players.find(p => p.id !== ws.id).id;
                     }
 
                 } else {
@@ -221,7 +288,9 @@ function handleMessage(ws, data) {
 
                 if (restartGame.wantsRestart.size === 2) {
                     restartGame.moves = {};
-                    restartGame.board = Array(9).fill(null); // Reset board
+                    // Reset board with appropriate size
+                    const boardSize = restartGame.gameType === 'puissance4' ? 42 : 9;
+                    restartGame.board = Array(boardSize).fill(null);
                     restartGame.wantsRestart.clear();
                     restartGame.round++;
 
@@ -235,13 +304,9 @@ function handleMessage(ws, data) {
                     // Randomize start turn for Morpion or keep loser starts? Let's just swap or keep creator? 
                     // Simple: Creator always starts round 1, maybe swap for next rounds? 
                     // Let's swap start turn for fairness logic if updated, but for now keep it simple or swap
-                    if (restartGame.gameType === 'morpion') {
-                        // Swap turn logic: whoever didn't start last time? 
-                        // Or just random. currently defaults to creator in object init.
-                        // Let's set it to the winner of previous? Or loser? 
-                        // We will just set it to players[0] for simplicity or current logic.
-                        // Ideally: restartGame.turn = restartGame.players[ (restartGame.round % 2) ].id;
-                        restartGame.turn = restartGame.players[(restartGame.round % 2)].id; // Swap starter
+                    if (restartGame.gameType === 'morpion' || restartGame.gameType === 'puissance4') {
+                        // Swap starter each round for fairness
+                        restartGame.turn = restartGame.players[(restartGame.round % 2)].id;
                     }
 
 
@@ -307,6 +372,62 @@ function checkMorpionWin(board) {
     for (const [a, b, c] of lines) {
         if (board[a] && board[a] === board[b] && board[a] === board[c]) {
             return board[a];
+        }
+    }
+    return null;
+}
+
+function checkPuissance4Win(board) {
+    const ROWS = 6;
+    const COLS = 7;
+
+    // Helper to get cell value at (row, col)
+    const getCell = (row, col) => {
+        if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return null;
+        return board[row * COLS + col];
+    };
+
+    // Check all possible 4-in-a-row combinations
+    for (let row = 0; row < ROWS; row++) {
+        for (let col = 0; col < COLS; col++) {
+            const cell = getCell(row, col);
+            if (!cell) continue;
+
+            // Check horizontal (→)
+            if (col <= COLS - 4) {
+                if (cell === getCell(row, col + 1) &&
+                    cell === getCell(row, col + 2) &&
+                    cell === getCell(row, col + 3)) {
+                    return cell;
+                }
+            }
+
+            // Check vertical (↓)
+            if (row <= ROWS - 4) {
+                if (cell === getCell(row + 1, col) &&
+                    cell === getCell(row + 2, col) &&
+                    cell === getCell(row + 3, col)) {
+                    return cell;
+                }
+            }
+
+            // Check diagonal (↘)
+            if (row <= ROWS - 4 && col <= COLS - 4) {
+                if (cell === getCell(row + 1, col + 1) &&
+                    cell === getCell(row + 2, col + 2) &&
+                    cell === getCell(row + 3, col + 3)) {
+                    return cell;
+                }
+            }
+
+            // Check diagonal (↙)
+            if (row <= ROWS - 4 && col >= 3) {
+                if (cell === getCell(row + 1, col - 1) &&
+                    cell === getCell(row + 2, col - 2) &&
+                    cell === getCell(row + 3, col - 3)) {
+                    return cell;
+                }
+            }
         }
     }
     return null;

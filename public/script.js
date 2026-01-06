@@ -45,6 +45,11 @@ const shifumiArea = document.getElementById('shifumi-area');
 const morpionCells = document.querySelectorAll('.cell');
 const turnIndicator = document.getElementById('turn-indicator');
 
+// Puissance 4 Elements
+const puissance4Area = document.getElementById('puissance4-area');
+const p4Cells = document.querySelectorAll('.p4-cell');
+const p4TurnIndicator = document.getElementById('p4-turn-indicator');
+
 // Message Modal Elements
 const messageModal = document.getElementById('message-modal');
 const messageTitle = document.getElementById('message-title');
@@ -125,7 +130,7 @@ socket.onmessage = (event) => {
             updateUsernames(data.usernames, data.opponentId);
             showView('game');
 
-            if (currentGameType === 'morpion') {
+            if (currentGameType === 'morpion' || currentGameType === 'puissance4') {
                 updateTurnIndicator();
                 setStatus("La partie commence !");
             } else {
@@ -156,11 +161,21 @@ socket.onmessage = (event) => {
             updateTurnIndicator();
             break;
 
+        case 'puissance4_update':
+            updatePuissance4Board(data.board, data.lastMove);
+            isMyTurn = (data.turn === playerId);
+            updateTurnIndicator();
+            break;
+
         case 'round_result':
             showResult(data);
             if (currentGameType === 'morpion' && data.winner !== undefined) {
                 // Update board one last time to ensure sync (e.g. if winner move)
                 if (data.board) updateMorpionBoard(data.board);
+                isMyTurn = false; // Stop input
+            }
+            if (currentGameType === 'puissance4' && data.winner !== undefined) {
+                if (data.board) updatePuissance4Board(data.board);
                 isMyTurn = false; // Stop input
             }
             break;
@@ -175,6 +190,12 @@ socket.onmessage = (event) => {
                 isMyTurn = (data.turn === playerId);
                 updateTurnIndicator();
                 resetMorpionBoard();
+                setStatus("Nouvelle manche !");
+            }
+            if (currentGameType === 'puissance4') {
+                isMyTurn = (data.turn === playerId);
+                updateTurnIndicator();
+                resetPuissance4Board();
                 setStatus("Nouvelle manche !");
             }
             break;
@@ -479,16 +500,26 @@ function updateMorpionBoard(board) {
 // For now, "Me = X" is fine for gameplay feeling.
 
 function updateTurnIndicator() {
-    if (currentGameType !== 'morpion') return;
-
-    if (isMyTurn) {
-        turnIndicator.textContent = "C'est à votre tour ! (X)";
-        turnIndicator.style.color = "var(--cyan)";
-        turnIndicator.style.border = "2px solid var(--cyan)";
-    } else {
-        turnIndicator.textContent = "Tour de l'adversaire (O)";
-        turnIndicator.style.color = "var(--pink)";
-        turnIndicator.style.border = "2px solid var(--pink)";
+    if (currentGameType === 'morpion') {
+        if (isMyTurn) {
+            turnIndicator.textContent = "C'est à votre tour ! (X)";
+            turnIndicator.style.color = "var(--cyan)";
+            turnIndicator.style.border = "2px solid var(--cyan)";
+        } else {
+            turnIndicator.textContent = "Tour de l'adversaire (O)";
+            turnIndicator.style.color = "var(--pink)";
+            turnIndicator.style.border = "2px solid var(--pink)";
+        }
+    } else if (currentGameType === 'puissance4') {
+        if (isMyTurn) {
+            p4TurnIndicator.textContent = "C'est à votre tour ! (Rouge)";
+            p4TurnIndicator.style.color = "#FF6B6B";
+            p4TurnIndicator.style.border = "2px solid #FF6B6B";
+        } else {
+            p4TurnIndicator.textContent = "Tour de l'adversaire (Jaune)";
+            p4TurnIndicator.style.color = "#FFD93D";
+            p4TurnIndicator.style.border = "2px solid #FFD93D";
+        }
     }
 }
 
@@ -496,6 +527,65 @@ function resetMorpionBoard() {
     morpionCells.forEach(cell => {
         cell.className = 'cell';
         cell.textContent = '';
+    });
+}
+
+// Puissance 4 Logic
+p4Cells.forEach(cell => {
+    cell.addEventListener('click', () => {
+        if (!isMyTurn) {
+            shakeElement(p4TurnIndicator);
+            return;
+        }
+
+        const column = parseInt(cell.dataset.col);
+
+        // Check if column is full (top cell of column is taken)
+        const topCellOfColumn = document.querySelector(`.p4-cell[data-index="${column}"]`);
+        if (topCellOfColumn && topCellOfColumn.classList.contains('taken')) {
+            shakeElement(p4TurnIndicator);
+            return;
+        }
+
+        socket.send(JSON.stringify({
+            type: 'make_move',
+            gameId: gameId,
+            move: column
+        }));
+    });
+});
+
+function updatePuissance4Board(board, lastMove = null) {
+    board.forEach((val, idx) => {
+        const cell = document.querySelector(`.p4-cell[data-index="${idx}"]`);
+        if (!cell) return;
+
+        if (val) {
+            const wasEmpty = !cell.classList.contains('taken');
+            cell.classList.add('taken');
+
+            // Determine color based on player
+            if (val === playerId) {
+                cell.classList.remove('yellow');
+                cell.classList.add('red');
+            } else {
+                cell.classList.remove('red');
+                cell.classList.add('yellow');
+            }
+
+            // Add drop animation for new pieces
+            if (wasEmpty && idx === lastMove) {
+                cell.classList.add('dropping');
+                setTimeout(() => cell.classList.remove('dropping'), 500);
+            }
+        }
+    });
+}
+
+function resetPuissance4Board() {
+    p4Cells.forEach(cell => {
+        cell.className = 'p4-cell';
+        cell.removeAttribute('style');
     });
 }
 
@@ -532,15 +622,17 @@ function joinGame(id) {
 }
 
 function setupGameUI(type) {
+    // Hide all game areas first
+    shifumiArea.style.display = 'none';
+    morpionArea.style.display = 'none';
+    puissance4Area.style.display = 'none';
+
     if (type === 'morpion') {
-        shifumiArea.style.display = 'none';
         morpionArea.style.display = 'flex';
-        // Hide standard status msg for morpion as we have turn indicator
-        // statusMsg.style.display = 'none'; // Optional
+    } else if (type === 'puissance4') {
+        puissance4Area.style.display = 'flex';
     } else {
         shifumiArea.style.display = 'flex';
-        morpionArea.style.display = 'none';
-        // statusMsg.style.display = 'block';
     }
 }
 
@@ -576,7 +668,7 @@ function getAvatarPath(id, type = 'static') {
 }
 
 function showResult(data) {
-    // Differentiate result display for Shifumi vs Morpion?
+    // Differentiate result display for Shifumi vs Morpion/Puissance4
     const movesDisplay = document.querySelector('.moves-display');
     if (currentGameType === 'shifumi') {
         movesDisplay.style.display = 'flex';
@@ -593,7 +685,7 @@ function showResult(data) {
         document.getElementById('my-move-display').innerHTML = `<img src="${assets[myMove]}" alt="${myMove}" class="move-display-icon">`;
         document.getElementById('op-move-display').innerHTML = `<img src="${assets[opMove]}" alt="${opMove}" class="move-display-icon">`;
     } else {
-        // Morpion Result
+        // Morpion / Puissance4 Result
         // Hide the move display area entirely as it's irrelevant
         movesDisplay.style.display = 'none';
         document.getElementById('my-move-display').innerHTML = '';
