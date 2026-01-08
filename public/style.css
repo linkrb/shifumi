@@ -1740,3 +1740,441 @@ input[type="text"]:focus {
         font-size: 1.5rem;
     }
 }
+
+/* ========================================
+   SNAKE BATTLE STYLES
+   ======================================== */
+
+/* Snake Icon in Game Selection */
+.snake-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.snake-emoji {
+    font-size: 5rem;
+    animation: snakeWiggle 2s ease-in-out infinite;
+}
+
+@keyframes snakeWiggle {
+    0%, 100% { transform: rotate(-5deg); }
+    50% { transform: rotate(5deg); }
+}
+
+/* Snake Options Section */
+.snake-options-section {
+    margin: 20px 0;
+    padding: 20px;
+    background: #F8F9FA;
+    border-radius: 20px;
+}
+
+.snake-option-group {
+    margin-bottom: 20px;
+}
+
+.snake-option-group:last-child {
+    margin-bottom: 0;
+}
+
+.snake-option-group label {
+    display: block;
+    font-weight: 700;
+    color: var(--grey);
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+.player-count-options {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.player-count-option {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.2s;
+    color: var(--grey);
+}
+
+.player-count-option:hover {
+    border-color: var(--cyan);
+    background: #E0F7FA;
+}
+
+.player-count-option.selected {
+    border-color: var(--pink);
+    background: #FFF0F5;
+    color: var(--pink);
+}
+
+.snake-mode-options {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.snake-mode-option {
+    flex: 1;
+    padding: 15px;
+    background: white;
+    border-radius: 15px;
+    text-align: center;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.2s;
+}
+
+.snake-mode-option:hover {
+    border-color: var(--cyan);
+    background: #E0F7FA;
+}
+
+.snake-mode-option.selected {
+    border-color: var(--pink);
+    background: #FFF0F5;
+}
+
+.mode-icon-snake {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.mode-name {
+    font-weight: 600;
+    color: var(--grey);
+    font-size: 0.85rem;
+}
+
+/* Snake Lobby */
+.player-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.lobby-player {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    min-width: 100px;
+}
+
+.lobby-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #FFF9E5;
+    margin-bottom: 10px;
+    object-fit: contain;
+    padding: 5px;
+}
+
+.lobby-username {
+    font-weight: 700;
+    color: var(--grey);
+    font-size: 0.9rem;
+}
+
+.creator-badge {
+    background: var(--pink);
+    color: white;
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-top: 5px;
+    font-weight: 700;
+}
+
+.player-count-display {
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--grey);
+    margin: 15px 0;
+}
+
+#snake-lobby-hint {
+    font-size: 0.9rem;
+    color: #999;
+    margin-top: 15px;
+}
+
+/* Snake Game Area */
+#snake-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#snake-canvas {
+    background: #1a1a2e;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(26, 26, 46, 0.5);
+    image-rendering: pixelated;
+}
+
+.snake-timer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--grey);
+    margin-bottom: 15px;
+    padding: 10px 20px;
+    background: white;
+    border-radius: 25px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.snake-timer.warning {
+    color: #FF6B6B;
+    animation: pulse 0.5s infinite;
+}
+
+.snake-scoreboard {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.snake-player-score {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 15px;
+    background: white;
+    border-radius: 15px;
+    border-left: 4px solid;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+}
+
+.snake-player-score.dead {
+    opacity: 0.5;
+}
+
+.snake-player-score .score-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #FFF9E5;
+    object-fit: contain;
+}
+
+.snake-player-score .score-name {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--grey);
+}
+
+.snake-player-score .score-value {
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--grey);
+}
+
+/* Mobile Controls */
+.mobile-controls {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.control-row {
+    display: flex;
+    gap: 10px;
+}
+
+.control-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, var(--cyan) 0%, #5AC8FF 100%);
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(122, 211, 255, 0.4);
+    transition: transform 0.1s;
+}
+
+.control-btn:active {
+    transform: scale(0.95);
+}
+
+.control-hints {
+    margin-top: 15px;
+    font-size: 0.85rem;
+    color: #999;
+}
+
+/* Death Overlay */
+.death-card {
+    background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+    color: white;
+    border: 4px solid #FF6B6B;
+}
+
+.death-card h2 {
+    color: #FF6B6B;
+}
+
+.death-card p {
+    color: #ccc;
+}
+
+/* Countdown Overlay */
+.countdown-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#countdown-number {
+    font-size: 10rem;
+    font-weight: 900;
+    color: white;
+    text-shadow: 0 0 50px rgba(255, 255, 255, 0.5);
+    animation: countdownPulse 1s ease-out;
+}
+
+@keyframes countdownPulse {
+    0% { transform: scale(1.5); opacity: 0; }
+    50% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0.8); opacity: 0; }
+}
+
+/* Snake Game Over */
+.snake-result-card {
+    max-width: 450px;
+}
+
+.snake-rankings {
+    margin: 20px 0;
+}
+
+.snake-ranking-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 15px;
+    background: #F8F9FA;
+    border-radius: 15px;
+    margin-bottom: 10px;
+}
+
+.snake-ranking-item:first-child {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    color: white;
+}
+
+.snake-ranking-item:first-child .ranking-score {
+    color: white;
+}
+
+.ranking-position {
+    font-size: 1.5rem;
+    font-weight: 900;
+    min-width: 40px;
+}
+
+.ranking-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: white;
+    object-fit: contain;
+    padding: 3px;
+}
+
+.ranking-name {
+    flex: 1;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.ranking-score {
+    font-weight: 800;
+    font-size: 1.2rem;
+    color: var(--pink);
+}
+
+.ranking-status {
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+/* Responsive Snake */
+@media (max-width: 768px) {
+    .mobile-controls {
+        display: flex;
+    }
+
+    #snake-canvas {
+        width: 100%;
+        max-width: 350px;
+        height: auto;
+    }
+
+    .control-hints {
+        display: none;
+    }
+
+    .snake-emoji {
+        font-size: 3rem;
+    }
+
+    .snake-mode-options {
+        flex-direction: column;
+    }
+
+    .snake-scoreboard {
+        gap: 8px;
+    }
+
+    .snake-player-score {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 500px) {
+    .game-options {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .game-option {
+        width: 100%;
+        max-width: 280px;
+    }
+
+    .game-icon {
+        height: 120px;
+    }
+}

@@ -115,6 +115,38 @@
                             <h3>Échecs</h3>
                             <p>Le roi des jeux de stratégie</p>
                         </div>
+                        <div class="game-option" data-game="snake">
+                            <div class="game-icon snake-icon">
+                                <span class="snake-emoji">🐍</span>
+                            </div>
+                            <h3>Snake Battle</h3>
+                            <p>Survie multijoueur (2-4)</p>
+                        </div>
+                    </div>
+
+                    <!-- Snake Options (hidden by default) -->
+                    <div id="snake-options" class="snake-options-section" style="display: none;">
+                        <div class="snake-option-group">
+                            <label>Nombre de joueurs</label>
+                            <div class="player-count-options">
+                                <div class="player-count-option" data-count="2">2</div>
+                                <div class="player-count-option" data-count="3">3</div>
+                                <div class="player-count-option selected" data-count="4">4</div>
+                            </div>
+                        </div>
+                        <div class="snake-option-group">
+                            <label>Mode de jeu</label>
+                            <div class="snake-mode-options">
+                                <div class="snake-mode-option selected" data-mode="survivor">
+                                    <span class="mode-icon-snake">💀</span>
+                                    <span class="mode-name">Dernier survivant</span>
+                                </div>
+                                <div class="snake-mode-option" data-mode="score">
+                                    <span class="mode-icon-snake">🍎</span>
+                                    <span class="mode-name">Score + Timer</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Win Rounds Selection (Moved) -->
@@ -143,9 +175,26 @@
             <!-- Lobby View -->
             <section id="lobby" class="view">
                 <div class="card">
-                    <h2>En attente d'un adversaire...</h2>
-                    <div class="loader"></div>
-                    <p>Partagez ce lien avec votre ami :</p>
+                    <h2 id="lobby-title">En attente d'un adversaire...</h2>
+
+                    <!-- Standard lobby (2-player games) -->
+                    <div id="standard-lobby-section">
+                        <div class="loader"></div>
+                    </div>
+
+                    <!-- Snake lobby (multi-player) -->
+                    <div id="snake-lobby-section" style="display: none;">
+                        <div id="snake-player-list" class="player-list"></div>
+                        <div class="player-count-display">
+                            <span id="current-player-count">1</span>/<span id="max-player-count">4</span> joueurs
+                        </div>
+                        <button id="start-snake-btn" class="btn primary" style="display: none;">
+                            Lancer la partie !
+                        </button>
+                        <p id="snake-lobby-hint" class="subtext">En attente du lancement...</p>
+                    </div>
+
+                    <p>Partagez ce lien :</p>
                     <div class="url-box">
                         <input type="text" id="game-url" readonly>
                     </div>
@@ -286,6 +335,27 @@
                     <div id="chess-turn-indicator" class="turn-indicator">En attente...</div>
                 </div>
 
+                <!-- Snake Battle Area -->
+                <div id="snake-area" class="game-board-container" style="display: none;">
+                    <div id="snake-timer" class="snake-timer" style="display: none;">
+                        <span class="timer-icon">⏱️</span>
+                        <span id="snake-time-remaining">2:00</span>
+                    </div>
+                    <div id="snake-scoreboard" class="snake-scoreboard"></div>
+                    <canvas id="snake-canvas" width="450" height="450"></canvas>
+                    <div id="snake-mobile-controls" class="mobile-controls">
+                        <button class="control-btn" data-dir="up">↑</button>
+                        <div class="control-row">
+                            <button class="control-btn" data-dir="left">←</button>
+                            <button class="control-btn" data-dir="down">↓</button>
+                            <button class="control-btn" data-dir="right">→</button>
+                        </div>
+                    </div>
+                    <div class="control-hints">
+                        <span>🎮 Flèches / ZQSD / Swipe</span>
+                    </div>
+                </div>
+
                 <!-- Shifumi Area -->
                 <div id="shifumi-area" class="choices">
                     <button class="choice-btn" data-move="rock">
@@ -351,6 +421,34 @@
                     <h2 id="message-title">Attention</h2>
                     <p id="message-text">Une erreur est survenue.</p>
                     <button id="message-btn" class="btn primary">OK</button>
+                </div>
+            </div>
+
+            <!-- Snake Countdown Overlay -->
+            <div id="countdown-overlay" class="overlay" style="display: none;">
+                <div class="countdown-display">
+                    <span id="countdown-number">3</span>
+                </div>
+            </div>
+
+            <!-- Snake Death Overlay -->
+            <div id="snake-death-overlay" class="overlay" style="display: none;">
+                <div class="result-card death-card">
+                    <h2>💀 Éliminé !</h2>
+                    <p id="death-reason">Collision</p>
+                    <p class="subtext">En attente de la fin de la partie...</p>
+                </div>
+            </div>
+
+            <!-- Snake Game Over Overlay -->
+            <div id="snake-gameover-overlay" class="overlay" style="display: none;">
+                <div class="result-card snake-result-card">
+                    <h2 id="snake-result-title">Victoire !</h2>
+                    <div id="snake-rankings" class="snake-rankings"></div>
+                    <div class="result-buttons">
+                        <button id="snake-replay-btn" class="btn primary">Rejouer</button>
+                        <button id="snake-home-btn" class="btn secondary">Menu</button>
+                    </div>
                 </div>
             </div>
         </main>
