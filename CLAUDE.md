@@ -4,66 +4,76 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Kawaii Clash is a real-time multiplayer arcade game platform built with Node.js, Express, and WebSockets. It supports multiple game modes including Shifumi (Rock-Paper-Scissors), Morpion (Tic-Tac-Toe), Puissance 4 (Connect Four), Chess, and Snake Battle.
+Kawaii Clash is a real-time multiplayer arcade game platform built with Node.js, Express, and WebSockets. It supports multiple game modes: Shifumi (Rock-Paper-Scissors), Morpion (Tic-Tac-Toe), Puissance 4 (Connect Four), Chess, and Snake Battle.
 
 ## Commands
 
 ```bash
-# Install dependencies
-npm install
-
-# Start production server
-npm start
-
-# Start development server with auto-reload
-npm run dev
+npm install    # Install dependencies
+npm start      # Start production server
+npm run dev    # Start dev server with auto-reload
 ```
 
-The server runs on `http://localhost:3000` by default (configurable via PORT env var).
+Server runs on `http://localhost:3000` (configurable via PORT env var).
 
 ## Architecture
 
-### Server (`server.js`)
-- Express HTTP server with WebSocket (ws) layer
-- Single entry point handling all game logic
-- Games stored in-memory in `games` object keyed by 8-char uppercase game ID
-- Each game tracks: players (WebSocket connections), moves, board state, scores, avatars, usernames
-- Message types: `create_game`, `join_game`, `make_move`, `chat_message`, `send_emote`, `play_again`, `start_game` (Snake), `change_direction` (Snake)
-- Chess uses chess.js library for move validation and game state
+### Server Structure
+```
+server.js                 # Express + WebSocket entry point (~40 lines)
+├── handlers/
+│   └── messageHandler.js # WebSocket message routing
+├── games/
+│   ├── BaseGame.js       # Abstract base class for all games
+│   ├── ShifumiGame.js
+│   ├── MorpionGame.js
+│   ├── Puissance4Game.js
+│   ├── ChessGame.js      # Uses chess.js for validation
+│   └── SnakeGame.js      # Multi-player with game loop
+└── utils/
+    └── wsUtils.js        # safeSend, broadcastToGame helpers
+```
 
-### Client (`public/script.js`)
-- Single-page application with view switching
-- WebSocket connection to server for real-time communication
-- State management via global variables
-- Game type specific UI areas: `shifumiArea`, `morpionArea`, `puissance4Area`, `chessArea`, `snakeArea`
-- Controls: keyboard (arrows, ZQSD, WASD), touch/swipe for Snake
+### Client Structure (ES Modules)
+```
+public/
+├── index.html            # SPA entry, loads main.js as module
+└── js/
+    ├── main.js           # Entry point, WebSocket, message routing
+    ├── state.js          # Centralized state management
+    ├── ui/
+    │   ├── views.js      # View switching, avatars, status
+    │   ├── chat.js       # Chat + emotes
+    │   ├── lobby.js      # Game creation/joining lobby
+    │   └── results.js    # Round/game results display
+    └── games/
+        ├── BaseGame.js   # Abstract UI base class
+        ├── ShifumiGame.js
+        ├── MorpionGame.js
+        ├── Puissance4Game.js
+        ├── ChessGame.js
+        └── SnakeGame.js  # Canvas rendering, touch/keyboard controls
+```
 
-### Game Flow
-1. Player creates game -> Gets 8-char game ID
-2. Share URL `/game/{gameId}` with opponent(s)
-3. Opponent joins via URL -> Avatar selection -> Game starts
-4. WebSocket messages sync game state between players
-5. Round results broadcast to all players
+### Adding a New Game
 
-### Key Functions
-- `handleMessage(ws, data)` - Main message router (server.js:64)
-- `resolveShifumiRound(game)` - Shifumi win logic (server.js:508)
-- `checkMorpionWin(board)` - Morpion 3-in-a-row check (server.js:542)
-- `checkPuissance4Win(board)` - Connect Four 4-in-a-row check (server.js:557)
-- `updateSnakeGame(game)` - Snake game loop tick (server.js:730)
+1. **Server**: Create `games/NewGame.js` extending `BaseGame`
+   - Implement `handleMove()`, `resetRound()`, optionally `onGameStart()`
+   - Add to `GAME_CLASSES` in `handlers/messageHandler.js`
+
+2. **Client**: Create `public/js/games/NewGame.js` extending `BaseGame`
+   - Implement `show()`, `hide()`, `onGameStart()`, `onUpdate()`, `onNewRound()`
+   - Import and add to `games` object in `main.js`
+   - Add HTML elements in `index.html`
+
+### Key Patterns
+
+- **State**: Client uses centralized `state.js` with `updateState()` helper
+- **Messages**: Server games broadcast via `this.broadcast(data)`
+- **Turn-based games**: Track `this.turn` (player ID), validate in `handleMove()`
+- **Snake**: Uses `setInterval` game loop at 100ms tick rate
 
 ## Environment Variables
 
-Copy `.env.example` to `.env`:
 - `PORT` - Server port (default: 3000)
 - `GEMINI_API_KEY` - For image generation script (optional)
-
-## File Structure
-
-- `server.js` - Main server and all game logic
-- `public/` - Static frontend assets
-  - `script.js` - Client-side game logic
-  - `style.css` - Styles
-  - `index.html` - SPA entry point
-  - `avatars/` - Player avatar images
-- `scripts/generate-image.js` - Gemini API image generator utility
