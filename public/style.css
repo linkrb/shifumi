@@ -51,7 +51,7 @@ body {
     height: 100vh;
     /* Force viewport height */
     z-index: -1;
-    background-image: url('/background.png');
+    background-image: url('/background.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -1245,20 +1245,23 @@ input[type="text"]:focus {
 /* Game Selection */
 .game-options {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
-    gap: 30px;
+    gap: 20px;
     margin-top: 30px;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .game-option {
     background: #FFFFFF;
     border: 4px solid transparent;
-    border-radius: 30px;
-    padding: 30px;
+    border-radius: 20px;
+    padding: 20px;
     cursor: pointer;
     transition: all 0.3s ease;
-    width: 300px;
-    /* Increased from 200px */
+    width: 200px;
     text-align: center;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
 }
@@ -1270,13 +1273,8 @@ input[type="text"]:focus {
 }
 
 .game-icon {
-    /* font-size: 4rem; */
-    /* Removed for images */
-    margin-bottom: 20px;
-    display: block;
-    height: 200px;
-    /* Increased from 100px */
-    /* Fixed height for consistency */
+    margin-bottom: 15px;
+    height: 120px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1292,13 +1290,14 @@ input[type="text"]:focus {
 
 .game-option h3 {
     color: var(--grey);
-    font-size: 1.4rem;
-    margin-bottom: 10px;
+    font-size: 1.1rem;
+    margin-bottom: 5px;
 }
 
 .game-option p {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     margin-bottom: 0;
+    color: #999;
 }
 
 /* Morpion Board */
