@@ -81,7 +81,8 @@ function createSession(ws, data) {
 
     const session = new Session(sessionId, ws, {
         avatarId: data.avatarId,
-        username: data.username || 'Joueur 1'
+        username: data.username || 'Joueur 1',
+        maxPlayers: data.maxPlayers || 2
     });
 
     sessions[sessionId] = session;
@@ -92,7 +93,8 @@ function createSession(ws, data) {
         sessionId: sessionId,
         playerId: ws.id,
         players: session.getPlayersInfo(),
-        creatorId: session.creatorId
+        creatorId: session.creatorId,
+        maxPlayers: session.maxPlayers
     });
 }
 
@@ -120,11 +122,14 @@ function joinSession(ws, data) {
         sessionId: session.id,
         playerId: ws.id,
         players: session.getPlayersInfo(),
-        creatorId: session.creatorId
+        creatorId: session.creatorId,
+        maxPlayers: session.maxPlayers
     });
 
-    // Update session status to choosing (ready to pick a game)
-    session.status = 'choosing';
+    // Update session status to choosing when we have at least 2 players
+    if (session.players.length >= 2) {
+        session.status = 'choosing';
+    }
 }
 
 function selectGame(ws, data) {
@@ -151,6 +156,13 @@ function selectGame(ws, data) {
 
     if (!GameClass) {
         safeSend(ws, { type: 'error', message: 'Type de jeu inconnu' });
+        return;
+    }
+
+    // Check player count compatibility
+    const is2PlayerGame = gameType !== 'snake';
+    if (is2PlayerGame && session.players.length > 2) {
+        safeSend(ws, { type: 'error', message: 'Ce jeu est limité à 2 joueurs. Utilisez Snake pour jouer à plus.' });
         return;
     }
 
@@ -200,10 +212,7 @@ function selectGame(ws, data) {
         // Auto-start snake game
         setTimeout(() => game.startGame(), 500);
     } else {
-        // Standard 2-player games
-        game.onGameStart();
-
-        // Add sessionId to game_start message
+        // Standard 2-player games - send game_start with all required data including turn
         session.players.forEach(player => {
             const opponent = session.players.find(p => p.id !== player.id);
             safeSend(player, {
@@ -215,6 +224,7 @@ function selectGame(ws, data) {
                 avatars: session.avatars,
                 usernames: session.usernames,
                 winRounds: data.winRounds,
+                turn: game.turn,
                 sessionId: session.id
             });
         });

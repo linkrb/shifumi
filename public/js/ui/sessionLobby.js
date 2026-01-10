@@ -7,10 +7,17 @@ export function initSessionLobby() {
         opt.addEventListener('click', () => {
             if (!state.isSessionCreator) return;
 
+            const gameType = opt.dataset.game;
+            const is2PlayerGame = gameType !== 'snake';
+
+            // Check if game is compatible with player count
+            if (is2PlayerGame && state.sessionPlayers.length > 2) {
+                return; // Can't select 2-player game with > 2 players
+            }
+
             document.querySelectorAll('.session-game-option').forEach(o => o.classList.remove('selected'));
             opt.classList.add('selected');
 
-            const gameType = opt.dataset.game;
             selectSessionGame(gameType);
         });
     });
@@ -44,6 +51,15 @@ export function showSessionLobby(players, creatorId, waitingForPlayer = false) {
 
     // Update players display
     playersContainer.innerHTML = '';
+
+    // Add player count display
+    if (state.sessionMaxPlayers > 2) {
+        const countDiv = document.createElement('div');
+        countDiv.className = 'session-player-count-display';
+        countDiv.innerHTML = `<strong>${players.length}</strong> / ${state.sessionMaxPlayers} joueurs`;
+        playersContainer.appendChild(countDiv);
+    }
+
     players.forEach(player => {
         const div = document.createElement('div');
         div.className = 'session-player';
@@ -56,8 +72,11 @@ export function showSessionLobby(players, creatorId, waitingForPlayer = false) {
         playersContainer.appendChild(div);
     });
 
+    // Update game options availability
+    updateGameOptionsAvailability(players.length);
+
     // Show appropriate UI based on role
-    if (waitingForPlayer) {
+    if (waitingForPlayer || players.length < 2) {
         gamePicker.style.display = 'none';
         waitingDiv.style.display = 'none';
         waitingPlayerDiv.style.display = 'block';
@@ -74,6 +93,21 @@ export function showSessionLobby(players, creatorId, waitingForPlayer = false) {
         waitingDiv.style.display = 'block';
         waitingPlayerDiv.style.display = 'none';
     }
+}
+
+function updateGameOptionsAvailability(playerCount) {
+    document.querySelectorAll('.session-game-option').forEach(opt => {
+        const gameType = opt.dataset.game;
+        const is2PlayerGame = gameType !== 'snake';
+
+        if (is2PlayerGame && playerCount > 2) {
+            opt.classList.add('disabled');
+            opt.title = 'Limité à 2 joueurs';
+        } else {
+            opt.classList.remove('disabled');
+            opt.title = '';
+        }
+    });
 }
 
 function selectSessionGame(gameType) {

@@ -7,6 +7,7 @@ export const state = {
     sessionId: null,
     isSessionCreator: false,
     sessionPlayers: [],
+    sessionMaxPlayers: 2,
 
     // Game identifiers
     gameId: null,

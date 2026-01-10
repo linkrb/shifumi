@@ -194,7 +194,8 @@ function handleSessionCreated(data) {
         sessionId: data.sessionId,
         playerId: data.playerId,
         isSessionCreator: true,
-        sessionPlayers: data.players
+        sessionPlayers: data.players,
+        sessionMaxPlayers: data.maxPlayers || 2
     });
 
     // Update URL to session URL
@@ -208,7 +209,8 @@ function handleSessionJoined(data) {
         sessionId: data.sessionId,
         playerId: data.playerId || state.playerId,
         isSessionCreator: data.creatorId === state.playerId,
-        sessionPlayers: data.players
+        sessionPlayers: data.players,
+        sessionMaxPlayers: data.maxPlayers || 2
     });
 
     showSessionLobby(data.players, data.creatorId, false);
@@ -216,7 +218,8 @@ function handleSessionJoined(data) {
 
 function handleLobbyReady(data) {
     updateState({
-        sessionPlayers: data.players
+        sessionPlayers: data.players,
+        sessionMaxPlayers: data.maxPlayers || state.sessionMaxPlayers
     });
 
     // Reset game state
@@ -340,8 +343,9 @@ function setupGameUI(gameType) {
 function initUI() {
     // Create game button -> now creates a session
     document.getElementById('create-btn').addEventListener('click', () => {
-        updateState({ isCreatingGame: true });
+        updateState({ isCreatingGame: true, sessionMaxPlayers: 2 });
         document.getElementById('win-rounds-section').style.display = 'none';
+        document.getElementById('session-player-count-section').style.display = 'block';
         showView('avatarSelection');
     });
 
@@ -351,6 +355,7 @@ function initUI() {
         if (input) {
             updateState({ isCreatingGame: false });
             document.getElementById('win-rounds-section').style.display = 'none';
+            document.getElementById('session-player-count-section').style.display = 'none';
 
             // Check if it's a session or game URL
             if (input.includes('/session/')) {
@@ -365,6 +370,15 @@ function initUI() {
 
             showView('avatarSelection');
         }
+    });
+
+    // Session player count selection
+    document.querySelectorAll('.session-count-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+            document.querySelectorAll('.session-count-option').forEach(o => o.classList.remove('selected'));
+            opt.classList.add('selected');
+            updateState({ sessionMaxPlayers: parseInt(opt.dataset.count) });
+        });
     });
 
     // Avatar selection
@@ -478,7 +492,8 @@ function createSession() {
     socket.send(JSON.stringify({
         type: 'create_session',
         avatarId: state.selectedAvatar,
-        username: username
+        username: username,
+        maxPlayers: state.sessionMaxPlayers || 2
     }));
 }
 

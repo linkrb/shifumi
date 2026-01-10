@@ -10,10 +10,11 @@ class Session {
         this.currentGame = null;
         this.status = 'waiting'; // waiting | choosing | in_game
         this.wantsToLobby = new Set();
+        this.maxPlayersCount = Math.min(4, Math.max(2, options.maxPlayers || 2));
     }
 
     get maxPlayers() {
-        return 2;
+        return this.maxPlayersCount;
     }
 
     canJoin() {
@@ -85,7 +86,8 @@ class Session {
             this.broadcast({
                 type: 'lobby_ready',
                 players: this.getPlayersInfo(),
-                creatorId: this.creatorId
+                creatorId: this.creatorId,
+                maxPlayers: this.maxPlayers
             });
             return true;
         }
