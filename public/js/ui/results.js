@@ -5,6 +5,7 @@ const resultOverlay = document.getElementById('result-overlay');
 const myScoreEl = document.getElementById('my-score');
 const opScoreEl = document.getElementById('op-score');
 const replayBtn = document.getElementById('replay-btn');
+const changeGameBtn = document.getElementById('change-game-btn');
 const newGameBtn = document.getElementById('new-game-btn');
 const replayStatus = document.getElementById('replay-status');
 
@@ -103,7 +104,15 @@ export function showGameWinner(data) {
 
     replayBtn.textContent = 'Rejouer';
     replayBtn.disabled = false;
-    newGameBtn.style.display = 'block';
+
+    // Show "Changer de jeu" if in a session, otherwise show "Nouvelle Partie"
+    if (state.sessionId) {
+        changeGameBtn.style.display = 'block';
+        newGameBtn.style.display = 'none';
+    } else {
+        changeGameBtn.style.display = 'none';
+        newGameBtn.style.display = 'block';
+    }
 
     resultOverlay.style.display = 'flex';
 }
@@ -114,6 +123,7 @@ export function resetRoundUI() {
 
     replayBtn.textContent = 'Rejouer';
     replayBtn.disabled = false;
+    changeGameBtn.style.display = 'none';
     newGameBtn.style.display = 'none';
     replayStatus.textContent = '';
 

@@ -221,6 +221,68 @@
                 </div>
             </section>
 
+            <!-- Session Lobby View -->
+            <section id="session-lobby" class="view">
+                <div class="card">
+                    <h2>Salon de jeu</h2>
+                    <p class="subtitle">Vous jouez ensemble !</p>
+
+                    <div id="session-players" class="session-players">
+                        <!-- Players will be injected here -->
+                    </div>
+
+                    <!-- Game picker (only visible for creator) -->
+                    <div id="session-game-picker" style="display: none;">
+                        <h3>Choisissez un jeu</h3>
+                        <div class="session-game-options">
+                            <div class="session-game-option" data-game="shifumi">
+                                <img src="/shifumi-select.png" alt="Shifumi">
+                                <span>Shifumi</span>
+                            </div>
+                            <div class="session-game-option" data-game="morpion">
+                                <img src="/morpion-select.png" alt="Morpion">
+                                <span>Morpion</span>
+                            </div>
+                            <div class="session-game-option" data-game="puissance4">
+                                <img src="/puissance4-select.png" alt="Puissance 4">
+                                <span>Puissance 4</span>
+                            </div>
+                            <div class="session-game-option" data-game="chess">
+                                <img src="/chess-select.png" alt="Échecs">
+                                <span>Échecs</span>
+                            </div>
+                            <div class="session-game-option" data-game="snake">
+                                <img src="/snake-select.png" alt="Snake">
+                                <span>Snake</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Waiting message (visible for non-creator) -->
+                    <div id="session-waiting" style="display: none;">
+                        <div class="loader"></div>
+                        <p class="subtext">En attente du choix du jeu...</p>
+                    </div>
+
+                    <!-- Waiting for second player -->
+                    <div id="session-waiting-player" style="display: none;">
+                        <div class="loader"></div>
+                        <p>Partagez ce lien :</p>
+                        <div class="url-box">
+                            <input type="text" id="session-url" readonly>
+                        </div>
+                        <div class="share-buttons">
+                            <button id="session-copy-btn" class="btn-share btn-copy">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                Copier
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <!-- Game View -->
             <section id="game" class="view">
@@ -408,6 +470,7 @@
                     </div>
                     <div class="result-buttons">
                         <button id="replay-btn" class="btn primary">Rejouer</button>
+                        <button id="change-game-btn" class="btn secondary" style="display: none;">Changer de jeu</button>
                         <button id="new-game-btn" class="btn secondary" style="display: none;">Nouvelle Partie</button>
                     </div>
                     <p id="replay-status" class="subtext"></p>
@@ -446,6 +509,7 @@
                     <div id="snake-rankings" class="snake-rankings"></div>
                     <div class="result-buttons">
                         <button id="snake-replay-btn" class="btn primary">Rejouer</button>
+                        <button id="snake-change-game-btn" class="btn secondary" style="display: none;">Changer de jeu</button>
                         <button id="snake-home-btn" class="btn secondary">Menu</button>
                     </div>
                 </div>

@@ -3,6 +3,7 @@ import { showView, setStatus, showMessage, updateGameAvatars, updateUsernames, u
 import { initChat, handleChatMessage, handleEmoteReceived } from './ui/chat.js';
 import { initLobby, setupLobby, updateSnakeLobby } from './ui/lobby.js';
 import { initResults, showResult, showGameWinner, resetRoundUI, handleOpponentWantsReplay } from './ui/results.js';
+import { initSessionLobby, showSessionLobby, requestBackToLobby } from './ui/sessionLobby.js';
 
 import { ShifumiGame } from './games/ShifumiGame.js';
 import { MorpionGame } from './games/MorpionGame.js';
@@ -29,7 +30,14 @@ updateState({ socket });
 socket.onopen = () => {
     console.log('Connected to server');
     const pathParts = window.location.pathname.split('/');
-    if (pathParts[1] === 'game' && pathParts[2]) {
+
+    // Check for session URL: /session/{id}
+    if (pathParts[1] === 'session' && pathParts[2]) {
+        document.getElementById('join-input').dataset.pendingSession = pathParts[2];
+        showView('avatarSelection');
+    }
+    // Check for legacy game URL: /game/{id}
+    else if (pathParts[1] === 'game' && pathParts[2]) {
         document.getElementById('join-input').dataset.pendingJoin = pathParts[2];
         showView('avatarSelection');
     }
@@ -43,6 +51,28 @@ socket.onmessage = (event) => {
 
 function handleMessage(data) {
     switch (data.type) {
+        // Session handlers
+        case 'session_created':
+            handleSessionCreated(data);
+            break;
+
+        case 'session_joined':
+            handleSessionJoined(data);
+            break;
+
+        case 'lobby_ready':
+            handleLobbyReady(data);
+            break;
+
+        case 'player_wants_lobby':
+            handlePlayerWantsLobby(data);
+            break;
+
+        case 'session_player_left':
+            handleSessionPlayerLeft(data);
+            break;
+
+        // Legacy game handlers
         case 'game_created':
             updateState({
                 gameId: data.gameId,
@@ -130,6 +160,14 @@ function handleMessage(data) {
             games.snake.onGameOver(data);
             break;
 
+        case 'player_wants_rematch':
+            games.snake.onPlayerWantsRematch(data);
+            break;
+
+        case 'game_restarted':
+            games.snake.onGameRestarted(data);
+            break;
+
         case 'new_round':
             if (currentGame) currentGame.onNewRound(data);
             resetRoundUI();
@@ -149,6 +187,75 @@ function handleMessage(data) {
     }
 }
 
+// ================== SESSION HANDLERS ==================
+
+function handleSessionCreated(data) {
+    updateState({
+        sessionId: data.sessionId,
+        playerId: data.playerId,
+        isSessionCreator: true,
+        sessionPlayers: data.players
+    });
+
+    // Update URL to session URL
+    window.history.pushState({}, '', `/session/${data.sessionId}`);
+
+    showSessionLobby(data.players, data.creatorId, true);
+}
+
+function handleSessionJoined(data) {
+    updateState({
+        sessionId: data.sessionId,
+        playerId: data.playerId || state.playerId,
+        isSessionCreator: data.creatorId === state.playerId,
+        sessionPlayers: data.players
+    });
+
+    showSessionLobby(data.players, data.creatorId, false);
+}
+
+function handleLobbyReady(data) {
+    updateState({
+        sessionPlayers: data.players
+    });
+
+    // Reset game state
+    resetGameState();
+
+    // Hide all game overlays
+    document.getElementById('result-overlay').style.display = 'none';
+    document.getElementById('snake-gameover-overlay').style.display = 'none';
+
+    showSessionLobby(data.players, data.creatorId, false);
+}
+
+function handlePlayerWantsLobby(data) {
+    // Show notification in chat or as a system message
+    const chatMessages = document.getElementById('chat-messages');
+    if (chatMessages) {
+        const msg = document.createElement('div');
+        msg.className = 'chat-message system';
+        msg.textContent = `${data.username} veut changer de jeu (${data.readyCount}/${data.totalPlayers})`;
+        chatMessages.appendChild(msg);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+}
+
+function handleSessionPlayerLeft(data) {
+    updateState({
+        sessionPlayers: data.players
+    });
+
+    showMessage("Oups !", `${data.username} a quitté la session.`, () => {
+        if (state.sessionPlayers.length < 2) {
+            // Go back to waiting for player
+            showSessionLobby(data.players, state.isSessionCreator ? state.playerId : null, true);
+        }
+    });
+}
+
+// ================== GAME HANDLERS ==================
+
 function handleGameStart(data) {
     updateState({
         gameId: data.gameId,
@@ -159,6 +266,11 @@ function handleGameStart(data) {
         myAvatar: data.avatars[state.playerId],
         opAvatar: data.avatars[data.opponentId]
     });
+
+    // Track if we're in a session
+    if (data.sessionId) {
+        updateState({ sessionId: data.sessionId });
+    }
 
     updateGameModeUI(data.winRounds);
     setupGameUI(data.gameType);
@@ -187,6 +299,11 @@ function handlePlayerJoined(data) {
         currentGameType: 'snake',
         snakePlayers: players
     });
+
+    // Track session if present
+    if (data.sessionId) {
+        updateState({ sessionId: data.sessionId });
+    }
 
     setupLobby('snake');
     updateSnakeLobby();
@@ -218,12 +335,13 @@ function setupGameUI(gameType) {
     }
 }
 
-// UI Event Handlers
+// ================== UI EVENT HANDLERS ==================
+
 function initUI() {
-    // Create game button
+    // Create game button -> now creates a session
     document.getElementById('create-btn').addEventListener('click', () => {
         updateState({ isCreatingGame: true });
-        document.getElementById('win-rounds-section').style.display = 'block';
+        document.getElementById('win-rounds-section').style.display = 'none';
         showView('avatarSelection');
     });
 
@@ -233,7 +351,18 @@ function initUI() {
         if (input) {
             updateState({ isCreatingGame: false });
             document.getElementById('win-rounds-section').style.display = 'none';
-            document.getElementById('join-input').dataset.pendingJoin = input;
+
+            // Check if it's a session or game URL
+            if (input.includes('/session/')) {
+                const sessionId = input.split('/session/')[1];
+                document.getElementById('join-input').dataset.pendingSession = sessionId;
+            } else if (input.includes('/game/')) {
+                document.getElementById('join-input').dataset.pendingJoin = input.split('/game/')[1];
+            } else {
+                // Assume it's a raw ID - try session first
+                document.getElementById('join-input').dataset.pendingSession = input;
+            }
+
             showView('avatarSelection');
         }
     });
@@ -262,10 +391,10 @@ function initUI() {
         if (!state.selectedAvatar) {
             updateState({ selectedAvatar: Math.floor(Math.random() * 8) + 1 });
         }
-        proceedToGameSelection();
+        proceedAfterAvatar();
     });
 
-    // Game type selection
+    // Game type selection (legacy flow)
     document.querySelectorAll('.game-option').forEach(opt => {
         opt.addEventListener('click', () => {
             document.querySelectorAll('.game-option').forEach(o => o.classList.remove('selected'));
@@ -302,28 +431,65 @@ function initUI() {
         });
     });
 
-    // Start game button
+    // Start game button (legacy flow)
     document.getElementById('start-game-btn').addEventListener('click', () => {
         createGame(state.currentGameType || 'shifumi');
     });
+
+    // Change game buttons
+    document.getElementById('change-game-btn')?.addEventListener('click', () => {
+        requestBackToLobby();
+    });
+
+    document.getElementById('snake-change-game-btn')?.addEventListener('click', () => {
+        requestBackToLobby();
+    });
 }
 
-function proceedToGameSelection() {
+function proceedAfterAvatar() {
+    const pendingSession = document.getElementById('join-input').dataset.pendingSession;
     const pendingJoin = document.getElementById('join-input').dataset.pendingJoin;
 
-    if (pendingJoin) {
+    if (pendingSession) {
+        // Join existing session
+        joinSession(pendingSession);
+    } else if (pendingJoin) {
+        // Legacy: join existing game
         let id = pendingJoin;
         if (pendingJoin.includes('/game/')) {
             id = pendingJoin.split('/game/')[1];
         }
         if (id) joinGame(id);
+    } else if (state.isCreatingGame) {
+        // Create a new session
+        createSession();
     } else {
+        // Show game selection (legacy flow)
         if (!state.currentGameType) updateState({ currentGameType: 'shifumi' });
         document.querySelectorAll('.game-option').forEach(o => o.classList.remove('selected'));
         const selected = document.querySelector(`.game-option[data-game="${state.currentGameType}"]`);
         if (selected) selected.classList.add('selected');
         showView('gameSelection');
     }
+}
+
+function createSession() {
+    const username = document.getElementById('username-input').value.trim() || 'Joueur 1';
+    socket.send(JSON.stringify({
+        type: 'create_session',
+        avatarId: state.selectedAvatar,
+        username: username
+    }));
+}
+
+function joinSession(sessionId) {
+    const username = document.getElementById('username-input').value.trim() || 'Joueur 2';
+    socket.send(JSON.stringify({
+        type: 'join_session',
+        sessionId: sessionId,
+        avatarId: state.selectedAvatar || (Math.floor(Math.random() * 8) + 1),
+        username: username
+    }));
 }
 
 function createGame(gameType) {
@@ -359,3 +525,7 @@ initUI();
 initChat();
 initLobby();
 initResults();
+initSessionLobby();
+
+// Export for use in other modules
+export { requestBackToLobby };

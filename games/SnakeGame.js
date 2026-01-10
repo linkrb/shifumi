@@ -1,7 +1,7 @@
 const BaseGame = require('./BaseGame');
 
 const GRID_SIZE = { width: 30, height: 30 };
-const TICK_RATE = 100; // ms
+const TICK_RATE = 150; // ms
 const INITIAL_LENGTH = 3;
 const COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96E6A1'];
 const START_POSITIONS = [
@@ -359,6 +359,52 @@ class SnakeGame extends BaseGame {
 
     resetRound() {
         // Snake doesn't have rounds in the traditional sense
+    }
+
+    handlePlayAgain(ws) {
+        if (this.gameStatus !== 'finished') return;
+
+        this.wantsRestart.add(ws.id);
+
+        // Notify other players
+        this.players.forEach(player => {
+            if (player.id !== ws.id) {
+                this.sendTo(player, {
+                    type: 'player_wants_rematch',
+                    playerId: ws.id,
+                    username: this.usernames[ws.id],
+                    readyCount: this.wantsRestart.size,
+                    totalPlayers: this.players.length
+                });
+            }
+        });
+
+        // Check if all players want to restart
+        if (this.wantsRestart.size === this.players.length) {
+            this.restartGame();
+        }
+    }
+
+    restartGame() {
+        this.wantsRestart.clear();
+        this.gameStatus = 'waiting';
+        this.snakes = {};
+        this.fruits = [];
+
+        this.broadcast({
+            type: 'game_restarted',
+            players: this.players.map(p => ({
+                id: p.id,
+                username: this.usernames[p.id],
+                avatar: this.avatars[p.id]
+            })),
+            maxPlayers: this.maxPlayers,
+            creatorId: this.creatorId,
+            snakeGameMode: this.snakeGameMode
+        });
+
+        // Auto-start since all players are already here
+        setTimeout(() => this.startGame(), 500);
     }
 }
 

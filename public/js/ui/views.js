@@ -5,6 +5,7 @@ const views = {
     avatarSelection: document.getElementById('avatar-selection'),
     gameSelection: document.getElementById('game-selection'),
     lobby: document.getElementById('lobby'),
+    sessionLobby: document.getElementById('session-lobby'),
     game: document.getElementById('game')
 };
 

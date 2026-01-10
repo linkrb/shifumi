@@ -3,6 +3,11 @@ export const state = {
     // Connection
     socket: null,
 
+    // Session identifiers
+    sessionId: null,
+    isSessionCreator: false,
+    sessionPlayers: [],
+
     // Game identifiers
     gameId: null,
     playerId: null,

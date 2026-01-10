@@ -69,7 +69,7 @@ export class SnakeGame extends BaseGame {
         });
 
         // Game over buttons
-        document.getElementById('snake-replay-btn')?.addEventListener('click', () => location.reload());
+        document.getElementById('snake-replay-btn')?.addEventListener('click', () => this.requestRematch());
         document.getElementById('snake-home-btn')?.addEventListener('click', () => location.href = '/');
     }
 
@@ -400,6 +400,12 @@ export class SnakeGame extends BaseGame {
             rankingsDiv.appendChild(div);
         });
 
+        // Show "Changer de jeu" button if in a session
+        const changeGameBtn = document.getElementById('snake-change-game-btn');
+        if (changeGameBtn) {
+            changeGameBtn.style.display = state.sessionId ? 'block' : 'none';
+        }
+
         this.gameoverOverlay.style.display = 'flex';
     }
 
@@ -408,5 +414,41 @@ export class SnakeGame extends BaseGame {
         this.deathOverlay.style.display = 'none';
         this.gameoverOverlay.style.display = 'none';
         this.countdownOverlay.style.display = 'none';
+    }
+
+    requestRematch() {
+        const btn = document.getElementById('snake-replay-btn');
+        if (btn) {
+            btn.textContent = 'En attente...';
+            btn.disabled = true;
+        }
+
+        state.socket.send(JSON.stringify({
+            type: 'play_again',
+            gameId: state.gameId
+        }));
+    }
+
+    onPlayerWantsRematch(data) {
+        addSystemChatMessage(`${data.username} veut rejouer ! (${data.readyCount}/${data.totalPlayers})`);
+    }
+
+    onGameRestarted(data) {
+        // Reset UI
+        this.reset();
+
+        // Reset button state
+        const btn = document.getElementById('snake-replay-btn');
+        if (btn) {
+            btn.textContent = 'Rejouer';
+            btn.disabled = false;
+        }
+
+        updateState({
+            snakeGameStatus: 'waiting',
+            snakeGameState: null
+        });
+
+        addSystemChatMessage('La partie recommence !');
     }
 }

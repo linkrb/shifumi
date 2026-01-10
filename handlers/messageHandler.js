@@ -6,6 +6,7 @@ const MorpionGame = require('../games/MorpionGame');
 const Puissance4Game = require('../games/Puissance4Game');
 const ChessGame = require('../games/ChessGame');
 const SnakeGame = require('../games/SnakeGame');
+const Session = require('../sessions/Session');
 
 const GAME_CLASSES = {
     shifumi: ShifumiGame,
@@ -15,11 +16,30 @@ const GAME_CLASSES = {
     snake: SnakeGame
 };
 
-// Game storage
+// Storage
 const games = {};
+const sessions = {};
 
 function handleMessage(ws, data) {
     switch (data.type) {
+        // Session handlers
+        case 'create_session':
+            createSession(ws, data);
+            break;
+
+        case 'join_session':
+            joinSession(ws, data);
+            break;
+
+        case 'select_game':
+            selectGame(ws, data);
+            break;
+
+        case 'back_to_lobby':
+            backToLobby(ws);
+            break;
+
+        // Legacy game handlers (kept for backward compatibility)
         case 'create_game':
             createGame(ws, data);
             break;
@@ -54,6 +74,162 @@ function handleMessage(ws, data) {
     }
 }
 
+// ================== SESSION HANDLERS ==================
+
+function createSession(ws, data) {
+    const sessionId = uuidv4().slice(0, 8).toUpperCase();
+
+    const session = new Session(sessionId, ws, {
+        avatarId: data.avatarId,
+        username: data.username || 'Joueur 1'
+    });
+
+    sessions[sessionId] = session;
+    ws.sessionId = sessionId;
+
+    safeSend(ws, {
+        type: 'session_created',
+        sessionId: sessionId,
+        playerId: ws.id,
+        players: session.getPlayersInfo(),
+        creatorId: session.creatorId
+    });
+}
+
+function joinSession(ws, data) {
+    const session = sessions[data.sessionId];
+
+    if (!session) {
+        safeSend(ws, { type: 'error', message: 'Session introuvable' });
+        return;
+    }
+
+    if (!session.canJoin()) {
+        safeSend(ws, { type: 'error', message: 'Session complète ou partie en cours' });
+        return;
+    }
+
+    session.addPlayer(ws, {
+        avatarId: data.avatarId,
+        username: data.username || `Joueur ${session.players.length}`
+    });
+
+    // Notify all players
+    session.broadcast({
+        type: 'session_joined',
+        sessionId: session.id,
+        playerId: ws.id,
+        players: session.getPlayersInfo(),
+        creatorId: session.creatorId
+    });
+
+    // Update session status to choosing (ready to pick a game)
+    session.status = 'choosing';
+}
+
+function selectGame(ws, data) {
+    const session = sessions[ws.sessionId];
+
+    if (!session) {
+        safeSend(ws, { type: 'error', message: 'Session introuvable' });
+        return;
+    }
+
+    // Only creator can select game
+    if (ws.id !== session.creatorId) {
+        safeSend(ws, { type: 'error', message: 'Seul le créateur peut choisir le jeu' });
+        return;
+    }
+
+    if (session.players.length < 2) {
+        safeSend(ws, { type: 'error', message: 'En attente d\'un autre joueur' });
+        return;
+    }
+
+    const gameType = data.gameType;
+    const GameClass = GAME_CLASSES[gameType];
+
+    if (!GameClass) {
+        safeSend(ws, { type: 'error', message: 'Type de jeu inconnu' });
+        return;
+    }
+
+    // Create game within session
+    const gameId = uuidv4().slice(0, 8).toUpperCase();
+    const creatorWs = session.players.find(p => p.id === session.creatorId);
+
+    const game = new GameClass(gameId, creatorWs, {
+        avatarId: session.avatars[creatorWs.id],
+        username: session.usernames[creatorWs.id],
+        winRounds: data.winRounds,
+        maxPlayers: data.maxPlayers,
+        snakeGameMode: data.snakeGameMode,
+        timerDuration: data.timerDuration
+    });
+
+    // Add other players to the game
+    session.players.forEach(player => {
+        if (player.id !== session.creatorId) {
+            game.addPlayer(player, {
+                avatarId: session.avatars[player.id],
+                username: session.usernames[player.id]
+            });
+        }
+        player.gameId = gameId;
+    });
+
+    games[gameId] = game;
+    session.setGame(game);
+
+    // Start the game
+    if (gameType === 'snake') {
+        // Snake has special multi-player lobby, handled separately
+        session.players.forEach(player => {
+            safeSend(player, {
+                type: 'player_joined',
+                gameId: gameId,
+                playerId: player.id,
+                newPlayerId: player.id,
+                players: session.getPlayersInfo(),
+                maxPlayers: game.maxPlayers,
+                creatorId: session.creatorId,
+                snakeGameMode: game.snakeGameMode,
+                sessionId: session.id
+            });
+        });
+        // Auto-start snake game
+        setTimeout(() => game.startGame(), 500);
+    } else {
+        // Standard 2-player games
+        game.onGameStart();
+
+        // Add sessionId to game_start message
+        session.players.forEach(player => {
+            const opponent = session.players.find(p => p.id !== player.id);
+            safeSend(player, {
+                type: 'game_start',
+                gameId: gameId,
+                gameType: gameType,
+                playerId: player.id,
+                opponentId: opponent.id,
+                avatars: session.avatars,
+                usernames: session.usernames,
+                winRounds: data.winRounds,
+                sessionId: session.id
+            });
+        });
+    }
+}
+
+function backToLobby(ws) {
+    const session = sessions[ws.sessionId];
+    if (!session) return;
+
+    session.requestBackToLobby(ws);
+}
+
+// ================== LEGACY GAME HANDLERS ==================
+
 function createGame(ws, data) {
     const gameId = uuidv4().slice(0, 8).toUpperCase();
     const gameType = data.gameType || 'shifumi';
@@ -64,7 +240,6 @@ function createGame(ws, data) {
         return;
     }
 
-    // Validate winRounds
     let winRounds = parseInt(data.winRounds);
     if (winRounds !== 1 && winRounds !== 3) {
         winRounds = null;
@@ -109,7 +284,6 @@ function joinGame(ws, data) {
     });
     ws.gameId = data.gameId;
 
-    // For non-snake games, start immediately when 2 players join
     if (game.gameType !== 'snake' && game.players.length === 2) {
         game.onGameStart();
     }
@@ -168,11 +342,28 @@ function handleEmote(ws, data) {
 }
 
 function handleDisconnect(ws) {
+    // Handle session disconnect
+    if (ws.sessionId && sessions[ws.sessionId]) {
+        const session = sessions[ws.sessionId];
+        const shouldDelete = session.onPlayerDisconnect(ws);
+
+        if (shouldDelete) {
+            // Clean up session's current game if any
+            if (session.currentGame && games[session.currentGame.id]) {
+                if (session.currentGame.tickInterval) {
+                    clearInterval(session.currentGame.tickInterval);
+                }
+                delete games[session.currentGame.id];
+            }
+            delete sessions[ws.sessionId];
+        }
+    }
+
+    // Handle game disconnect (legacy or session game)
     if (ws.gameId && games[ws.gameId]) {
         const game = games[ws.gameId];
         const shouldDelete = game.onPlayerDisconnect(ws);
 
-        // Clean up empty games
         if (shouldDelete || game.players.length === 0) {
             if (game.tickInterval) clearInterval(game.tickInterval);
             delete games[ws.gameId];
