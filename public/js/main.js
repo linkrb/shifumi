@@ -205,10 +205,13 @@ function handleSessionCreated(data) {
 }
 
 function handleSessionJoined(data) {
+    // Only set playerId if we don't have one yet (we're the one joining)
+    const myPlayerId = state.playerId || data.playerId;
+
     updateState({
         sessionId: data.sessionId,
-        playerId: data.playerId || state.playerId,
-        isSessionCreator: data.creatorId === state.playerId,
+        playerId: myPlayerId,
+        isSessionCreator: data.creatorId === myPlayerId,
         sessionPlayers: data.players,
         sessionMaxPlayers: data.maxPlayers || 2
     });
