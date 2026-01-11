@@ -126,8 +126,8 @@ function joinSession(ws, data) {
         maxPlayers: session.maxPlayers
     });
 
-    // Update session status to choosing when we have at least 2 players
-    if (session.players.length >= 2) {
+    // Update session status to choosing only when session is full
+    if (session.players.length >= session.maxPlayers) {
         session.status = 'choosing';
     }
 }

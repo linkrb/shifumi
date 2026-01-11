@@ -75,20 +75,26 @@ export function showSessionLobby(players, creatorId, waitingForPlayer = false) {
     // Update game options availability
     updateGameOptionsAvailability(players.length);
 
-    // Show appropriate UI based on role
-    if (waitingForPlayer || players.length < 2) {
+    // Update session URL
+    const sessionUrl = `${window.location.origin}/session/${state.sessionId}`;
+    document.getElementById('session-url').value = sessionUrl;
+
+    // Show appropriate UI based on role and player count
+    const hasEnoughPlayers = players.length >= 2;
+    const sessionFull = players.length >= state.sessionMaxPlayers;
+
+    if (!hasEnoughPlayers) {
+        // Waiting for at least 1 more player
         gamePicker.style.display = 'none';
         waitingDiv.style.display = 'none';
         waitingPlayerDiv.style.display = 'block';
-
-        // Update session URL
-        const sessionUrl = `${window.location.origin}/session/${state.sessionId}`;
-        document.getElementById('session-url').value = sessionUrl;
     } else if (state.isSessionCreator) {
+        // Creator can pick a game (show URL if session not full)
         gamePicker.style.display = 'block';
         waitingDiv.style.display = 'none';
-        waitingPlayerDiv.style.display = 'none';
+        waitingPlayerDiv.style.display = sessionFull ? 'none' : 'block';
     } else {
+        // Non-creator waits for game selection
         gamePicker.style.display = 'none';
         waitingDiv.style.display = 'block';
         waitingPlayerDiv.style.display = 'none';
