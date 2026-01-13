@@ -248,14 +248,21 @@ function handlePlayerWantsLobby(data) {
 }
 
 function handleSessionPlayerLeft(data) {
+    // Update creator status if it changed
+    const isNowCreator = data.creatorId === state.playerId;
+
     updateState({
-        sessionPlayers: data.players
+        sessionPlayers: data.players,
+        isSessionCreator: isNowCreator
     });
 
     showMessage("Oups !", `${data.username} a quitté la session.`, () => {
         if (state.sessionPlayers.length < 2) {
             // Go back to waiting for player
-            showSessionLobby(data.players, state.isSessionCreator ? state.playerId : null, true);
+            showSessionLobby(data.players, data.creatorId, true);
+        } else {
+            // Update lobby to reflect new creator if needed
+            showSessionLobby(data.players, data.creatorId, false);
         }
     });
 }

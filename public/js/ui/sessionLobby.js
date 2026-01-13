@@ -1,5 +1,7 @@
 import { state, updateState } from '../state.js';
-import { showView, getAvatarPath } from './views.js';
+import { showView, getAvatarPath, escapeHtml } from './views.js';
+
+let selectedWinRounds = 3;
 
 export function initSessionLobby() {
     // Game option selection
@@ -19,6 +21,16 @@ export function initSessionLobby() {
             opt.classList.add('selected');
 
             selectSessionGame(gameType);
+        });
+    });
+
+    // Win rounds selection
+    document.querySelectorAll('.session-rounds-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+            document.querySelectorAll('.session-rounds-option').forEach(o => o.classList.remove('selected'));
+            opt.classList.add('selected');
+            const rounds = opt.dataset.rounds;
+            selectedWinRounds = rounds === 'null' ? null : parseInt(rounds);
         });
     });
 
@@ -64,9 +76,10 @@ export function showSessionLobby(players, creatorId, waitingForPlayer = false) {
         const div = document.createElement('div');
         div.className = 'session-player';
         const isMe = player.id === state.playerId;
+        const displayName = isMe ? 'Moi' : escapeHtml(player.username);
         div.innerHTML = `
             <img src="${getAvatarPath(player.avatar)}" class="session-avatar" alt="">
-            <span class="session-username">${isMe ? 'Moi' : player.username}</span>
+            <span class="session-username">${displayName}</span>
             ${player.isCreator ? '<span class="session-host-badge">Hôte</span>' : ''}
         `;
         playersContainer.appendChild(div);
@@ -102,6 +115,8 @@ export function showSessionLobby(players, creatorId, waitingForPlayer = false) {
 }
 
 function updateGameOptionsAvailability(playerCount) {
+    const winRoundsSection = document.getElementById('session-win-rounds');
+
     document.querySelectorAll('.session-game-option').forEach(opt => {
         const gameType = opt.dataset.game;
         const is2PlayerGame = gameType !== 'snake';
@@ -114,13 +129,19 @@ function updateGameOptionsAvailability(playerCount) {
             opt.title = '';
         }
     });
+
+    // Hide win rounds for snake (it doesn't use rounds)
+    if (winRoundsSection) {
+        // Show by default, will be relevant for most games
+        winRoundsSection.style.display = 'flex';
+    }
 }
 
 function selectSessionGame(gameType) {
     state.socket.send(JSON.stringify({
         type: 'select_game',
         gameType: gameType,
-        winRounds: 3
+        winRounds: selectedWinRounds
     }));
 }
 

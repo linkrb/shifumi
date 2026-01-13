@@ -1,5 +1,5 @@
 import { state, updateState } from '../state.js';
-import { showView, getAvatarPath } from './views.js';
+import { showView, getAvatarPath, escapeHtml } from './views.js';
 
 export function initLobby() {
     // Copy button
@@ -108,9 +108,10 @@ export function updateSnakeLobby() {
     Object.entries(state.snakePlayers).forEach(([pid, player]) => {
         const div = document.createElement('div');
         div.className = 'lobby-player';
+        const displayName = escapeHtml(player.username);
         div.innerHTML = `
             <img src="${getAvatarPath(player.avatar)}" class="lobby-avatar" alt="Avatar">
-            <span class="lobby-username">${player.username}</span>
+            <span class="lobby-username">${displayName}</span>
             ${state.isGameCreator && pid === state.playerId ? '<span class="creator-badge">Host</span>' : ''}
         `;
         snakePlayerList.appendChild(div);

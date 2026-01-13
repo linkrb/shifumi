@@ -57,12 +57,25 @@ export function updateState(updates) {
 
 // Reset game state for new game
 export function resetGameState() {
+    state.gameId = null;
+    state.currentGameType = 'shifumi';
+    state.gameWinRounds = 3;
     state.myScore = 0;
     state.opScore = 0;
     state.isMyTurn = false;
+    state.myAvatar = null;
+    state.opAvatar = null;
+
+    // Chess specific
+    state.myColor = null;
+    state.currentFen = null;
     state.selectedSquare = null;
     state.legalMoves = [];
     state.lastMoveSquares = { from: null, to: null };
+
+    // Snake specific
     state.snakeGameState = null;
     state.snakeGameStatus = 'waiting';
+    state.snakePlayers = {};
+    state.isGameCreator = false;
 }

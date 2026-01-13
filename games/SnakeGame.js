@@ -5,10 +5,10 @@ const TICK_RATE = 150; // ms
 const INITIAL_LENGTH = 3;
 const COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96E6A1'];
 const START_POSITIONS = [
-    { x: 5, y: 5, dir: 'right' },
-    { x: 24, y: 24, dir: 'left' },
-    { x: 5, y: 24, dir: 'right' },
-    { x: 24, y: 5, dir: 'left' }
+    { x: 5, y: 5, dir: 'right' },    // Joueur 1: haut-gauche, va à droite
+    { x: 24, y: 24, dir: 'left' },   // Joueur 2: bas-droite, va à gauche
+    { x: 24, y: 5, dir: 'down' },    // Joueur 3: haut-droite, va en bas
+    { x: 5, y: 24, dir: 'up' }       // Joueur 4: bas-gauche, va en haut
 ];
 
 const OPPOSITES = { up: 'down', down: 'up', left: 'right', right: 'left' };

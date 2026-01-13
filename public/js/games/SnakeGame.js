@@ -1,6 +1,6 @@
 import { BaseGame } from './BaseGame.js';
 import { state, updateState } from '../state.js';
-import { setStatus, getAvatarPath, showView } from '../ui/views.js';
+import { setStatus, getAvatarPath, showView, escapeHtml } from '../ui/views.js';
 import { addSystemChatMessage } from '../ui/chat.js';
 
 const CELL_SIZE = 15;
@@ -145,11 +145,14 @@ export class SnakeGame extends BaseGame {
     }
 
     onUpdate(data) {
+        // Preserve gridSize from previous state, fallback to default
+        const gridSize = state.snakeGameState?.gridSize || { width: 30, height: 30 };
+
         updateState({
             snakeGameState: {
                 snakes: data.snakes,
                 fruits: data.fruits,
-                gridSize: state.snakeGameState.gridSize
+                gridSize: gridSize
             }
         });
         this.render(state.snakeGameState);
@@ -320,13 +323,14 @@ export class SnakeGame extends BaseGame {
             const player = state.snakePlayers[pid] || { username: 'Joueur', avatar: 1 };
             const color = snake.color || COLORS[colorIndex % COLORS.length];
             const isMe = pid === state.playerId;
+            const displayName = isMe ? 'Moi' : escapeHtml(player.username);
 
             const div = document.createElement('div');
             div.className = `snake-player-score ${!snake.alive ? 'dead' : ''}`;
             div.style.borderLeftColor = color;
             div.innerHTML = `
                 <img src="${getAvatarPath(player.avatar)}" class="score-avatar" alt="">
-                <span class="score-name">${isMe ? 'Moi' : player.username}</span>
+                <span class="score-name">${displayName}</span>
                 <span class="score-value">${snake.score}</span>
             `;
             this.scoreboard.appendChild(div);
@@ -388,13 +392,14 @@ export class SnakeGame extends BaseGame {
         data.rankings.forEach((rank, i) => {
             const player = state.snakePlayers[rank.playerId] || { username: rank.username, avatar: 1 };
             const isMe = rank.playerId === state.playerId;
+            const displayName = isMe ? 'Moi' : escapeHtml(player.username);
 
             const div = document.createElement('div');
             div.className = 'snake-ranking-item';
             div.innerHTML = `
                 <span class="ranking-position">${medals[i] || (i + 1)}</span>
                 <img src="${getAvatarPath(player.avatar)}" class="ranking-avatar" alt="">
-                <span class="ranking-name">${isMe ? 'Moi' : player.username}</span>
+                <span class="ranking-name">${displayName}</span>
                 <span class="ranking-score">${rank.score} pts</span>
             `;
             rankingsDiv.appendChild(div);

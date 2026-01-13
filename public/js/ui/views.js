@@ -1,5 +1,12 @@
 import { state, updateState } from '../state.js';
 
+// Escape HTML to prevent XSS attacks
+export function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 const views = {
     home: document.getElementById('home'),
     avatarSelection: document.getElementById('avatar-selection'),

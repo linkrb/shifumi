@@ -96,7 +96,13 @@ class Session {
 
     onPlayerDisconnect(ws) {
         const disconnectedUsername = this.usernames[ws.id];
+        const wasCreator = ws.id === this.creatorId;
         this.removePlayer(ws);
+
+        // Transfer creator role if the creator left
+        if (wasCreator && this.players.length > 0) {
+            this.creatorId = this.players[0].id;
+        }
 
         // Notify remaining players
         this.players.forEach(player => {
@@ -104,7 +110,8 @@ class Session {
                 type: 'session_player_left',
                 playerId: ws.id,
                 username: disconnectedUsername,
-                players: this.getPlayersInfo()
+                players: this.getPlayersInfo(),
+                creatorId: this.creatorId
             });
         });
 

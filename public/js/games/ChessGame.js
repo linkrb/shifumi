@@ -294,7 +294,11 @@ export class ChessGame extends BaseGame {
 
     getLegalMoves(squareName) {
         const moves = [];
+        const fenParts = state.currentFen.split(' ');
         const board = this.parseFen(state.currentFen);
+        const castlingRights = fenParts[2] || '-';
+        const enPassantSquare = fenParts[3] || '-';
+
         const file = FILES.indexOf(squareName[0]);
         const rank = RANKS.indexOf(squareName[1]);
         const piece = board[rank][file];
@@ -329,24 +333,36 @@ export class ChessGame extends BaseGame {
             }
         };
 
+        const isSquareEmpty = (r, f) => r >= 0 && r < 8 && f >= 0 && f < 8 && !board[r][f];
+
         const type = piece.type;
         if (type === 'p') {
             const dir = piece.color === 'w' ? -1 : 1;
             const startRank = piece.color === 'w' ? 6 : 1;
 
+            // Forward moves
             if (rank + dir >= 0 && rank + dir < 8 && !board[rank + dir][file]) {
                 moves.push(FILES[file] + RANKS[rank + dir]);
                 if (rank === startRank && !board[rank + 2 * dir][file]) {
                     moves.push(FILES[file] + RANKS[rank + 2 * dir]);
                 }
             }
+
+            // Captures (including en passant)
             for (const df of [-1, 1]) {
                 const newF = file + df;
                 const newR = rank + dir;
                 if (newF >= 0 && newF < 8 && newR >= 0 && newR < 8) {
+                    const targetSquare = FILES[newF] + RANKS[newR];
                     const target = board[newR][newF];
+
+                    // Normal capture
                     if (target && target.color !== piece.color) {
-                        moves.push(FILES[newF] + RANKS[newR]);
+                        moves.push(targetSquare);
+                    }
+                    // En passant capture
+                    else if (targetSquare === enPassantSquare) {
+                        moves.push(targetSquare);
                     }
                 }
             }
@@ -354,8 +370,29 @@ export class ChessGame extends BaseGame {
             const knightMoves = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]];
             for (const [dr, df] of knightMoves) addMove(rank + dr, file + df);
         } else if (type === 'k') {
-            const kingMoves = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1], [0, -2], [0, 2]];
+            // Normal king moves
+            const kingMoves = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
             for (const [dr, df] of kingMoves) addMove(rank + dr, file + df);
+
+            // Castling
+            const kingRank = piece.color === 'w' ? 7 : 0;
+            if (rank === kingRank && file === 4) {
+                // Kingside castling (O-O)
+                const kingsideCastle = piece.color === 'w' ? 'K' : 'k';
+                if (castlingRights.includes(kingsideCastle)) {
+                    if (isSquareEmpty(kingRank, 5) && isSquareEmpty(kingRank, 6)) {
+                        moves.push(FILES[6] + RANKS[kingRank]); // g1 or g8
+                    }
+                }
+
+                // Queenside castling (O-O-O)
+                const queensideCastle = piece.color === 'w' ? 'Q' : 'q';
+                if (castlingRights.includes(queensideCastle)) {
+                    if (isSquareEmpty(kingRank, 3) && isSquareEmpty(kingRank, 2) && isSquareEmpty(kingRank, 1)) {
+                        moves.push(FILES[2] + RANKS[kingRank]); // c1 or c8
+                    }
+                }
+            }
         } else if (type === 'b') {
             addSlidingMoves([[-1, -1], [-1, 1], [1, -1], [1, 1]]);
         } else if (type === 'r') {
