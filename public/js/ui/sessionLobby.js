@@ -10,10 +10,10 @@ export function initSessionLobby() {
             if (!state.isSessionCreator) return;
 
             const gameType = opt.dataset.game;
-            const is2PlayerGame = gameType !== 'snake';
+            const isMultiplayerGame = gameType === 'snake' || gameType === 'uno';
 
             // Check if game is compatible with player count
-            if (is2PlayerGame && state.sessionPlayers.length > 2) {
+            if (!isMultiplayerGame && state.sessionPlayers.length > 2) {
                 return; // Can't select 2-player game with > 2 players
             }
 
@@ -119,9 +119,9 @@ function updateGameOptionsAvailability(playerCount) {
 
     document.querySelectorAll('.session-game-option').forEach(opt => {
         const gameType = opt.dataset.game;
-        const is2PlayerGame = gameType !== 'snake';
+        const isMultiplayerGame = gameType === 'snake' || gameType === 'uno';
 
-        if (is2PlayerGame && playerCount > 2) {
+        if (!isMultiplayerGame && playerCount > 2) {
             opt.classList.add('disabled');
             opt.title = 'Limité à 2 joueurs';
         } else {

@@ -10,6 +10,7 @@ import { MorpionGame } from './games/MorpionGame.js';
 import { Puissance4Game } from './games/Puissance4Game.js';
 import { ChessGame } from './games/ChessGame.js';
 import { SnakeGame } from './games/SnakeGame.js';
+import { UnoGame } from './games/UnoGame.js';
 
 // Game instances
 const games = {
@@ -17,7 +18,8 @@ const games = {
     morpion: new MorpionGame(),
     puissance4: new Puissance4Game(),
     chess: new ChessGame(),
-    snake: new SnakeGame()
+    snake: new SnakeGame(),
+    uno: new UnoGame()
 };
 
 let currentGame = null;
@@ -141,6 +143,14 @@ function handleMessage(data) {
 
         case 'snake_update':
             games.snake.onUpdate(data);
+            break;
+
+        case 'uno_update':
+            games.uno.onUpdate(data);
+            break;
+
+        case 'cards_drawn':
+            games.uno.onCardsDrawn(data);
             break;
 
         case 'snake_death':

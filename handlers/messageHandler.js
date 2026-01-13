@@ -6,6 +6,7 @@ const MorpionGame = require('../games/MorpionGame');
 const Puissance4Game = require('../games/Puissance4Game');
 const ChessGame = require('../games/ChessGame');
 const SnakeGame = require('../games/SnakeGame');
+const UnoGame = require('../games/UnoGame');
 const Session = require('../sessions/Session');
 
 const GAME_CLASSES = {
@@ -13,8 +14,11 @@ const GAME_CLASSES = {
     morpion: MorpionGame,
     puissance4: Puissance4Game,
     chess: ChessGame,
-    snake: SnakeGame
+    snake: SnakeGame,
+    uno: UnoGame
 };
+
+const MULTIPLAYER_GAMES = ['snake', 'uno'];
 
 // Storage
 const games = {};
@@ -160,9 +164,9 @@ function selectGame(ws, data) {
     }
 
     // Check player count compatibility
-    const is2PlayerGame = gameType !== 'snake';
-    if (is2PlayerGame && session.players.length > 2) {
-        safeSend(ws, { type: 'error', message: 'Ce jeu est limité à 2 joueurs. Utilisez Snake pour jouer à plus.' });
+    const isMultiplayerGame = MULTIPLAYER_GAMES.includes(gameType);
+    if (!isMultiplayerGame && session.players.length > 2) {
+        safeSend(ws, { type: 'error', message: 'Ce jeu est limité à 2 joueurs.' });
         return;
     }
 
@@ -211,6 +215,9 @@ function selectGame(ws, data) {
         });
         // Auto-start snake game
         setTimeout(() => game.startGame(), 500);
+    } else if (gameType === 'uno') {
+        // Uno has custom onGameStart with personalized hands
+        game.onGameStart();
     } else {
         // Standard 2-player games - send game_start with all required data including turn
         session.players.forEach(player => {

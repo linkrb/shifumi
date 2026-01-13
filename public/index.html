@@ -81,7 +81,7 @@
                             <div class="session-count-option" data-count="3">3</div>
                             <div class="session-count-option" data-count="4">4</div>
                         </div>
-                        <p class="subtext">Pour 3-4 joueurs, seul Snake sera disponible</p>
+                        <p class="subtext">Pour 3-4 joueurs : Snake et Uno disponibles</p>
                     </div>
 
                     <button id="random-avatar-btn" class="btn secondary">Aléatoire / Passer</button>
@@ -264,6 +264,10 @@
                                 <img src="/snake-select.png" alt="Snake">
                                 <span>Snake</span>
                             </div>
+                            <div class="session-game-option" data-game="uno">
+                                <div class="game-icon-emoji">🎴</div>
+                                <span>Uno</span>
+                            </div>
                         </div>
                         <div id="session-win-rounds" class="session-win-rounds">
                             <span class="win-rounds-label">Manches :</span>
@@ -431,6 +435,25 @@
                     </div>
                     <div class="control-hints">
                         <span>🎮 Flèches / ZQSD / Swipe</span>
+                    </div>
+                </div>
+
+                <!-- Uno Area -->
+                <div id="uno-area" class="game-board-container" style="display: none;">
+                    <div id="uno-opponents" class="uno-opponents"></div>
+                    <div class="uno-center">
+                        <div id="uno-discard" class="uno-discard"></div>
+                        <div id="uno-deck" class="uno-deck">🂠</div>
+                    </div>
+                    <div id="uno-turn" class="uno-turn">En attente...</div>
+                    <div id="uno-hand" class="uno-hand"></div>
+                    <div id="uno-notification" class="uno-notification"></div>
+                    <div id="color-picker" class="uno-color-picker" style="display: none;">
+                        <p>Choisissez une couleur :</p>
+                        <button data-color="red" class="color-btn red">🔴</button>
+                        <button data-color="blue" class="color-btn blue">🔵</button>
+                        <button data-color="green" class="color-btn green">🟢</button>
+                        <button data-color="yellow" class="color-btn yellow">🟡</button>
                     </div>
                 </div>
 
