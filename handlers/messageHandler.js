@@ -85,8 +85,7 @@ function createSession(ws, data) {
 
     const session = new Session(sessionId, ws, {
         avatarId: data.avatarId,
-        username: data.username || 'Joueur 1',
-        maxPlayers: data.maxPlayers || 2
+        username: data.username || 'Joueur 1'
     });
 
     sessions[sessionId] = session;
@@ -111,29 +110,39 @@ function joinSession(ws, data) {
     }
 
     if (!session.canJoin()) {
-        safeSend(ws, { type: 'error', message: 'Session complète ou partie en cours' });
+        safeSend(ws, { type: 'error', message: 'Session complète' });
         return;
     }
 
-    session.addPlayer(ws, {
-        avatarId: data.avatarId,
-        username: data.username || `Joueur ${session.players.length}`
-    });
+    const isSpectator = session.isGameInProgress();
+    const playerCount = session.players.length + session.spectators.length;
 
-    // Notify all players
+    if (isSpectator) {
+        // Game in progress - join as spectator
+        session.addSpectator(ws, {
+            avatarId: data.avatarId,
+            username: data.username || `Spectateur ${session.spectators.length}`
+        });
+    } else {
+        // No game in progress - join as player
+        session.addPlayer(ws, {
+            avatarId: data.avatarId,
+            username: data.username || `Joueur ${playerCount + 1}`
+        });
+    }
+
+    // Notify all players and spectators
     session.broadcast({
         type: 'session_joined',
         sessionId: session.id,
         playerId: ws.id,
         players: session.getPlayersInfo(),
         creatorId: session.creatorId,
-        maxPlayers: session.maxPlayers
+        maxPlayers: session.maxPlayers,
+        isSpectator: isSpectator,
+        gameInProgress: isSpectator,
+        currentGameType: session.currentGame ? session.currentGame.gameType : null
     });
-
-    // Update session status to choosing only when session is full
-    if (session.players.length >= session.maxPlayers) {
-        session.status = 'choosing';
-    }
 }
 
 function selectGame(ws, data) {

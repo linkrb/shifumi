@@ -60,40 +60,46 @@ export function showSessionLobby(players, creatorId, waitingForPlayer = false) {
     const gamePicker = document.getElementById('session-game-picker');
     const waitingDiv = document.getElementById('session-waiting');
     const waitingPlayerDiv = document.getElementById('session-waiting-player');
+    const spectatorDiv = document.getElementById('session-spectator');
+
+    // Hide spectator view when showing lobby
+    if (spectatorDiv) spectatorDiv.style.display = 'none';
 
     // Update players display
     playersContainer.innerHTML = '';
 
     // Add player count display
-    if (state.sessionMaxPlayers > 2) {
-        const countDiv = document.createElement('div');
-        countDiv.className = 'session-player-count-display';
-        countDiv.innerHTML = `<strong>${players.length}</strong> / ${state.sessionMaxPlayers} joueurs`;
-        playersContainer.appendChild(countDiv);
-    }
+    const countDiv = document.createElement('div');
+    countDiv.className = 'session-player-count-display';
+    countDiv.innerHTML = `<strong>${players.length}</strong> / ${state.sessionMaxPlayers} joueurs`;
+    playersContainer.appendChild(countDiv);
 
     players.forEach(player => {
         const div = document.createElement('div');
         div.className = 'session-player';
         const isMe = player.id === state.playerId;
         const displayName = isMe ? 'Moi' : escapeHtml(player.username);
+        let badges = '';
+        if (player.isCreator) badges += '<span class="session-host-badge">Hôte</span>';
+        if (player.isSpectator) badges += '<span class="session-spectator-badge">Spectateur</span>';
         div.innerHTML = `
             <img src="${getAvatarPath(player.avatar)}" class="session-avatar" alt="">
             <span class="session-username">${displayName}</span>
-            ${player.isCreator ? '<span class="session-host-badge">Hôte</span>' : ''}
+            ${badges}
         `;
         playersContainer.appendChild(div);
     });
 
-    // Update game options availability
-    updateGameOptionsAvailability(players.length);
+    // Update game options availability (only count active players, not spectators)
+    const activePlayerCount = players.filter(p => !p.isSpectator).length;
+    updateGameOptionsAvailability(activePlayerCount);
 
     // Update session URL
     const sessionUrl = `${window.location.origin}/session/${state.sessionId}`;
     document.getElementById('session-url').value = sessionUrl;
 
-    // Show appropriate UI based on role and player count
-    const hasEnoughPlayers = players.length >= 2;
+    // Show appropriate UI based on role and player count (use active players only)
+    const hasEnoughPlayers = activePlayerCount >= 2;
     const sessionFull = players.length >= state.sessionMaxPlayers;
 
     if (!hasEnoughPlayers) {

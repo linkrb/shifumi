@@ -5,12 +5,13 @@ class Session {
         this.id = sessionId;
         this.creatorId = creator.id;
         this.players = [creator];
+        this.spectators = []; // Players who joined during a game
         this.usernames = { [creator.id]: options.username || 'Joueur 1' };
         this.avatars = { [creator.id]: options.avatarId };
         this.currentGame = null;
         this.status = 'waiting'; // waiting | choosing | in_game
         this.wantsToLobby = new Set();
-        this.maxPlayersCount = Math.min(4, Math.max(2, options.maxPlayers || 2));
+        this.maxPlayersCount = 4; // Always 4, can join anytime
     }
 
     get maxPlayers() {
@@ -18,7 +19,12 @@ class Session {
     }
 
     canJoin() {
-        return this.players.length < this.maxPlayers && this.status === 'waiting';
+        // Can join if not full (players + spectators)
+        return (this.players.length + this.spectators.length) < this.maxPlayers;
+    }
+
+    isGameInProgress() {
+        return this.status === 'in_game' && this.currentGame;
     }
 
     addPlayer(ws, options = {}) {
@@ -28,22 +34,59 @@ class Session {
         ws.sessionId = this.id;
     }
 
+    addSpectator(ws, options = {}) {
+        this.spectators.push(ws);
+        this.usernames[ws.id] = options.username || `Spectateur ${this.spectators.length}`;
+        this.avatars[ws.id] = options.avatarId;
+        ws.sessionId = this.id;
+    }
+
+    promoteSpectators() {
+        // Move all spectators to players (called when game ends)
+        this.spectators.forEach(spec => {
+            this.players.push(spec);
+        });
+        this.spectators = [];
+    }
+
     removePlayer(ws) {
         this.players = this.players.filter(p => p.id !== ws.id);
+        this.spectators = this.spectators.filter(p => p.id !== ws.id);
         delete this.usernames[ws.id];
         delete this.avatars[ws.id];
     }
 
     getPlayersInfo() {
-        return this.players.map(p => ({
+        const players = this.players.map(p => ({
             id: p.id,
             username: this.usernames[p.id],
             avatar: this.avatars[p.id],
-            isCreator: p.id === this.creatorId
+            isCreator: p.id === this.creatorId,
+            isSpectator: false
         }));
+        const spectators = this.spectators.map(p => ({
+            id: p.id,
+            username: this.usernames[p.id],
+            avatar: this.avatars[p.id],
+            isCreator: false,
+            isSpectator: true
+        }));
+        return [...players, ...spectators];
+    }
+
+    getAllConnections() {
+        return [...this.players, ...this.spectators];
     }
 
     broadcast(data) {
+        // Send to all players and spectators
+        this.getAllConnections().forEach(conn => {
+            safeSend(conn, data);
+        });
+    }
+
+    broadcastToPlayers(data) {
+        // Send only to active players (not spectators)
         this.players.forEach(player => {
             safeSend(player, data);
         });
@@ -62,6 +105,8 @@ class Session {
         this.currentGame = null;
         this.status = 'choosing';
         this.wantsToLobby.clear();
+        // Promote spectators to players for the next game
+        this.promoteSpectators();
     }
 
     requestBackToLobby(ws) {
@@ -102,11 +147,16 @@ class Session {
         // Transfer creator role if the creator left
         if (wasCreator && this.players.length > 0) {
             this.creatorId = this.players[0].id;
+        } else if (wasCreator && this.players.length === 0 && this.spectators.length > 0) {
+            // Promote first spectator to player and creator
+            const newCreator = this.spectators.shift();
+            this.players.push(newCreator);
+            this.creatorId = newCreator.id;
         }
 
-        // Notify remaining players
-        this.players.forEach(player => {
-            this.sendTo(player, {
+        // Notify remaining players and spectators
+        this.getAllConnections().forEach(conn => {
+            this.sendTo(conn, {
                 type: 'session_player_left',
                 playerId: ws.id,
                 username: disconnectedUsername,
@@ -115,7 +165,7 @@ class Session {
             });
         });
 
-        return this.players.length === 0;
+        return this.players.length === 0 && this.spectators.length === 0;
     }
 }
 

@@ -217,22 +217,30 @@ function handleSessionCreated(data) {
 function handleSessionJoined(data) {
     // Only set playerId if we don't have one yet (we're the one joining)
     const myPlayerId = state.playerId || data.playerId;
+    const amISpectator = data.isSpectator && data.playerId === myPlayerId;
 
     updateState({
         sessionId: data.sessionId,
         playerId: myPlayerId,
         isSessionCreator: data.creatorId === myPlayerId,
         sessionPlayers: data.players,
-        sessionMaxPlayers: data.maxPlayers || 2
+        sessionMaxPlayers: data.maxPlayers || 4,
+        isSpectator: amISpectator
     });
 
-    showSessionLobby(data.players, data.creatorId, false);
+    if (amISpectator && data.gameInProgress) {
+        // Show spectator waiting screen
+        showSpectatorView(data.currentGameType);
+    } else {
+        showSessionLobby(data.players, data.creatorId, false);
+    }
 }
 
 function handleLobbyReady(data) {
     updateState({
         sessionPlayers: data.players,
-        sessionMaxPlayers: data.maxPlayers || state.sessionMaxPlayers
+        sessionMaxPlayers: data.maxPlayers || state.sessionMaxPlayers,
+        isSpectator: false // No longer spectator when returning to lobby
     });
 
     // Reset game state
@@ -255,6 +263,30 @@ function handlePlayerWantsLobby(data) {
         chatMessages.appendChild(msg);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
+}
+
+function showSpectatorView(gameType) {
+    showView('sessionLobby');
+
+    // Hide other elements
+    document.getElementById('session-game-picker').style.display = 'none';
+    document.getElementById('session-waiting').style.display = 'none';
+    document.getElementById('session-waiting-player').style.display = 'none';
+
+    // Show spectator message
+    const spectatorDiv = document.getElementById('session-spectator');
+    spectatorDiv.style.display = 'block';
+
+    // Update game name
+    const gameNames = {
+        shifumi: 'Shifumi',
+        morpion: 'Morpion',
+        puissance4: 'Puissance 4',
+        chess: 'Échecs',
+        snake: 'Snake Battle',
+        uno: 'Uno'
+    };
+    document.getElementById('spectator-game-name').textContent = gameNames[gameType] || gameType;
 }
 
 function handleSessionPlayerLeft(data) {
@@ -363,9 +395,8 @@ function setupGameUI(gameType) {
 function initUI() {
     // Create game button -> now creates a session
     document.getElementById('create-btn').addEventListener('click', () => {
-        updateState({ isCreatingGame: true, sessionMaxPlayers: 2 });
+        updateState({ isCreatingGame: true });
         document.getElementById('win-rounds-section').style.display = 'none';
-        document.getElementById('session-player-count-section').style.display = 'block';
         showView('avatarSelection');
     });
 
@@ -375,7 +406,6 @@ function initUI() {
         if (input) {
             updateState({ isCreatingGame: false });
             document.getElementById('win-rounds-section').style.display = 'none';
-            document.getElementById('session-player-count-section').style.display = 'none';
 
             // Check if it's a session or game URL
             if (input.includes('/session/')) {
@@ -390,15 +420,6 @@ function initUI() {
 
             showView('avatarSelection');
         }
-    });
-
-    // Session player count selection
-    document.querySelectorAll('.session-count-option').forEach(opt => {
-        opt.addEventListener('click', () => {
-            document.querySelectorAll('.session-count-option').forEach(o => o.classList.remove('selected'));
-            opt.classList.add('selected');
-            updateState({ sessionMaxPlayers: parseInt(opt.dataset.count) });
-        });
     });
 
     // Avatar selection
@@ -512,8 +533,7 @@ function createSession() {
     socket.send(JSON.stringify({
         type: 'create_session',
         avatarId: state.selectedAvatar,
-        username: username,
-        maxPlayers: state.sessionMaxPlayers || 2
+        username: username
     }));
 }
 
