@@ -75,6 +75,13 @@ function handleMessage(ws, data) {
         case 'send_emote':
             handleEmote(ws, data);
             break;
+
+        // WebRTC signaling
+        case 'webrtc_offer':
+        case 'webrtc_answer':
+        case 'webrtc_ice_candidate':
+            forwardWebRTCSignal(ws, data);
+            break;
     }
 }
 
@@ -363,6 +370,29 @@ function handleEmote(ws, data) {
             type: 'emote_received',
             senderId: ws.id,
             emote: data.emote
+        });
+    }
+}
+
+// ================== WEBRTC SIGNALING ==================
+
+function forwardWebRTCSignal(ws, data) {
+    const session = sessions[ws.sessionId];
+    if (!session) return;
+
+    const targetId = data.targetId;
+    if (!targetId) return;
+
+    // Find target player in session (players + spectators)
+    const allParticipants = [...session.players, ...session.spectators];
+    const targetWs = allParticipants.find(p => p.id === targetId);
+
+    if (targetWs) {
+        safeSend(targetWs, {
+            type: data.type,
+            senderId: ws.id,
+            targetId: targetId,
+            payload: data.payload
         });
     }
 }

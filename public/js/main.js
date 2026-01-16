@@ -11,6 +11,7 @@ import { Puissance4Game } from './games/Puissance4Game.js';
 import { ChessGame } from './games/ChessGame.js';
 import { SnakeGame } from './games/SnakeGame.js';
 import { UnoGame } from './games/UnoGame.js';
+import { initVideoChat, showVideoControls, hideVideoControls, connectToSessionPeers, onPlayerLeft, cleanup as cleanupVideoChat, handleWebRTCMessage } from './ui/videoChat.js';
 
 // Game instances
 const games = {
@@ -153,6 +154,13 @@ function handleMessage(data) {
             games.uno.onCardsDrawn(data);
             break;
 
+        // WebRTC signaling
+        case 'webrtc_offer':
+        case 'webrtc_answer':
+        case 'webrtc_ice_candidate':
+            handleWebRTCMessage(data);
+            break;
+
         case 'snake_death':
             games.snake.onSnakeDeath(data);
             break;
@@ -212,12 +220,16 @@ function handleSessionCreated(data) {
     window.history.pushState({}, '', `/session/${data.sessionId}`);
 
     showSessionLobby(data.players, data.creatorId, true);
+
+    // Show video controls when in session
+    showVideoControls();
 }
 
 function handleSessionJoined(data) {
     // Only set playerId if we don't have one yet (we're the one joining)
     const myPlayerId = state.playerId || data.playerId;
     const amISpectator = data.isSpectator && data.playerId === myPlayerId;
+    const isNewJoiner = !state.playerId;
 
     updateState({
         sessionId: data.sessionId,
@@ -233,6 +245,13 @@ function handleSessionJoined(data) {
         showSpectatorView(data.currentGameType);
     } else {
         showSessionLobby(data.players, data.creatorId, false);
+    }
+
+    // Show video controls and connect to peers
+    showVideoControls();
+    if (isNewJoiner) {
+        // New joiner initiates connections to existing players
+        connectToSessionPeers(data.players);
     }
 }
 
@@ -292,6 +311,9 @@ function showSpectatorView(gameType) {
 function handleSessionPlayerLeft(data) {
     // Update creator status if it changed
     const isNowCreator = data.creatorId === state.playerId;
+
+    // Cleanup video connection for leaving player
+    onPlayerLeft(data.playerId);
 
     updateState({
         sessionPlayers: data.players,
@@ -377,7 +399,7 @@ function setupGameUI(gameType) {
     // Hide all game areas
     Object.values(games).forEach(game => game.hide());
 
-    // Show standard scoreboard for non-snake games
+    // Show standard scoreboard for standard 2-player games (not snake)
     const scoreBoard = document.querySelector('.score-board');
     if (scoreBoard) {
         scoreBoard.style.display = gameType === 'snake' ? 'none' : 'flex';
@@ -581,6 +603,7 @@ initChat();
 initLobby();
 initResults();
 initSessionLobby();
+initVideoChat();
 
 // Export for use in other modules
 export { requestBackToLobby };

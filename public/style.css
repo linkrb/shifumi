@@ -2745,3 +2745,310 @@ input[type="text"]:focus {
         max-width: 300px;
     }
 }
+
+/* ========================================
+   PINBALL STYLES
+   ======================================== */
+
+.pinball-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding: 10px;
+    background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 100%);
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+#pinball-canvas {
+    border-radius: 10px;
+    box-shadow:
+        0 0 20px rgba(255, 0, 255, 0.3),
+        0 0 40px rgba(0, 255, 255, 0.2),
+        inset 0 0 60px rgba(0, 0, 0, 0.5);
+    max-width: 100%;
+    height: auto;
+}
+
+.pinball-controls {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    width: 100%;
+    padding: 10px;
+}
+
+.pinball-flipper-btn,
+.pinball-launch-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 40px;
+    border: none;
+    border-radius: 15px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.pinball-flipper-btn {
+    background: linear-gradient(135deg, #00ffff 0%, #0088aa 100%);
+    color: #001a1a;
+    box-shadow:
+        0 0 15px rgba(0, 255, 255, 0.5),
+        0 4px 0 #006666;
+}
+
+.pinball-flipper-btn:active {
+    transform: translateY(4px);
+    box-shadow:
+        0 0 25px rgba(0, 255, 255, 0.8),
+        0 0 0 #006666;
+}
+
+.pinball-launch-btn {
+    background: linear-gradient(135deg, #ff00ff 0%, #aa0088 100%);
+    color: #1a001a;
+    box-shadow:
+        0 0 15px rgba(255, 0, 255, 0.5),
+        0 4px 0 #660066;
+    min-width: 120px;
+}
+
+.pinball-launch-btn:active {
+    transform: translateY(4px);
+    box-shadow:
+        0 0 25px rgba(255, 0, 255, 0.8),
+        0 0 0 #660066;
+}
+
+.pinball-launch-btn .launch-power {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: var(--power, 0%);
+    height: 4px;
+    background: #ffff00;
+    transition: width 0.05s linear;
+}
+
+.flipper-icon,
+.launch-icon {
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+}
+
+.pinball-hints {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.pinball-points-popup {
+    position: absolute;
+    color: #ffff00;
+    font-weight: 800;
+    font-size: 1.2rem;
+    text-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
+    animation: pointsPopup 1s ease-out forwards;
+    pointer-events: none;
+    z-index: 100;
+}
+
+@keyframes pointsPopup {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-50px) scale(1.5);
+    }
+}
+
+/* Pinball mobile responsive */
+@media (max-width: 600px) {
+    .pinball-container {
+        padding: 5px;
+        border-radius: 15px;
+    }
+
+    #pinball-canvas {
+        border-radius: 8px;
+    }
+
+    .pinball-controls {
+        gap: 10px;
+        padding: 5px;
+    }
+
+    .pinball-flipper-btn,
+    .pinball-launch-btn {
+        padding: 15px 25px;
+        font-size: 0.9rem;
+        border-radius: 12px;
+    }
+
+    .flipper-icon {
+        font-size: 1.2rem;
+    }
+
+    .pinball-hints {
+        font-size: 0.7rem;
+    }
+}
+
+/* Large mobile - bigger touch targets */
+@media (max-width: 600px) and (min-height: 700px) {
+    .pinball-flipper-btn,
+    .pinball-launch-btn {
+        padding: 25px 35px;
+        font-size: 1rem;
+    }
+}
+
+/* ==================== VIDEO CHAT ==================== */
+
+#video-container {
+    position: fixed;
+    bottom: 220px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 50;
+    pointer-events: none;
+}
+
+#video-container > * {
+    pointer-events: auto;
+}
+
+.video-bubble {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid var(--pink);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    background: linear-gradient(135deg, var(--pink), var(--cyan));
+    position: relative;
+}
+
+.video-bubble.local-bubble {
+    border-color: var(--cyan);
+}
+
+.video-bubble video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1); /* Mirror local video */
+}
+
+.remote-bubble video {
+    transform: scaleX(1); /* Don't mirror remote */
+}
+
+.video-bubble .video-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    font-size: 0.6rem;
+    text-align: center;
+    padding: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#video-controls {
+    position: fixed;
+    bottom: 180px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+    z-index: 51;
+}
+
+.video-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.95);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.video-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.video-btn:active {
+    transform: scale(0.95);
+}
+
+.video-btn.active {
+    background: var(--cyan);
+    color: white;
+}
+
+/* Icons using CSS */
+.icon-camera-off::before {
+    content: '📷';
+    opacity: 0.5;
+}
+
+.icon-camera::before {
+    content: '📷';
+}
+
+.icon-mic-off::before {
+    content: '🎤';
+    opacity: 0.5;
+}
+
+.icon-mic::before {
+    content: '🎤';
+}
+
+/* Responsive video chat */
+@media (max-width: 768px) {
+    #video-container {
+        bottom: 280px;
+        right: 10px;
+    }
+
+    .video-bubble {
+        width: 60px;
+        height: 60px;
+    }
+
+    #video-controls {
+        bottom: 240px;
+        right: 10px;
+    }
+
+    .video-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 1rem;
+    }
+}

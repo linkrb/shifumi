@@ -47,7 +47,11 @@ export const state = {
     currentFen: null,
     selectedSquare: null,
     legalMoves: [],
-    lastMoveSquares: { from: null, to: null }
+    lastMoveSquares: { from: null, to: null },
+
+    // Video chat
+    cameraEnabled: false,
+    micEnabled: false
 };
 
 // State update helper
