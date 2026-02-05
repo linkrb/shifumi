@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Tower Defense - PixiJS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://pixijs.download/v8.0.0/pixi.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===== TOP BAR ===== */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(0,0,0,0.3);
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .stats {
+            display: flex;
+            gap: 15px;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(255,255,255,0.15);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .stat-icon { font-size: 1.1rem; }
+        .stat-value { min-width: 30px; text-align: center; }
+
+        .wave-btn {
+            background: linear-gradient(135deg, #FF6B6B, #ee5a5a);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255,107,107,0.4);
+            transition: transform 0.2s;
+        }
+
+        .wave-btn:active { transform: scale(0.95); }
+        .wave-btn:disabled { opacity: 0.5; }
+
+        /* ===== GAME CANVAS ===== */
+        #game-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            background:
+                radial-gradient(ellipse at center, rgba(45,90,61,0.3) 0%, transparent 70%),
+                linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+
+        #game-container canvas {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* Floating damage */
+        .damage-number {
+            position: absolute;
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #FF6B6B;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            pointer-events: none;
+            animation: floatUp 0.8s ease-out forwards;
+            z-index: 300;
+        }
+
+        .damage-number.gold {
+            color: #FFD700;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-40px) scale(0.7); }
+        }
+
+        /* ===== BOTTOM TOWER BAR ===== */
+        .tower-bar {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 12px 10px;
+            background: rgba(0,0,0,0.4);
+            flex-shrink: 0;
+        }
+
+        .tower-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 70px;
+            height: 80px;
+            background: rgba(255,255,255,0.95);
+            border: 3px solid transparent;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .tower-btn:active { transform: scale(0.95); }
+        .tower-btn.selected {
+            border-color: #FF6B6B;
+            background: #FFF0F5;
+            box-shadow: 0 0 20px rgba(255,107,107,0.5);
+        }
+        .tower-btn.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        .tower-btn .tower-preview {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            margin-bottom: 4px;
+        }
+
+        .tower-btn[data-tower="archer"] .tower-preview { background: linear-gradient(135deg, #98D4BB, #7ac4a8); }
+        .tower-btn[data-tower="cannon"] .tower-preview { background: linear-gradient(135deg, #FF7F7F, #ee6b6b); }
+        .tower-btn[data-tower="ice"] .tower-preview { background: linear-gradient(135deg, #87CEEB, #6bb8d9); }
+        .tower-btn[data-tower="sniper"] .tower-preview { background: linear-gradient(135deg, #E6E6FA, #d4d4f0); }
+
+        .tower-btn .tower-cost {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #FFD700;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .tower-btn .tower-name {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: #666;
+        }
+
+        /* Range indicator */
+        .tower-btn .tower-range {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 0.6rem;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 2px 5px;
+            border-radius: 8px;
+        }
+
+        /* ===== SELECTION INDICATOR ===== */
+        .selection-info {
+            position: absolute;
+            bottom: 110px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .selection-info.visible { opacity: 1; }
+
+        /* ===== WAVE ANNOUNCEMENT ===== */
+        .wave-announce {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 20px;
+            font-size: 1.5rem;
+            font-weight: 800;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            transition: transform 0.3s ease-out;
+            z-index: 100;
+        }
+
+        .wave-announce.visible { transform: translate(-50%, -50%) scale(1); }
+
+        /* ===== GAME OVER OVERLAY ===== */
+        .game-over {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+
+        .game-over.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .game-over h1 {
+            font-size: 2.5rem;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .game-over .wave-reached {
+            color: #FFD700;
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+        }
+
+        .game-over button {
+            background: linear-gradient(135deg, #4ECDC4, #44a08d);
+            border: none;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(78,205,196,0.4);
+        }
+
+        /* ===== TEST CONTROLS (dev only) ===== */
+        .test-controls {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            z-index: 50;
+        }
+
+        .test-controls button {
+            display: block;
+            width: 100%;
+            padding: 5px 10px;
+            margin: 3px 0;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (min-width: 768px) {
+            .tower-btn {
+                width: 85px;
+                height: 90px;
+            }
+
+            .tower-btn .tower-preview {
+                width: 50px;
+                height: 50px;
+                font-size: 1.6rem;
+            }
+
+            .stat {
+                padding: 10px 16px;
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .tower-btn {
+                width: 60px;
+                height: 70px;
+            }
+
+            .tower-btn .tower-preview {
+                width: 32px;
+                height: 32px;
+                font-size: 1.1rem;
+            }
+
+            .tower-btn .tower-name { display: none; }
+
+            .stat {
+                padding: 6px 10px;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- TOP BAR -->
+    <div class="top-bar">
+        <div class="stats">
+            <div class="stat">
+                <span class="stat-icon">💰</span>
+                <span class="stat-value" id="gold">300</span>
+            </div>
+            <div class="stat">
+                <span class="stat-icon">❤️</span>
+                <span class="stat-value" id="health">20</span>
+            </div>
+            <div class="stat">
+                <span class="stat-icon">🌊</span>
+                <span class="stat-value" id="wave">0</span>
+            </div>
+        </div>
+        <button class="wave-btn" id="wave-btn">Vague 1 ▶</button>
+    </div>
+
+    <!-- GAME -->
+    <div id="game-container">
+        <div class="selection-info" id="selection-info">Touchez une case verte pour placer</div>
+        <div class="wave-announce" id="wave-announce">🌊 Vague 1</div>
+
+        <div class="game-over" id="game-over">
+            <h1 id="game-over-title">💀 Défaite</h1>
+            <div class="wave-reached">Vague atteinte: <span id="final-wave">0</span></div>
+            <button onclick="location.reload()">Rejouer</button>
+        </div>
+    </div>
+
+    <!-- TOWER BAR -->
+    <div class="tower-bar">
+        <div class="tower-btn selected" data-tower="archer">
+            <div class="tower-preview">🏹</div>
+            <div class="tower-cost">50g</div>
+            <div class="tower-name">Archer</div>
+            <div class="tower-range">⊕3</div>
+        </div>
+        <div class="tower-btn" data-tower="cannon">
+            <div class="tower-preview">💣</div>
+            <div class="tower-cost">100g</div>
+            <div class="tower-name">Canon</div>
+            <div class="tower-range">⊕2.5</div>
+        </div>
+        <div class="tower-btn" data-tower="ice">
+            <div class="tower-preview">❄️</div>
+            <div class="tower-cost">75g</div>
+            <div class="tower-name">Glace</div>
+            <div class="tower-range">⊕2.5</div>
+        </div>
+        <div class="tower-btn" data-tower="sniper">
+            <div class="tower-preview">🎯</div>
+            <div class="tower-cost">150g</div>
+            <div class="tower-name">Sniper</div>
+            <div class="tower-range">⊕5</div>
+        </div>
+    </div>
+
+    <!-- TEST CONTROLS (à retirer en prod) -->
+    <div class="test-controls">
+        <strong>🧪 Test</strong>
+        <button onclick="game.gold += 100; game.updateUI();">+100g</button>
+        <button onclick="game.spawnEnemy('basic')">+Basic</button>
+        <button onclick="game.spawnEnemy('fast')">+Fast</button>
+        <button onclick="game.spawnEnemy('tank')">+Tank</button>
+        <button onclick="game.spawnEnemy('boss')">+Boss</button>
+    </div>
+
+    <script type="module">
+        // ============== CONFIGURATION ==============
+        const TILE_WIDTH = 64;
+        const TILE_HEIGHT = 32;
+        const GRID_WIDTH = 10;
+        const GRID_HEIGHT = 8;
+
+        const TOWER_TYPES = {
+            archer: { cost: 50, damage: 25, range: 3, cooldown: 700, speed: 12, color: 0x98D4BB },
+            cannon: { cost: 100, damage: 60, range: 2.5, cooldown: 1200, speed: 7, color: 0xFF7F7F, splash: 1.2 },
+            ice: { cost: 75, damage: 10, range: 2.5, cooldown: 800, speed: 10, color: 0x87CEEB, slow: 0.5 },
+            sniper: { cost: 150, damage: 120, range: 5, cooldown: 1800, speed: 18, color: 0xE6E6FA }
+        };
+
+        const ENEMY_TYPES = {
+            basic: { hp: 80, speed: 1.5, reward: 15, color: 0xFFB5C5, size: 0.9 },
+            fast: { hp: 45, speed: 3, reward: 20, color: 0xFFD93D, size: 0.7 },
+            tank: { hp: 250, speed: 0.8, reward: 40, color: 0x9B59B6, size: 1.2 },
+            boss: { hp: 800, speed: 0.6, reward: 200, color: 0xC0392B, size: 1.6 }
+        };
+
+        // Chemin simplifié pour mobile
+        const PATH = [
+            {x:0, y:3}, {x:1, y:3}, {x:2, y:3}, {x:3, y:3},
+            {x:3, y:4}, {x:3, y:5}, {x:3, y:6},
+            {x:4, y:6}, {x:5, y:6}, {x:6, y:6},
+            {x:6, y:5}, {x:6, y:4}, {x:6, y:3}, {x:6, y:2}, {x:6, y:1},
+            {x:7, y:1}, {x:8, y:1}, {x:9, y:1}
+        ];
+
+        const WAVES = [
+            [{ type: 'basic', count: 5 }],
+            [{ type: 'basic', count: 8 }],
+            [{ type: 'basic', count: 5 }, { type: 'fast', count: 4 }],
+            [{ type: 'fast', count: 12 }],
+            [{ type: 'tank', count: 3 }, { type: 'basic', count: 8 }],
+            [{ type: 'tank', count: 6 }, { type: 'fast', count: 6 }],
+            [{ type: 'basic', count: 15 }, { type: 'fast', count: 10 }],
+            [{ type: 'tank', count: 10 }],
+            [{ type: 'fast', count: 20 }, { type: 'tank', count: 5 }],
+            [{ type: 'boss', count: 1 }, { type: 'tank', count: 8 }, { type: 'fast', count: 15 }]
+        ];
+
+        // ============== ISOMETRIC HELPERS ==============
+        function toIso(x, y) {
+            return {
+                x: (x - y) * (TILE_WIDTH / 2),
+                y: (x + y) * (TILE_HEIGHT / 2)
+            };
+        }
+
+        function fromIso(isoX, isoY, offsetX, offsetY) {
+            const localX = isoX - offsetX;
+            const localY = isoY - offsetY;
+            const x = (localX / (TILE_WIDTH / 2) + localY / (TILE_HEIGHT / 2)) / 2;
+            const y = (localY / (TILE_HEIGHT / 2) - localX / (TILE_WIDTH / 2)) / 2;
+            return { x: Math.floor(x), y: Math.floor(y) };
+        }
+
+        // ============== GAME CLASS ==============
+        class TowerDefenseGame {
+            constructor() {
+                this.gold = 300;
+                this.health = 20;
+                this.wave = 0;
+                this.waveInProgress = false;
+                this.selectedTower = 'archer';
+                this.towers = [];
+                this.enemies = [];
+                this.projectiles = [];
+                this.particles = [];
+                this.spawnQueue = [];
+                this.lastSpawn = 0;
+                this.enemyId = 0;
+                this.grid = this.createGrid();
+                this.assets = {};
+                this.tileSprites = [];
+            }
+
+            createGrid() {
+                const grid = [];
+                for (let y = 0; y < GRID_HEIGHT; y++) {
+                    grid[y] = [];
+                    for (let x = 0; x < GRID_WIDTH; x++) {
+                        grid[y][x] = { type: 'grass', tower: null };
+                    }
+                }
+                PATH.forEach((p, i) => {
+                    if (grid[p.y] && grid[p.y][p.x]) {
+                        grid[p.y][p.x].type = i === 0 ? 'spawn' : (i === PATH.length - 1 ? 'base' : 'path');
+                    }
+                });
+                return grid;
+            }
+
+            async init() {
+                const container = document.getElementById('game-container');
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+
+                this.app = new PIXI.Application();
+                await this.app.init({
+                    width,
+                    height,
+                    backgroundColor: 0x2d5a3d,
+                    antialias: true,
+                    resolution: window.devicePixelRatio || 1,
+                    autoDensity: true
+                });
+
+                container.insertBefore(this.app.canvas, container.firstChild);
+
+                await this.loadAssets();
+
+                // Layers
+                this.groundLayer = new PIXI.Container();
+                this.rangeLayer = new PIXI.Container();
+                this.shadowLayer = new PIXI.Container();
+                this.entityLayer = new PIXI.Container();
+                this.projectileLayer = new PIXI.Container();
+                this.effectLayer = new PIXI.Container();
+
+                this.app.stage.addChild(this.groundLayer);
+                this.app.stage.addChild(this.rangeLayer);
+                this.app.stage.addChild(this.shadowLayer);
+                this.app.stage.addChild(this.entityLayer);
+                this.app.stage.addChild(this.projectileLayer);
+                this.app.stage.addChild(this.effectLayer);
+
+                // Calculate offset to center map
+                this.calculateOffset();
+
+                this.drawGround();
+                this.setupInteraction();
+                this.setupTowerButtons();
+                this.setupWaveButton();
+
+                // Handle resize
+                window.addEventListener('resize', () => this.handleResize());
+
+                // Game loop
+                this.app.ticker.add((ticker) => this.update(ticker.deltaTime));
+
+                this.updateUI();
+            }
+
+            calculateOffset() {
+                const mapWidth = (GRID_WIDTH + GRID_HEIGHT) * (TILE_WIDTH / 2);
+                const mapHeight = (GRID_WIDTH + GRID_HEIGHT) * (TILE_HEIGHT / 2);
+
+                this.offsetX = this.app.screen.width / 2;
+                this.offsetY = (this.app.screen.height - mapHeight) / 2 + 20;
+
+                [this.groundLayer, this.rangeLayer, this.shadowLayer, this.entityLayer, this.projectileLayer, this.effectLayer].forEach(layer => {
+                    layer.x = this.offsetX;
+                    layer.y = this.offsetY;
+                });
+            }
+
+            handleResize() {
+                const container = document.getElementById('game-container');
+                this.app.renderer.resize(container.clientWidth, container.clientHeight);
+                this.calculateOffset();
+            }
+
+            async loadAssets() {
+                // Load tower and enemy sprites
+                const assetList = [
+                    'tower_archer', 'tower_cannon', 'tower_ice', 'tower_sniper',
+                    'enemy_basic', 'enemy_fast', 'enemy_tank', 'enemy_boss'
+                ];
+
+                for (const name of assetList) {
+                    try {
+                        const texture = await PIXI.Assets.load(`/images/td/${name}.png`);
+                        this.assets[name] = texture;
+                    } catch (e) { }
+                }
+
+                // Load individual tile sprites
+                const tileAssets = ['tile_grass', 'tile_path', 'castle', 'coin', 'heart'];
+                for (const name of tileAssets) {
+                    try {
+                        const texture = await PIXI.Assets.load(`/images/td/${name}.png`);
+                        this.assets[name] = texture;
+                        console.log(`Loaded ${name}`);
+                    } catch (e) {
+                        console.log(`Could not load ${name}:`, e);
+                    }
+                }
+            }
+
+            drawGround() {
+                // Draw tiles back to front for proper layering
+                for (let sum = 0; sum < GRID_WIDTH + GRID_HEIGHT - 1; sum++) {
+                    for (let x = 0; x < GRID_WIDTH; x++) {
+                        const y = sum - x;
+                        if (y < 0 || y >= GRID_HEIGHT) continue;
+
+                        const iso = toIso(x, y);
+                        const cell = this.grid[y][x];
+
+                        let tile;
+                        const useSprites = this.assets.tile_grass && this.assets.tile_path;
+
+                        if (useSprites) {
+                            // Use sprite tiles
+                            let texture;
+                            if (cell.type === 'grass') {
+                                texture = this.assets.tile_grass;
+                            } else if (cell.type === 'path' || cell.type === 'spawn' || cell.type === 'base') {
+                                texture = this.assets.tile_path;
+                            } else {
+                                texture = this.assets.tile_grass;
+                            }
+
+                            tile = new PIXI.Sprite(texture);
+                            tile.anchor.set(0.5, 0.5);
+                            tile.width = TILE_WIDTH * 1.15;
+                            tile.height = TILE_WIDTH * 1.15; // Keep square ratio since sprite is square
+
+                            // Tint spawn tile red
+                            if (cell.type === 'spawn') {
+                                tile.tint = 0xffaaaa;
+                            }
+                        } else {
+                            // Fallback to graphics
+                            let color = 0x5a8f6a;
+                            let strokeColor = 0x4a7c59;
+
+                            if (cell.type === 'path') {
+                                color = 0xd4b896;
+                                strokeColor = 0xc4a77d;
+                            } else if (cell.type === 'spawn') {
+                                color = 0xe74c3c;
+                                strokeColor = 0xc0392b;
+                            } else if (cell.type === 'base') {
+                                color = 0x3498db;
+                                strokeColor = 0x2980b9;
+                            }
+
+                            tile = new PIXI.Graphics();
+                            tile.poly([
+                                0, 0,
+                                TILE_WIDTH / 2, TILE_HEIGHT / 2,
+                                0, TILE_HEIGHT,
+                                -TILE_WIDTH / 2, TILE_HEIGHT / 2
+                            ]);
+                            tile.fill({ color });
+                            tile.stroke({ width: 1, color: strokeColor, alpha: 0.6 });
+                            tile.poly([
+                                0, 0,
+                                TILE_WIDTH / 2, TILE_HEIGHT / 2,
+                                0, 4,
+                                -TILE_WIDTH / 2, TILE_HEIGHT / 2
+                            ]);
+                            tile.fill({ color: 0xffffff, alpha: 0.1 });
+                        }
+
+                        tile.x = iso.x;
+                        tile.y = iso.y + (useSprites ? TILE_HEIGHT / 2 : 0);
+                        tile.gridX = x;
+                        tile.gridY = y;
+                        tile.eventMode = 'static';
+                        tile.cursor = cell.type === 'grass' ? 'pointer' : 'default';
+                        tile.originalTint = tile.tint || 0xffffff;
+
+                        this.groundLayer.addChild(tile);
+                        this.tileSprites.push(tile);
+
+                        // Icons for spawn/base
+                        if (cell.type === 'spawn') {
+                            const icon = new PIXI.Text({ text: '🚪', style: { fontSize: 22 } });
+                            icon.anchor.set(0.5);
+                            icon.x = iso.x;
+                            icon.y = iso.y + TILE_HEIGHT / 2;
+                            this.groundLayer.addChild(icon);
+                        } else if (cell.type === 'base') {
+                            // Use castle sprite if available
+                            if (this.assets.castle) {
+                                const castle = new PIXI.Sprite(this.assets.castle);
+                                castle.anchor.set(0.5, 0.75);
+                                castle.width = TILE_WIDTH * 1.8;
+                                castle.height = TILE_WIDTH * 1.8;
+                                castle.x = iso.x;
+                                castle.y = iso.y + TILE_HEIGHT * 0.6;
+                                this.entityLayer.addChild(castle); // Add to entity layer for proper z-order
+                            } else {
+                                const icon = new PIXI.Text({ text: '🏠', style: { fontSize: 26 } });
+                                icon.anchor.set(0.5);
+                                icon.x = iso.x;
+                                icon.y = iso.y + TILE_HEIGHT / 2;
+                                this.groundLayer.addChild(icon);
+                            }
+                        } else if (cell.type === 'grass' && !useSprites) {
+                            // Random decorations on grass tiles (only if not using sprites)
+                            const rand = Math.random();
+                            if (rand < 0.15) {
+                                const flowers = ['🌸', '🌼', '🌺'][Math.floor(Math.random() * 3)];
+                                const deco = new PIXI.Text({ text: flowers, style: { fontSize: 10 } });
+                                deco.anchor.set(0.5);
+                                deco.x = iso.x + (Math.random() - 0.5) * 20;
+                                deco.y = iso.y + TILE_HEIGHT / 2 + (Math.random() - 0.5) * 8;
+                                deco.alpha = 0.7;
+                                this.groundLayer.addChild(deco);
+                            }
+                        } else if (cell.type === 'path' && !useSprites) {
+                            // Occasional pebbles on path
+                            if (Math.random() < 0.3) {
+                                const pebble = new PIXI.Graphics();
+                                pebble.circle(0, 0, 2 + Math.random() * 2);
+                                pebble.fill({ color: 0x9a8a7a, alpha: 0.4 });
+                                pebble.x = iso.x + (Math.random() - 0.5) * 25;
+                                pebble.y = iso.y + TILE_HEIGHT / 2 + (Math.random() - 0.5) * 10;
+                                this.groundLayer.addChild(pebble);
+                            }
+                        }
+                    }
+                }
+            }
+
+            setupInteraction() {
+                // Touch/click on tiles
+                this.tileSprites.forEach(tile => {
+                    tile.on('pointerdown', () => {
+                        this.handleTileClick(tile.gridX, tile.gridY);
+                    });
+
+                    tile.on('pointerover', () => {
+                        const cell = this.grid[tile.gridY][tile.gridX];
+                        if (cell.type === 'grass' && !cell.tower) {
+                            tile.tint = this.canPlaceTower(tile.gridX, tile.gridY) ? 0x88ff88 : 0xff8888;
+                            this.showRangePreview(tile.gridX, tile.gridY);
+                        }
+                    });
+
+                    tile.on('pointerout', () => {
+                        tile.tint = tile.originalTint || 0xffffff;
+                        this.hideRangePreview();
+                    });
+                });
+            }
+
+            setupTowerButtons() {
+                document.querySelectorAll('.tower-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.tower-btn').forEach(b => b.classList.remove('selected'));
+                        btn.classList.add('selected');
+                        this.selectedTower = btn.dataset.tower;
+
+                        // Show selection info
+                        const info = document.getElementById('selection-info');
+                        const config = TOWER_TYPES[this.selectedTower];
+                        info.textContent = `${this.selectedTower.charAt(0).toUpperCase() + this.selectedTower.slice(1)} - Dégâts: ${config.damage} | Portée: ${config.range}`;
+                        info.classList.add('visible');
+                        setTimeout(() => info.classList.remove('visible'), 2000);
+                    });
+                });
+            }
+
+            setupWaveButton() {
+                const btn = document.getElementById('wave-btn');
+                btn.addEventListener('click', () => {
+                    if (!this.waveInProgress && this.wave < WAVES.length) {
+                        this.startWave();
+                    }
+                });
+            }
+
+            showRangePreview(x, y) {
+                this.hideRangePreview();
+
+                const iso = toIso(x, y);
+                const range = TOWER_TYPES[this.selectedTower].range;
+
+                const preview = new PIXI.Graphics();
+                preview.circle(iso.x, iso.y + TILE_HEIGHT / 2, range * TILE_WIDTH * 0.7);
+                preview.fill({ color: 0x00ff00, alpha: 0.15 });
+                preview.stroke({ width: 2, color: 0x00ff00, alpha: 0.4 });
+
+                preview.name = 'rangePreview';
+                this.rangeLayer.addChild(preview);
+            }
+
+            hideRangePreview() {
+                const preview = this.rangeLayer.getChildByName('rangePreview');
+                if (preview) this.rangeLayer.removeChild(preview);
+            }
+
+            canPlaceTower(x, y) {
+                if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) return false;
+                const cell = this.grid[y][x];
+                if (cell.type !== 'grass' || cell.tower) return false;
+                return this.gold >= TOWER_TYPES[this.selectedTower].cost;
+            }
+
+            handleTileClick(x, y) {
+                if (!this.canPlaceTower(x, y)) return;
+
+                const config = TOWER_TYPES[this.selectedTower];
+                this.gold -= config.cost;
+
+                const tower = {
+                    x, y,
+                    type: this.selectedTower,
+                    ...config,
+                    lastShot: 0,
+                    sprite: null,
+                    angle: 0
+                };
+
+                const iso = toIso(x, y);
+
+                // Shadow
+                const shadow = new PIXI.Graphics();
+                shadow.ellipse(0, 0, 18, 9);
+                shadow.fill({ color: 0x000000, alpha: 0.3 });
+                shadow.x = iso.x;
+                shadow.y = iso.y + TILE_HEIGHT - 5;
+                this.shadowLayer.addChild(shadow);
+                tower.shadow = shadow;
+
+                // Tower sprite
+                if (this.assets[`tower_${this.selectedTower}`]) {
+                    tower.sprite = new PIXI.Sprite(this.assets[`tower_${this.selectedTower}`]);
+                    tower.sprite.anchor.set(0.5, 0.85);
+                    tower.sprite.width = TILE_WIDTH * 1.1;
+                    tower.sprite.height = TILE_WIDTH * 1.1;
+                } else {
+                    tower.sprite = new PIXI.Container();
+
+                    // Base
+                    const base = new PIXI.Graphics();
+                    base.roundRect(-20, -10, 40, 20, 5);
+                    base.fill({ color: 0x4a4a4a });
+                    tower.sprite.addChild(base);
+
+                    // Tower body
+                    const body = new PIXI.Graphics();
+                    body.circle(0, -25, 22);
+                    body.fill({ color: config.color });
+                    body.stroke({ width: 3, color: 0x333333 });
+                    tower.sprite.addChild(body);
+
+                    // Icon
+                    const icons = { archer: '🏹', cannon: '💣', ice: '❄️', sniper: '🎯' };
+                    const icon = new PIXI.Text({ text: icons[this.selectedTower], style: { fontSize: 18 } });
+                    icon.anchor.set(0.5);
+                    icon.y = -25;
+                    tower.sprite.addChild(icon);
+                }
+
+                tower.sprite.x = iso.x;
+                tower.sprite.y = iso.y + TILE_HEIGHT / 2;
+                this.entityLayer.addChild(tower.sprite);
+
+                this.towers.push(tower);
+                this.grid[y][x].tower = tower;
+
+                this.hideRangePreview();
+                this.updateUI();
+                this.sortEntities();
+
+                // Place effect
+                this.createPlaceEffect(iso.x, iso.y + TILE_HEIGHT / 2);
+            }
+
+            createMuzzleFlash(tower, target) {
+                const iso = toIso(tower.x, tower.y);
+                const targetIso = toIso(target.x, target.y);
+
+                // Calculate angle to target
+                const dx = targetIso.x - iso.x;
+                const dy = targetIso.y - iso.y;
+                const angle = Math.atan2(dy, dx);
+
+                const colors = {
+                    archer: 0xFFFF00,
+                    cannon: 0xFF6600,
+                    ice: 0x00FFFF,
+                    sniper: 0xFF0000
+                };
+
+                const flash = new PIXI.Graphics();
+
+                if (tower.type === 'cannon') {
+                    // Bigger explosion flash for cannon
+                    flash.circle(0, 0, 12);
+                    flash.fill({ color: colors.cannon, alpha: 0.8 });
+                    flash.circle(0, 0, 8);
+                    flash.fill({ color: 0xFFFF00, alpha: 0.9 });
+                } else if (tower.type === 'sniper') {
+                    // Line flash for sniper
+                    flash.moveTo(0, 0);
+                    flash.lineTo(Math.cos(angle) * 25, Math.sin(angle) * 15);
+                    flash.stroke({ width: 4, color: colors.sniper, alpha: 0.8 });
+                } else {
+                    // Standard flash
+                    flash.star(0, 0, 4, 10, 5);
+                    flash.fill({ color: colors[tower.type] || 0xFFFFFF, alpha: 0.8 });
+                }
+
+                flash.x = iso.x + Math.cos(angle) * 15;
+                flash.y = iso.y - 20 + Math.sin(angle) * 8;
+                flash.life = 0.3;
+                flash.vx = 0;
+                flash.vy = 0;
+                flash.isMuzzleFlash = true;
+                this.effectLayer.addChild(flash);
+                this.particles.push(flash);
+            }
+
+            createPlaceEffect(x, y) {
+                for (let i = 0; i < 8; i++) {
+                    const particle = new PIXI.Graphics();
+                    particle.circle(0, 0, 4);
+                    particle.fill({ color: 0x4ECDC4 });
+                    particle.x = x;
+                    particle.y = y;
+                    const angle = (i / 8) * Math.PI * 2;
+                    particle.vx = Math.cos(angle) * 3;
+                    particle.vy = Math.sin(angle) * 3;
+                    particle.life = 1;
+                    this.effectLayer.addChild(particle);
+                    this.particles.push(particle);
+                }
+            }
+
+            spawnEnemy(type) {
+                const config = ENEMY_TYPES[type];
+                const spawn = PATH[0];
+
+                const enemy = {
+                    id: ++this.enemyId,
+                    type,
+                    x: spawn.x,
+                    y: spawn.y,
+                    hp: config.hp,
+                    maxHp: config.hp,
+                    speed: config.speed,
+                    reward: config.reward,
+                    pathIndex: 0,
+                    slowUntil: 0,
+                    sprite: null
+                };
+
+                const iso = toIso(enemy.x, enemy.y);
+
+                // Container
+                enemy.sprite = new PIXI.Container();
+
+                // Shadow
+                const shadow = new PIXI.Graphics();
+                shadow.ellipse(0, 12, 12 * config.size, 6 * config.size);
+                shadow.fill({ color: 0x000000, alpha: 0.3 });
+                enemy.sprite.addChild(shadow);
+
+                // Enemy body
+                if (this.assets[`enemy_${type}`]) {
+                    const sprite = new PIXI.Sprite(this.assets[`enemy_${type}`]);
+                    sprite.anchor.set(0.5, 0.8);
+                    sprite.width = TILE_WIDTH * config.size * 0.9;
+                    sprite.height = TILE_WIDTH * config.size * 0.9;
+                    enemy.body = sprite;
+                } else {
+                    const body = new PIXI.Graphics();
+                    const size = 18 * config.size;
+                    body.circle(0, -size * 0.6, size);
+                    body.fill({ color: config.color });
+                    body.stroke({ width: 3, color: 0x333333 });
+
+                    // Eyes
+                    const eyeSize = size * 0.25;
+                    body.circle(-size * 0.35, -size * 0.8, eyeSize);
+                    body.circle(size * 0.35, -size * 0.8, eyeSize);
+                    body.fill({ color: 0xffffff });
+                    body.circle(-size * 0.35, -size * 0.75, eyeSize * 0.5);
+                    body.circle(size * 0.35, -size * 0.75, eyeSize * 0.5);
+                    body.fill({ color: 0x333333 });
+
+                    enemy.body = body;
+                }
+                enemy.sprite.addChild(enemy.body);
+
+                // HP bar
+                enemy.hpBar = new PIXI.Graphics();
+                enemy.hpBar.y = -35 * config.size;
+                enemy.sprite.addChild(enemy.hpBar);
+                this.updateEnemyHpBar(enemy);
+
+                enemy.sprite.x = iso.x;
+                enemy.sprite.y = iso.y + TILE_HEIGHT / 2;
+                this.entityLayer.addChild(enemy.sprite);
+
+                this.enemies.push(enemy);
+                this.sortEntities();
+            }
+
+            updateEnemyHpBar(enemy) {
+                const bar = enemy.hpBar;
+                bar.clear();
+                const width = 28;
+                const height = 5;
+                const ratio = Math.max(0, enemy.hp / enemy.maxHp);
+
+                bar.roundRect(-width/2 - 1, -1, width + 2, height + 2, 2);
+                bar.fill({ color: 0x222222 });
+                bar.roundRect(-width/2, 0, width * ratio, height, 2);
+                bar.fill({ color: ratio > 0.5 ? 0x2ecc71 : ratio > 0.25 ? 0xf39c12 : 0xe74c3c });
+            }
+
+            startWave() {
+                if (this.wave >= WAVES.length) return;
+
+                const waveConfig = WAVES[this.wave];
+                this.spawnQueue = [];
+
+                waveConfig.forEach(group => {
+                    for (let i = 0; i < group.count; i++) {
+                        this.spawnQueue.push(group.type);
+                    }
+                });
+
+                // Shuffle
+                for (let i = this.spawnQueue.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [this.spawnQueue[i], this.spawnQueue[j]] = [this.spawnQueue[j], this.spawnQueue[i]];
+                }
+
+                this.wave++;
+                this.waveInProgress = true;
+
+                // Announce
+                const announce = document.getElementById('wave-announce');
+                announce.textContent = `🌊 Vague ${this.wave}`;
+                announce.classList.add('visible');
+                setTimeout(() => announce.classList.remove('visible'), 1500);
+
+                this.updateUI();
+            }
+
+            update(delta) {
+                const now = performance.now();
+                const dt = delta / 60;
+
+                // Spawn
+                if (this.spawnQueue.length > 0 && now - this.lastSpawn > 600) {
+                    this.spawnEnemy(this.spawnQueue.shift());
+                    this.lastSpawn = now;
+                }
+
+                // Check wave complete
+                if (this.waveInProgress && this.spawnQueue.length === 0 && this.enemies.length === 0) {
+                    this.waveInProgress = false;
+                    this.gold += 25 + this.wave * 10; // Bonus
+                    this.updateUI();
+
+                    if (this.wave >= WAVES.length) {
+                        this.showVictory();
+                    }
+                }
+
+                this.updateEnemies(dt, now);
+                this.updateTowers(now);
+                this.updateProjectiles(dt, now);
+                this.updateParticles(dt);
+                this.sortEntities();
+            }
+
+            updateEnemies(dt, now) {
+                for (let i = this.enemies.length - 1; i >= 0; i--) {
+                    const enemy = this.enemies[i];
+
+                    let speed = enemy.speed;
+                    if (enemy.slowUntil > now) {
+                        speed *= 0.35;
+                        enemy.body.tint = 0x87CEEB;
+                    } else {
+                        enemy.body.tint = 0xffffff;
+                    }
+
+                    const target = PATH[enemy.pathIndex + 1];
+                    if (!target) {
+                        this.health--;
+                        this.createDamageEffect();
+                        this.removeEnemy(enemy, i);
+                        this.updateUI();
+                        if (this.health <= 0) {
+                            this.showGameOver();
+                        }
+                        continue;
+                    }
+
+                    const dx = target.x - enemy.x;
+                    const dy = target.y - enemy.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < 0.08) {
+                        enemy.pathIndex++;
+                    } else {
+                        const move = speed * dt * 0.04;
+                        enemy.x += (dx / dist) * move;
+                        enemy.y += (dy / dist) * move;
+                    }
+
+                    // Bounce and squash/stretch animation
+                    const bounce = Math.sin(now * 0.012 + enemy.id) * 0.5 + 0.5; // 0-1
+                    enemy.body.y = bounce * -4;
+
+                    // Squash/stretch based on speed
+                    const stretch = 1 + Math.sin(now * 0.012 + enemy.id) * 0.08;
+                    enemy.body.scale.set(1 / stretch, stretch);
+
+                    // Slight rotation for personality
+                    enemy.body.rotation = Math.sin(now * 0.006 + enemy.id * 1.5) * 0.1;
+
+                    const iso = toIso(enemy.x, enemy.y);
+                    enemy.sprite.x = iso.x;
+                    enemy.sprite.y = iso.y + TILE_HEIGHT / 2;
+                }
+            }
+
+            updateTowers(now) {
+                for (const tower of this.towers) {
+                    if (now - tower.lastShot < tower.cooldown) continue;
+
+                    let bestTarget = null;
+                    let bestProgress = -1;
+
+                    for (const enemy of this.enemies) {
+                        const dx = enemy.x - tower.x;
+                        const dy = enemy.y - tower.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+
+                        if (dist <= tower.range && enemy.pathIndex > bestProgress) {
+                            bestTarget = enemy;
+                            bestProgress = enemy.pathIndex;
+                        }
+                    }
+
+                    if (bestTarget) {
+                        tower.lastShot = now;
+                        this.fireProjectile(tower, bestTarget);
+                    }
+                }
+            }
+
+            fireProjectile(tower, target) {
+                const iso = toIso(tower.x, tower.y);
+
+                // Tower shooting animation (bounce effect)
+                if (tower.sprite) {
+                    tower.sprite.scale.set(1.15);
+                    setTimeout(() => {
+                        if (tower.sprite) tower.sprite.scale.set(1);
+                    }, 100);
+                }
+
+                // Muzzle flash effect
+                this.createMuzzleFlash(tower, target);
+
+                const projectile = {
+                    x: tower.x,
+                    y: tower.y,
+                    targetId: target.id,
+                    damage: tower.damage,
+                    speed: tower.speed,
+                    type: tower.type,
+                    splash: tower.splash || 0,
+                    slow: tower.slow || 0,
+                    sprite: null
+                };
+
+                const colors = {
+                    archer: 0xFFD700,
+                    cannon: 0x333333,
+                    ice: 0x00FFFF,
+                    sniper: 0xFF4444
+                };
+
+                projectile.sprite = new PIXI.Graphics();
+
+                if (tower.type === 'cannon') {
+                    projectile.sprite.circle(0, 0, 7);
+                    projectile.sprite.fill({ color: colors.cannon });
+                } else if (tower.type === 'ice') {
+                    projectile.sprite.star(0, 0, 6, 8, 4);
+                    projectile.sprite.fill({ color: colors.ice });
+                } else {
+                    projectile.sprite.circle(0, 0, 5);
+                    projectile.sprite.fill({ color: colors[tower.type] });
+                }
+
+                projectile.sprite.x = iso.x;
+                projectile.sprite.y = iso.y - 20;
+                this.projectileLayer.addChild(projectile.sprite);
+                this.projectiles.push(projectile);
+            }
+
+            updateProjectiles(dt, now) {
+                for (let i = this.projectiles.length - 1; i >= 0; i--) {
+                    const proj = this.projectiles[i];
+                    const target = this.enemies.find(e => e.id === proj.targetId);
+
+                    if (!target) {
+                        this.removeProjectile(proj, i);
+                        continue;
+                    }
+
+                    const dx = target.x - proj.x;
+                    const dy = target.y - proj.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < 0.25) {
+                        this.handleHit(proj, target, now);
+                        this.removeProjectile(proj, i);
+                    } else {
+                        const move = proj.speed * dt * 0.025;
+                        proj.x += (dx / dist) * move;
+                        proj.y += (dy / dist) * move;
+
+                        const iso = toIso(proj.x, proj.y);
+                        proj.sprite.x = iso.x;
+                        proj.sprite.y = iso.y;
+                        proj.sprite.rotation += dt * 0.2;
+                    }
+                }
+            }
+
+            handleHit(proj, target, now) {
+                target.hp -= proj.damage;
+                this.updateEnemyHpBar(target);
+                this.showFloatingDamage(target.x, target.y, proj.damage);
+
+                if (proj.slow) target.slowUntil = now + 2500;
+
+                if (proj.splash > 0) {
+                    for (const enemy of this.enemies) {
+                        if (enemy.id === target.id) continue;
+                        const d = Math.sqrt((enemy.x - target.x) ** 2 + (enemy.y - target.y) ** 2);
+                        if (d <= proj.splash) {
+                            enemy.hp -= proj.damage * 0.4;
+                            this.updateEnemyHpBar(enemy);
+                            if (enemy.hp <= 0) {
+                                const idx = this.enemies.indexOf(enemy);
+                                if (idx > -1) {
+                                    this.gold += enemy.reward;
+                                    this.createDeathEffect(enemy.x, enemy.y);
+                                    this.removeEnemy(enemy, idx);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                this.createHitEffect(target.x, target.y, proj.type);
+
+                if (target.hp <= 0) {
+                    const idx = this.enemies.indexOf(target);
+                    if (idx > -1) {
+                        this.gold += target.reward;
+                        this.createDeathEffect(target.x, target.y);
+                        this.showFloatingGold(target.x, target.y, target.reward);
+                        this.removeEnemy(target, idx);
+                        this.updateUI();
+                    }
+                }
+            }
+
+            showFloatingDamage(x, y, amount) {
+                const iso = toIso(x, y);
+                const container = document.getElementById('game-container');
+                const rect = this.app.canvas.getBoundingClientRect();
+
+                const el = document.createElement('div');
+                el.className = 'damage-number';
+                el.textContent = `-${Math.floor(amount)}`;
+                el.style.left = `${rect.left + this.offsetX + iso.x + (Math.random() - 0.5) * 30}px`;
+                el.style.top = `${rect.top + this.offsetY + iso.y - 20}px`;
+
+                container.appendChild(el);
+                setTimeout(() => el.remove(), 800);
+            }
+
+            showFloatingGold(x, y, amount) {
+                const iso = toIso(x, y);
+                const container = document.getElementById('game-container');
+                const rect = this.app.canvas.getBoundingClientRect();
+
+                const el = document.createElement('div');
+                el.className = 'damage-number gold';
+                el.textContent = `+${amount}💰`;
+                el.style.left = `${rect.left + this.offsetX + iso.x}px`;
+                el.style.top = `${rect.top + this.offsetY + iso.y - 30}px`;
+
+                container.appendChild(el);
+                setTimeout(() => el.remove(), 800);
+            }
+
+            createHitEffect(x, y, type) {
+                const iso = toIso(x, y);
+                const colors = { archer: 0xFFD700, cannon: 0xFF6600, ice: 0x00FFFF, sniper: 0xFF0000 };
+
+                for (let i = 0; i < 6; i++) {
+                    const particle = new PIXI.Graphics();
+                    particle.circle(0, 0, 3);
+                    particle.fill({ color: colors[type] || 0xFFFFFF });
+                    particle.x = iso.x + (Math.random() - 0.5) * 20;
+                    particle.y = iso.y + (Math.random() - 0.5) * 20;
+                    particle.vx = (Math.random() - 0.5) * 4;
+                    particle.vy = (Math.random() - 0.5) * 4 - 2;
+                    particle.life = 1;
+                    this.effectLayer.addChild(particle);
+                    this.particles.push(particle);
+                }
+            }
+
+            createDeathEffect(x, y) {
+                const iso = toIso(x, y);
+
+                // Gold particles
+                for (let i = 0; i < 10; i++) {
+                    const particle = new PIXI.Graphics();
+                    particle.circle(0, 0, 5);
+                    particle.fill({ color: 0xFFD700 });
+                    particle.x = iso.x;
+                    particle.y = iso.y;
+                    particle.vx = (Math.random() - 0.5) * 6;
+                    particle.vy = -Math.random() * 5 - 2;
+                    particle.life = 1;
+                    this.effectLayer.addChild(particle);
+                    this.particles.push(particle);
+                }
+
+                // Poof
+                const poof = new PIXI.Graphics();
+                poof.circle(0, 0, 25);
+                poof.fill({ color: 0xffffff, alpha: 0.6 });
+                poof.x = iso.x;
+                poof.y = iso.y;
+                poof.life = 0.5;
+                poof.vx = 0;
+                poof.vy = 0;
+                poof.isPoof = true;
+                this.effectLayer.addChild(poof);
+                this.particles.push(poof);
+            }
+
+            createDamageEffect() {
+                // Screen flash
+                const flash = new PIXI.Graphics();
+                flash.rect(0, 0, this.app.screen.width, this.app.screen.height);
+                flash.fill({ color: 0xff0000, alpha: 0.3 });
+                flash.life = 0.3;
+                flash.vx = 0;
+                flash.vy = 0;
+                flash.isFlash = true;
+                this.app.stage.addChild(flash);
+                this.particles.push(flash);
+            }
+
+            updateParticles(dt) {
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+
+                    if (p.isPoof) {
+                        p.scale.set(p.scale.x + dt * 0.15);
+                        p.alpha = p.life * 2;
+                    } else if (p.isFlash) {
+                        p.alpha = p.life;
+                    } else if (p.isMuzzleFlash) {
+                        p.alpha = p.life * 2;
+                        p.scale.set(p.life * 1.5);
+                    } else {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.vy += 0.2;
+                        p.alpha = p.life;
+                        p.scale.set(p.life);
+                    }
+
+                    p.life -= dt * 0.04;
+
+                    if (p.life <= 0) {
+                        if (p.isFlash) {
+                            this.app.stage.removeChild(p);
+                        } else {
+                            this.effectLayer.removeChild(p);
+                        }
+                        this.particles.splice(i, 1);
+                    }
+                }
+            }
+
+            removeEnemy(enemy, index) {
+                this.entityLayer.removeChild(enemy.sprite);
+                this.enemies.splice(index, 1);
+            }
+
+            removeProjectile(proj, index) {
+                this.projectileLayer.removeChild(proj.sprite);
+                this.projectiles.splice(index, 1);
+            }
+
+            sortEntities() {
+                this.entityLayer.children.sort((a, b) => a.y - b.y);
+            }
+
+            updateUI() {
+                document.getElementById('gold').textContent = this.gold;
+                document.getElementById('health').textContent = this.health;
+                document.getElementById('wave').textContent = this.wave;
+
+                const waveBtn = document.getElementById('wave-btn');
+                if (this.wave >= WAVES.length) {
+                    waveBtn.textContent = 'Terminé ✓';
+                    waveBtn.disabled = true;
+                } else if (this.waveInProgress) {
+                    waveBtn.textContent = `Vague ${this.wave} en cours...`;
+                    waveBtn.disabled = true;
+                } else {
+                    waveBtn.textContent = `Vague ${this.wave + 1} ▶`;
+                    waveBtn.disabled = false;
+                }
+
+                document.querySelectorAll('.tower-btn').forEach(btn => {
+                    const type = btn.dataset.tower;
+                    const cost = TOWER_TYPES[type].cost;
+                    btn.classList.toggle('disabled', this.gold < cost);
+                });
+            }
+
+            showGameOver() {
+                document.getElementById('game-over-title').textContent = '💀 Défaite';
+                document.getElementById('final-wave').textContent = this.wave;
+                document.getElementById('game-over').classList.add('visible');
+            }
+
+            showVictory() {
+                document.getElementById('game-over-title').textContent = '🏆 Victoire !';
+                document.getElementById('final-wave').textContent = '10/10';
+                document.getElementById('game-over').classList.add('visible');
+            }
+        }
+
+        // ============== START ==============
+        const game = new TowerDefenseGame();
+        await game.init();
+        window.game = game;
+    </script>
+</body>
+</html>

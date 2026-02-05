@@ -11,6 +11,7 @@ import { Puissance4Game } from './games/Puissance4Game.js';
 import { ChessGame } from './games/ChessGame.js';
 import { SnakeGame } from './games/SnakeGame.js';
 import { UnoGame } from './games/UnoGame.js';
+import { TowerDefenseGame } from './games/TowerDefenseGame.js';
 import { initVideoChat, showVideoControls, hideVideoControls, connectToSessionPeers, onPlayerLeft, cleanup as cleanupVideoChat, handleWebRTCMessage } from './ui/videoChat.js';
 
 // Game instances
@@ -20,7 +21,8 @@ const games = {
     puissance4: new Puissance4Game(),
     chess: new ChessGame(),
     snake: new SnakeGame(),
-    uno: new UnoGame()
+    uno: new UnoGame(),
+    towerdefense: new TowerDefenseGame()
 };
 
 let currentGame = null;
@@ -111,11 +113,19 @@ function handleMessage(data) {
             break;
 
         case 'game_starting':
-            games.snake.onGameStarting(data);
+            if (state.currentGameType === 'towerdefense') {
+                games.towerdefense.onGameStarting(data);
+            } else {
+                games.snake.onGameStarting(data);
+            }
             break;
 
         case 'game_started':
-            games.snake.onGameStarted();
+            if (state.currentGameType === 'towerdefense') {
+                games.towerdefense.onGameStarted();
+            } else {
+                games.snake.onGameStarted();
+            }
             break;
 
         case 'chat_message':
@@ -154,6 +164,39 @@ function handleMessage(data) {
             games.uno.onCardsDrawn(data);
             break;
 
+        // Tower Defense handlers
+        case 'td_update':
+            games.towerdefense.onUpdate(data);
+            break;
+
+        case 'tower_placed':
+            games.towerdefense.onTowerPlaced(data);
+            break;
+
+        case 'tower_sold':
+            games.towerdefense.onTowerSold(data);
+            break;
+
+        case 'wave_start':
+            games.towerdefense.onWaveStart(data);
+            break;
+
+        case 'wave_complete':
+            games.towerdefense.onWaveComplete(data);
+            break;
+
+        case 'enemy_killed':
+            games.towerdefense.onEnemyKilled(data);
+            break;
+
+        case 'base_hit':
+            games.towerdefense.onBaseHit(data);
+            break;
+
+        case 'game_victory':
+            games.towerdefense.onGameVictory(data);
+            break;
+
         // WebRTC signaling
         case 'webrtc_offer':
         case 'webrtc_answer':
@@ -175,15 +218,27 @@ function handleMessage(data) {
             break;
 
         case 'game_over':
-            games.snake.onGameOver(data);
+            if (state.currentGameType === 'towerdefense') {
+                games.towerdefense.onGameOver(data);
+            } else {
+                games.snake.onGameOver(data);
+            }
             break;
 
         case 'player_wants_rematch':
-            games.snake.onPlayerWantsRematch(data);
+            if (state.currentGameType === 'towerdefense') {
+                games.towerdefense.onPlayerWantsRematch(data);
+            } else {
+                games.snake.onPlayerWantsRematch(data);
+            }
             break;
 
         case 'game_restarted':
-            games.snake.onGameRestarted(data);
+            if (state.currentGameType === 'towerdefense') {
+                games.towerdefense.onGameRestarted(data);
+            } else {
+                games.snake.onGameRestarted(data);
+            }
             break;
 
         case 'new_round':
@@ -303,7 +358,8 @@ function showSpectatorView(gameType) {
         puissance4: 'Puissance 4',
         chess: 'Échecs',
         snake: 'Snake Battle',
-        uno: 'Uno'
+        uno: 'Uno',
+        towerdefense: 'Tower Defense'
     };
     document.getElementById('spectator-game-name').textContent = gameNames[gameType] || gameType;
 }
@@ -367,14 +423,18 @@ function handlePlayerJoined(data) {
         players[p.id] = { username: p.username, avatar: p.avatar };
     });
 
+    // Determine game type from data or current state
+    const gameType = data.snakeGameMode ? 'snake' : (state.currentGameType || 'snake');
+
     updateState({
         gameId: data.gameId,
         playerId: data.playerId,
         isGameCreator: data.creatorId === data.playerId,
         snakeMaxPlayers: data.maxPlayers,
         snakeGameMode: data.snakeGameMode,
-        currentGameType: 'snake',
-        snakePlayers: players
+        currentGameType: gameType,
+        snakePlayers: players,
+        tdPlayers: players
     });
 
     // Track session if present
@@ -382,8 +442,11 @@ function handlePlayerJoined(data) {
         updateState({ sessionId: data.sessionId });
     }
 
-    setupLobby('snake');
-    updateSnakeLobby();
+    // Tower defense auto-starts, no lobby needed
+    if (gameType !== 'towerdefense') {
+        setupLobby('snake');
+        updateSnakeLobby();
+    }
 }
 
 function handlePlayerLeft(data) {
@@ -399,10 +462,11 @@ function setupGameUI(gameType) {
     // Hide all game areas
     Object.values(games).forEach(game => game.hide());
 
-    // Show standard scoreboard for standard 2-player games (not snake)
+    // Show standard scoreboard for standard 2-player games (not snake or towerdefense)
     const scoreBoard = document.querySelector('.score-board');
     if (scoreBoard) {
-        scoreBoard.style.display = gameType === 'snake' ? 'none' : 'flex';
+        const hideScoreboard = gameType === 'snake' || gameType === 'towerdefense';
+        scoreBoard.style.display = hideScoreboard ? 'none' : 'flex';
     }
 
     // Show the current game

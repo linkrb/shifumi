@@ -7,6 +7,7 @@ const Puissance4Game = require('../games/Puissance4Game');
 const ChessGame = require('../games/ChessGame');
 const SnakeGame = require('../games/SnakeGame');
 const UnoGame = require('../games/UnoGame');
+const TowerDefenseGame = require('../games/TowerDefenseGame');
 const Session = require('../sessions/Session');
 
 const GAME_CLASSES = {
@@ -15,10 +16,11 @@ const GAME_CLASSES = {
     puissance4: Puissance4Game,
     chess: ChessGame,
     snake: SnakeGame,
-    uno: UnoGame
+    uno: UnoGame,
+    towerdefense: TowerDefenseGame
 };
 
-const MULTIPLAYER_GAMES = ['snake', 'uno'];
+const MULTIPLAYER_GAMES = ['snake', 'uno', 'towerdefense'];
 
 // Storage
 const games = {};
@@ -230,6 +232,22 @@ function selectGame(ws, data) {
             });
         });
         // Auto-start snake game
+        setTimeout(() => game.startGame(), 500);
+    } else if (gameType === 'towerdefense') {
+        // Tower Defense - similar to snake, auto-start
+        session.players.forEach(player => {
+            safeSend(player, {
+                type: 'player_joined',
+                gameId: gameId,
+                playerId: player.id,
+                newPlayerId: player.id,
+                players: session.getPlayersInfo(),
+                maxPlayers: game.maxPlayers,
+                creatorId: session.creatorId,
+                sessionId: session.id
+            });
+        });
+        // Auto-start tower defense
         setTimeout(() => game.startGame(), 500);
     } else if (gameType === 'uno') {
         // Uno has custom onGameStart with personalized hands

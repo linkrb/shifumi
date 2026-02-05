@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://pixijs.download/v8.0.0/pixi.min.js"></script>
 </head>
 
 <body>
@@ -129,6 +130,13 @@
                             </div>
                             <h3>Snake Battle</h3>
                             <p>Survie multijoueur (2-4)</p>
+                        </div>
+                        <div class="game-option" data-game="towerdefense">
+                            <div class="game-icon">
+                                <div class="game-icon-emoji">🏰</div>
+                            </div>
+                            <h3>Tower Defense</h3>
+                            <p>Coop contre les monstres (2-4)</p>
                         </div>
                     </div>
 
@@ -267,6 +275,10 @@
                             <div class="session-game-option" data-game="uno">
                                 <div class="game-icon-emoji">🎴</div>
                                 <span>Uno</span>
+                            </div>
+                            <div class="session-game-option" data-game="towerdefense">
+                                <div class="game-icon-emoji">🏰</div>
+                                <span>Tower Defense</span>
                             </div>
                         </div>
                         <div id="session-win-rounds" class="session-win-rounds">
@@ -465,6 +477,45 @@
                     </div>
                 </div>
 
+                <!-- Tower Defense Area -->
+                <div id="td-area" class="game-board-container" style="display: none;">
+                    <div class="td-header">
+                        <div class="td-stats">
+                            <div class="td-stat">
+                                <span class="td-stat-icon">💰</span>
+                                <span id="td-gold">200</span>
+                            </div>
+                            <div class="td-stat">
+                                <span class="td-stat-icon">❤️</span>
+                                <span id="td-health">20</span>
+                            </div>
+                            <div class="td-stat">
+                                <span class="td-stat-icon">🌊</span>
+                                <span id="td-wave">0/10</span>
+                            </div>
+                        </div>
+                    </div>
+                    <canvas id="td-canvas" width="768" height="576"></canvas>
+                    <div class="td-tower-selection">
+                        <button class="td-tower-btn selected" data-tower="archer" title="Archer - 50g">
+                            <span class="tower-icon">🏹</span>
+                            <span class="tower-cost">50</span>
+                        </button>
+                        <button class="td-tower-btn" data-tower="cannon" title="Canon - 100g">
+                            <span class="tower-icon">💣</span>
+                            <span class="tower-cost">100</span>
+                        </button>
+                        <button class="td-tower-btn" data-tower="ice" title="Glace - 75g">
+                            <span class="tower-icon">❄️</span>
+                            <span class="tower-cost">75</span>
+                        </button>
+                        <button class="td-tower-btn" data-tower="sniper" title="Sniper - 150g">
+                            <span class="tower-icon">🎯</span>
+                            <span class="tower-cost">150</span>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Shifumi Area -->
                 <div id="shifumi-area" class="choices">
                     <button class="choice-btn" data-move="rock">
@@ -558,6 +609,19 @@
                         <button id="snake-replay-btn" class="btn primary">Rejouer</button>
                         <button id="snake-change-game-btn" class="btn secondary" style="display: none;">Changer de jeu</button>
                         <button id="snake-home-btn" class="btn secondary">Menu</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tower Defense Game Over Overlay -->
+            <div id="td-gameover-overlay" class="overlay" style="display: none;">
+                <div class="result-card td-result-card">
+                    <h2 id="td-result-title">Victoire !</h2>
+                    <div id="td-stats" class="td-final-stats"></div>
+                    <div class="result-buttons">
+                        <button id="td-replay-btn" class="btn primary">Rejouer</button>
+                        <button id="td-change-game-btn" class="btn secondary" style="display: none;">Changer de jeu</button>
+                        <button id="td-home-btn" class="btn secondary">Menu</button>
                     </div>
                 </div>
             </div>

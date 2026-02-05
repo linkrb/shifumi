@@ -3052,3 +3052,146 @@ input[type="text"]:focus {
         font-size: 1rem;
     }
 }
+
+/* ========================================
+   TOWER DEFENSE STYLES
+   ======================================== */
+
+#td-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding: 10px;
+}
+
+.td-header {
+    width: 100%;
+    max-width: 768px;
+}
+
+.td-stats {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    background: white;
+    padding: 10px 20px;
+    border-radius: 15px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.td-stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--grey);
+}
+
+.td-stat-icon {
+    font-size: 1.3rem;
+}
+
+#td-canvas {
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    max-width: 100%;
+    height: auto;
+}
+
+.td-tower-selection {
+    display: flex;
+    gap: 10px;
+    background: white;
+    padding: 10px 15px;
+    border-radius: 15px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.td-tower-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 10px 15px;
+    border: 3px solid transparent;
+    border-radius: 12px;
+    background: #F8F9FA;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.td-tower-btn:hover {
+    border-color: var(--cyan);
+    background: #E0F7FA;
+}
+
+.td-tower-btn.selected {
+    border-color: var(--pink);
+    background: #FFF0F5;
+}
+
+.td-tower-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.td-tower-btn .tower-icon {
+    font-size: 1.8rem;
+}
+
+.td-tower-btn .tower-cost {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--grey);
+}
+
+/* TD Game Over */
+.td-result-card {
+    max-width: 400px;
+}
+
+.td-final-stats {
+    margin: 20px 0;
+}
+
+.td-stat {
+    padding: 10px 15px;
+    background: #F8F9FA;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--grey);
+}
+
+/* TD Responsive */
+@media (max-width: 768px) {
+    #td-canvas {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .td-stats {
+        gap: 10px;
+        padding: 8px 12px;
+    }
+
+    .td-stat {
+        font-size: 0.9rem;
+    }
+
+    .td-tower-selection {
+        gap: 5px;
+        padding: 8px 10px;
+    }
+
+    .td-tower-btn {
+        padding: 8px 10px;
+    }
+
+    .td-tower-btn .tower-icon {
+        font-size: 1.4rem;
+    }
+}
+

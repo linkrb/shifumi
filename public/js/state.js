@@ -42,6 +42,10 @@ export const state = {
     snakePlayers: {},
     snakeGameState: null,
 
+    // Tower Defense specific
+    tdGameStatus: 'waiting',
+    tdPlayers: {},
+
     // Chess specific
     myColor: null,
     currentFen: null,
@@ -82,4 +86,8 @@ export function resetGameState() {
     state.snakeGameStatus = 'waiting';
     state.snakePlayers = {};
     state.isGameCreator = false;
+
+    // Tower Defense specific
+    state.tdGameStatus = 'waiting';
+    state.tdPlayers = {};
 }
