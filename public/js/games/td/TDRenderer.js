@@ -1,6 +1,6 @@
 import {
     TILE_WIDTH, TILE_HEIGHT, GRID_WIDTH, GRID_HEIGHT,
-    TOWER_TYPES, ENEMY_TYPES, PATH, toIso
+    TOWER_TYPES, ENEMY_TYPES, toIso
 } from './tdConfig.js';
 
 export class TDRenderer {
@@ -116,6 +116,28 @@ export class TDRenderer {
                 const texture = await PIXI.Assets.load(`/images/td/${name}.png`);
                 this.assets[name] = texture;
             } catch (e) { }
+        }
+    }
+
+    clearStage() {
+        // Remove all children from layers
+        this.groundLayer.removeChildren();
+        this.entityLayer.removeChildren();
+        this.projectileLayer.removeChildren();
+        this.effectLayer.removeChildren();
+        this.rangeLayer.removeChildren();
+
+        // Reset tracking arrays
+        this.tileSprites = [];
+        this.tileMap = {};
+        this.particles = [];
+
+        // Clean up ghost tower
+        if (this.ghostSprite) {
+            this.ghostSprite.destroy({ children: true });
+            this.ghostSprite = null;
+            this.ghostType = null;
+            this.ghostOrientation = null;
         }
     }
 

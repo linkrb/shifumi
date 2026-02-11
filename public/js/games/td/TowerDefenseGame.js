@@ -1,6 +1,6 @@
 import {
     GRID_WIDTH, GRID_HEIGHT,
-    TOWER_TYPES, WAVES, SHOP_ITEMS,
+    TOWER_TYPES, SHOP_ITEMS, LEVELS,
     fromIso
 } from './tdConfig.js';
 import { TDRenderer } from './TDRenderer.js';
@@ -117,6 +117,10 @@ export class TowerDefenseGame {
 
         this.engine.onGameOver = () => {
             this.showGameOver();
+        };
+
+        this.engine.onLevelComplete = (level) => {
+            this.showLevelTransition(level);
         };
 
         this.engine.onVictory = () => {
@@ -285,7 +289,7 @@ export class TowerDefenseGame {
 
     setupWaveButton() {
         document.getElementById('wave-btn').addEventListener('click', () => {
-            if (!this.engine.waveInProgress && this.engine.wave < WAVES.length) {
+            if (!this.engine.waveInProgress && this.engine.wave < this.engine.currentWaves.length) {
                 this.engine.startWave();
             }
         });
@@ -350,8 +354,12 @@ export class TowerDefenseGame {
         document.getElementById('wave').textContent = this.engine.wave;
         this.updateEnemyCount();
 
+        const levelEl = document.getElementById('level');
+        if (levelEl) levelEl.textContent = `${this.engine.level + 1}`;
+
+        const waves = this.engine.currentWaves;
         const waveBtn = document.getElementById('wave-btn');
-        if (this.engine.wave >= WAVES.length) {
+        if (this.engine.wave >= waves.length) {
             waveBtn.textContent = 'Terminé ✓';
             waveBtn.disabled = true;
         } else if (this.engine.waveInProgress) {
@@ -409,8 +417,39 @@ export class TowerDefenseGame {
     }
 
     showVictory() {
+        const totalWaves = LEVELS.reduce((sum, l) => sum + l.waves.length, 0);
         document.getElementById('game-over-title').textContent = '🏆 Victoire !';
-        document.getElementById('final-wave').textContent = '10/10';
+        document.getElementById('final-wave').textContent = `${totalWaves}/${totalWaves}`;
         document.getElementById('game-over').classList.add('visible');
+    }
+
+    showLevelTransition(completedLevel) {
+        const nextLevel = LEVELS[completedLevel + 1];
+        const overlay = document.getElementById('level-transition');
+        if (!overlay) return;
+
+        document.getElementById('level-transition-title').textContent =
+            `Niveau ${completedLevel + 2} : ${nextLevel.name}`;
+        overlay.classList.add('visible');
+
+        const btn = document.getElementById('level-continue-btn');
+        const handler = () => {
+            btn.removeEventListener('click', handler);
+            overlay.classList.remove('visible');
+            this.startNextLevel();
+        };
+        btn.addEventListener('click', handler);
+    }
+
+    startNextLevel() {
+        this.engine.nextLevel();
+
+        this.renderer.clearStage();
+        this.renderer.drawGround(this.engine.grid);
+        this.renderer.calculateOffset();
+
+        this.selectedPlacedTower = null;
+        this.hoveredTile = null;
+        this.updateUI();
     }
 }

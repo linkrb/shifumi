@@ -563,6 +563,10 @@
                 <span class="stat-value" id="health">20</span>
             </div>
             <div class="stat">
+                <span class="stat-icon">🗺️</span>
+                <span class="stat-value" id="level">1</span>
+            </div>
+            <div class="stat">
                 <span class="stat-icon">🌊</span>
                 <span class="stat-value" id="wave">0</span>
             </div>
@@ -635,6 +639,12 @@
             <h1 id="game-over-title">💀 Défaite</h1>
             <div class="wave-reached">Vague atteinte: <span id="final-wave">0</span></div>
             <button onclick="location.reload()">Rejouer</button>
+        </div>
+
+        <div class="game-over" id="level-transition">
+            <h1 id="level-transition-title">Niveau 2</h1>
+            <div class="wave-reached">Préparez vos défenses !</div>
+            <button id="level-continue-btn">Continuer</button>
         </div>
     </div>
 

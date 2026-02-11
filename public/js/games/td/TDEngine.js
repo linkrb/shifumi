@@ -1,6 +1,7 @@
 import {
     GRID_WIDTH, GRID_HEIGHT,
-    TOWER_TYPES, ENEMY_TYPES, PATH, WAVES, SHOP_ITEMS
+    TOWER_TYPES, ENEMY_TYPES, SHOP_ITEMS,
+    LEVELS, resolvePaths
 } from './tdConfig.js';
 
 export class TDEngine {
@@ -8,6 +9,7 @@ export class TDEngine {
         this.gold = 200;
         this.health = 20;
         this.maxHealth = 20;
+        this.level = 0;
         this.wave = 0;
         this.waveInProgress = false;
         this.towers = [];
@@ -18,7 +20,8 @@ export class TDEngine {
         this.enemyId = 0;
         this.gameSpeed = 1;
         this.buffs = { damage: false, slow: false };
-        this.grid = this.createGrid();
+        this.routes = [];
+        this.initLevel();
 
         // Callbacks - wired by the orchestrator
         this.onEnemySpawned = null;      // (enemy)
@@ -35,12 +38,28 @@ export class TDEngine {
         this.onGoldChanged = null;       // (gold)
         this.onGameOver = null;          // ()
         this.onVictory = null;           // ()
+        this.onLevelComplete = null;     // (level)
         this.onNuke = null;              // ()
         this.onSplashKill = null;        // (enemy, index)
         this.onBuffsChanged = null;      // (buffs)
     }
 
-    createGrid() {
+    initLevel() {
+        const levelData = LEVELS[this.level];
+        const resolved = resolvePaths(levelData.path);
+        this.routes = resolved.routes;
+        this.grid = this.createGrid(resolved.allTiles);
+    }
+
+    get currentLevelData() {
+        return LEVELS[this.level];
+    }
+
+    get currentWaves() {
+        return LEVELS[this.level].waves;
+    }
+
+    createGrid(allTiles) {
         const grid = [];
         for (let y = 0; y < GRID_HEIGHT; y++) {
             grid[y] = [];
@@ -48,9 +67,21 @@ export class TDEngine {
                 grid[y][x] = { type: 'grass', tower: null };
             }
         }
-        PATH.forEach((p, i) => {
+        // Use route[0] to determine spawn/base (first and last point of first route)
+        const route0 = this.routes[0] || allTiles;
+        const spawnKey = `${route0[0].x},${route0[0].y}`;
+        const baseKey = `${route0[route0.length - 1].x},${route0[route0.length - 1].y}`;
+
+        allTiles.forEach(p => {
             if (grid[p.y] && grid[p.y][p.x]) {
-                grid[p.y][p.x].type = i === 0 ? 'spawn' : (i === PATH.length - 1 ? 'base' : 'path');
+                const key = `${p.x},${p.y}`;
+                if (key === spawnKey) {
+                    grid[p.y][p.x].type = 'spawn';
+                } else if (key === baseKey) {
+                    grid[p.y][p.x].type = 'base';
+                } else {
+                    grid[p.y][p.x].type = 'path';
+                }
             }
         });
         return grid;
@@ -120,9 +151,9 @@ export class TDEngine {
     }
 
     startWave() {
-        if (this.wave >= WAVES.length) return;
+        if (this.wave >= this.currentWaves.length) return;
 
-        const waveConfig = WAVES[this.wave];
+        const waveConfig = this.currentWaves[this.wave];
         this.spawnQueue = [];
 
         waveConfig.forEach(group => {
@@ -145,10 +176,12 @@ export class TDEngine {
 
     spawnEnemy(type, sprite, body, hpBar, baseScaleX, baseScaleY) {
         const config = ENEMY_TYPES[type];
-        const spawn = PATH[0];
+        const id = ++this.enemyId;
+        const route = this.routes[id % this.routes.length];
+        const spawn = route[0];
 
         const enemy = {
-            id: ++this.enemyId,
+            id,
             type,
             x: spawn.x,
             y: spawn.y,
@@ -157,6 +190,7 @@ export class TDEngine {
             speed: config.speed,
             reward: config.reward,
             pathIndex: 0,
+            route,
             slowUntil: 0,
             sprite,
             body,
@@ -193,8 +227,12 @@ export class TDEngine {
 
             if (this.onWaveCompleted) this.onWaveCompleted(this.wave);
 
-            if (this.wave >= WAVES.length) {
-                if (this.onVictory) this.onVictory();
+            if (this.wave >= this.currentWaves.length) {
+                if (this.level >= LEVELS.length - 1) {
+                    if (this.onVictory) this.onVictory();
+                } else {
+                    if (this.onLevelComplete) this.onLevelComplete(this.level);
+                }
             }
         }
 
@@ -217,7 +255,7 @@ export class TDEngine {
                 isSlow = true;
             }
 
-            const target = PATH[enemy.pathIndex + 1];
+            const target = enemy.route[enemy.pathIndex + 1];
             if (!target) {
                 this.health--;
                 const idx = i;
@@ -395,6 +433,18 @@ export class TDEngine {
         this.buffs.slow = true;
         if (this.onBuffsChanged) this.onBuffsChanged(this.buffs);
         return true;
+    }
+
+    nextLevel() {
+        this.level++;
+        this.wave = 0;
+        this.waveInProgress = false;
+        this.enemies = [];
+        this.projectiles = [];
+        this.spawnQueue = [];
+        this.towers = [];
+        this.buffs = { damage: false, slow: false };
+        this.initLevel();
     }
 
     toggleSpeed() {
