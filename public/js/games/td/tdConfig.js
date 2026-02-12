@@ -1,8 +1,8 @@
 // ============== CONFIGURATION ==============
-export const TILE_WIDTH = 64;
-export const TILE_HEIGHT = 32;
-export const GRID_WIDTH = 10;
-export const GRID_HEIGHT = 8;
+export const TILE_WIDTH = 40;
+export const TILE_HEIGHT = 52;
+export const GRID_WIDTH = 7;
+export const GRID_HEIGHT = 12;
 
 export const TOWER_TYPES = {
     archer: { cost: 50, damage: 20, range: 3, cooldown: 750, speed: 42, color: 0x98D4BB },
@@ -18,12 +18,15 @@ export const ENEMY_TYPES = {
     boss: { hp: 900, speed: 0.9, reward: 100, color: 0xC0392B, size: 1.5, anchorY: 0.85 }
 };
 
+// S-shaped path: starts going DOWN then zigzags
+// x+y never decreases → path ALWAYS goes downward on screen
 export const PATH = [
-    {x:0, y:3}, {x:1, y:3}, {x:2, y:3}, {x:3, y:3},
-    {x:3, y:4}, {x:3, y:5}, {x:3, y:6},
-    {x:4, y:6}, {x:5, y:6}, {x:6, y:6},
-    {x:6, y:5}, {x:6, y:4}, {x:6, y:3}, {x:6, y:2}, {x:6, y:1},
-    {x:7, y:1}, {x:8, y:1}, {x:9, y:1}
+    {x:0, y:0},
+    {x:0, y:1}, {x:0, y:2}, {x:0, y:3},
+    {x:1, y:3}, {x:2, y:3}, {x:3, y:3}, {x:4, y:3}, {x:5, y:3}, {x:6, y:3},
+    {x:6, y:4}, {x:6, y:5}, {x:6, y:6},
+    {x:5, y:7}, {x:4, y:8}, {x:3, y:9}, {x:2, y:10}, {x:1, y:11},
+    {x:2, y:11}, {x:3, y:11}, {x:4, y:11}, {x:5, y:11}, {x:6, y:11}
 ];
 
 export const WAVES = [
@@ -48,17 +51,18 @@ export const SHOP_ITEMS = {
 };
 
 // ============== ISOMETRIC HELPERS ==============
+// Mirrored iso so Y-axis goes down-right (path flows downward)
 export function toIso(x, y) {
     return {
-        x: (x - y) * (TILE_WIDTH / 2),
+        x: (y - x) * (TILE_WIDTH / 2),
         y: (x + y) * (TILE_HEIGHT / 2)
     };
 }
 
-export function fromIso(isoX, isoY, offsetX, offsetY) {
-    const localX = isoX - offsetX;
-    const localY = isoY - offsetY;
-    const x = (localX / (TILE_WIDTH / 2) + localY / (TILE_HEIGHT / 2)) / 2;
-    const y = (localY / (TILE_HEIGHT / 2) - localX / (TILE_WIDTH / 2)) / 2;
+export function fromIso(isoX, isoY, offsetX, offsetY, scale = 1) {
+    const localX = (isoX - offsetX) / scale;
+    const localY = (isoY - offsetY) / scale;
+    const x = (localY / (TILE_HEIGHT / 2) - localX / (TILE_WIDTH / 2)) / 2;
+    const y = (localX / (TILE_WIDTH / 2) + localY / (TILE_HEIGHT / 2)) / 2;
     return { x: Math.floor(x), y: Math.floor(y) };
 }

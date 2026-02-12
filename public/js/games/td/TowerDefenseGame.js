@@ -139,7 +139,7 @@ export class TowerDefenseGame {
 
         app.stage.on('pointermove', (e) => {
             const pos = e.global;
-            const grid = fromIso(pos.x, pos.y, this.renderer.offsetX, this.renderer.offsetY);
+            const grid = fromIso(pos.x, pos.y, this.renderer.offsetX, this.renderer.offsetY, this.renderer.mapScale);
 
             // Clear previous hover
             if (this.hoveredTile) {
@@ -173,7 +173,7 @@ export class TowerDefenseGame {
 
         app.stage.on('pointerdown', (e) => {
             const pos = e.global;
-            const grid = fromIso(pos.x, pos.y, this.renderer.offsetX, this.renderer.offsetY);
+            const grid = fromIso(pos.x, pos.y, this.renderer.offsetX, this.renderer.offsetY, this.renderer.mapScale);
 
             if (grid.x < 0 || grid.x >= GRID_WIDTH || grid.y < 0 || grid.y >= GRID_HEIGHT) {
                 this.hideTowerInfo();

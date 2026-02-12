@@ -16,6 +16,7 @@ export class TDRenderer {
         this.effectLayer = null;
         this.offsetX = 0;
         this.offsetY = 0;
+        this.mapScale = 1;
         this.particles = [];
         this.ghostSprite = null;
         this.ghostType = null;
@@ -56,14 +57,26 @@ export class TDRenderer {
     }
 
     calculateOffset() {
+        const mapWidth = (GRID_WIDTH + GRID_HEIGHT) * (TILE_WIDTH / 2);
         const mapHeight = (GRID_WIDTH + GRID_HEIGHT) * (TILE_HEIGHT / 2);
 
-        this.offsetX = this.app.screen.width / 2;
-        this.offsetY = (this.app.screen.height - mapHeight) / 2 + 20;
+        // Auto-scale to fit screen
+        const pad = 10;
+        const scaleX = (this.app.screen.width - pad * 2) / mapWidth;
+        const scaleY = (this.app.screen.height - pad * 2) / mapHeight;
+        this.mapScale = Math.min(scaleX, scaleY, 1.5);
+
+        // Center diamond properly (non-square grid offset)
+        const centerIsoX = (GRID_HEIGHT - GRID_WIDTH) * (TILE_WIDTH / 4);
+        const centerIsoY = (GRID_WIDTH + GRID_HEIGHT - 2) * (TILE_HEIGHT / 4);
+
+        this.offsetX = this.app.screen.width / 2 - centerIsoX * this.mapScale;
+        this.offsetY = this.app.screen.height / 2 - centerIsoY * this.mapScale;
 
         [this.groundLayer, this.rangeLayer, this.entityLayer, this.projectileLayer, this.effectLayer].forEach(layer => {
             layer.x = this.offsetX;
             layer.y = this.offsetY;
+            layer.scale.set(this.mapScale);
         });
     }
 
@@ -130,8 +143,9 @@ export class TDRenderer {
 
                     tile = new PIXI.Sprite(texture);
                     tile.anchor.set(0.5, 0.5);
-                    tile.width = TILE_WIDTH * 1.15;
-                    tile.height = TILE_WIDTH * 1.15;
+                    const tileRef = Math.max(TILE_WIDTH, TILE_HEIGHT);
+                    tile.width = tileRef * 1.35;
+                    tile.height = tileRef * 1.35;
 
                     if (cell.type === 'spawn') {
                         tile.tint = 0xffaaaa;
@@ -152,19 +166,21 @@ export class TDRenderer {
                     }
 
                     tile = new PIXI.Graphics();
+                    // Grow diamond to eliminate sub-pixel gaps from scaling
+                    const g = 4;
                     tile.poly([
-                        0, 0,
-                        TILE_WIDTH / 2, TILE_HEIGHT / 2,
-                        0, TILE_HEIGHT,
-                        -TILE_WIDTH / 2, TILE_HEIGHT / 2
+                        0, -g,
+                        TILE_WIDTH / 2 + g, TILE_HEIGHT / 2,
+                        0, TILE_HEIGHT + g,
+                        -TILE_WIDTH / 2 - g, TILE_HEIGHT / 2
                     ]);
                     tile.fill({ color });
-                    tile.stroke({ width: 1, color: strokeColor, alpha: 0.6 });
+                    tile.stroke({ width: 1, color: strokeColor, alpha: 0.15 });
                     tile.poly([
-                        0, 0,
-                        TILE_WIDTH / 2, TILE_HEIGHT / 2,
+                        0, -g,
+                        TILE_WIDTH / 2 + g, TILE_HEIGHT / 2,
                         0, 4,
-                        -TILE_WIDTH / 2, TILE_HEIGHT / 2
+                        -TILE_WIDTH / 2 - g, TILE_HEIGHT / 2
                     ]);
                     tile.fill({ color: 0xffffff, alpha: 0.1 });
                 }
@@ -184,8 +200,9 @@ export class TDRenderer {
                     if (this.assets.castle) {
                         const castle = new PIXI.Sprite(this.assets.castle);
                         castle.anchor.set(0.5, 0.75);
-                        castle.width = TILE_WIDTH * 1.8;
-                        castle.height = TILE_WIDTH * 1.8;
+                        const cRef = Math.max(TILE_WIDTH, TILE_HEIGHT);
+                        castle.width = cRef * 1.8;
+                        castle.height = cRef * 1.8;
                         castle.x = iso.x;
                         castle.y = iso.y + TILE_HEIGHT * 0.6;
                         this.entityLayer.addChild(castle);
@@ -242,8 +259,11 @@ export class TDRenderer {
         if (texture) {
             sprite = new PIXI.Sprite(texture);
             sprite.anchor.set(0.5, 0.85);
-            sprite.width = TILE_WIDTH * 1.1;
-            sprite.height = TILE_WIDTH * 1.1;
+            const tRef = Math.max(TILE_WIDTH, TILE_HEIGHT);
+            sprite.width = tRef * 1.1;
+            sprite.height = tRef * 1.1;
+            // Flip horizontally to compensate for mirrored iso projection
+            sprite.scale.x *= -1;
             baseScaleX = sprite.scale.x;
             baseScaleY = sprite.scale.y;
         } else {
@@ -266,6 +286,8 @@ export class TDRenderer {
             icon.y = -25;
             sprite.addChild(icon);
 
+            // Flip horizontally to compensate for mirrored iso projection
+            sprite.scale.x *= -1;
             baseScaleX = sprite.scale.x;
             baseScaleY = sprite.scale.y;
         }
@@ -297,8 +319,9 @@ export class TDRenderer {
         if (this.assets[`enemy_${type}`]) {
             body = new PIXI.Sprite(this.assets[`enemy_${type}`]);
             body.anchor.set(0.5, config.anchorY);
-            body.width = TILE_WIDTH * config.size * 0.9;
-            body.height = TILE_WIDTH * config.size * 0.9;
+            const eRef = Math.max(TILE_WIDTH, TILE_HEIGHT);
+            body.width = eRef * config.size * 0.9;
+            body.height = eRef * config.size * 0.9;
             baseScaleX = body.scale.x;
             baseScaleY = body.scale.y;
         } else {
@@ -344,6 +367,20 @@ export class TDRenderer {
 
     updateEnemyPosition(enemy) {
         const iso = toIso(enemy.x, enemy.y);
+
+        // Determine facing from grid movement (not pixel position)
+        if (enemy._prevGX !== undefined) {
+            const dx = enemy.x - enemy._prevGX;
+            const dy = enemy.y - enemy._prevGY;
+            // Mirrored iso: screen_x = (y - x) * TW/2, so screenDx ∝ (dy - dx)
+            const screenDx = dy - dx;
+            if (Math.abs(screenDx) > 0.001) {
+                enemy._facingLeft = screenDx < 0;
+            }
+        }
+        enemy._prevGX = enemy.x;
+        enemy._prevGY = enemy.y;
+
         enemy.sprite.x = iso.x;
         enemy.sprite.y = iso.y + TILE_HEIGHT / 2;
     }
@@ -355,7 +392,8 @@ export class TDRenderer {
         const stretch = 1 + Math.sin(now * 0.012 + enemy.id) * 0.08;
         const bsx = enemy.baseScaleX || 1;
         const bsy = enemy.baseScaleY || 1;
-        enemy.body.scale.set(bsx / stretch, bsy * stretch);
+        const flipX = enemy._facingLeft ? -1 : 1;
+        enemy.body.scale.set((bsx / stretch) * flipX, bsy * stretch);
 
         enemy.body.rotation = Math.sin(now * 0.006 + enemy.id * 1.5) * 0.1;
     }
@@ -597,7 +635,7 @@ export class TDRenderer {
         const range = TOWER_TYPES[towerType].range;
 
         const preview = new PIXI.Graphics();
-        preview.circle(iso.x, iso.y + TILE_HEIGHT / 2, range * TILE_WIDTH * 0.7);
+        preview.circle(iso.x, iso.y + TILE_HEIGHT / 2, range * (TILE_WIDTH + TILE_HEIGHT) / 2 * 0.7);
         preview.fill({ color: 0x00ff00, alpha: 0.15 });
         preview.stroke({ width: 2, color: 0x00ff00, alpha: 0.4 });
 
@@ -610,7 +648,7 @@ export class TDRenderer {
         const config = TOWER_TYPES[tower.type];
         const iso = toIso(tower.x, tower.y);
         const preview = new PIXI.Graphics();
-        preview.circle(iso.x, iso.y + TILE_HEIGHT / 2, config.range * TILE_WIDTH * 0.7);
+        preview.circle(iso.x, iso.y + TILE_HEIGHT / 2, config.range * (TILE_WIDTH + TILE_HEIGHT) / 2 * 0.7);
         preview.fill({ color: 0x4ECDC4, alpha: 0.12 });
         preview.stroke({ width: 2, color: 0x4ECDC4, alpha: 0.5 });
         preview.name = 'rangePreview';
@@ -681,12 +719,13 @@ export class TDRenderer {
     showFloatingDamage(x, y, amount, container) {
         const iso = toIso(x, y);
         const rect = this.app.canvas.getBoundingClientRect();
+        const s = this.mapScale;
 
         const el = document.createElement('div');
         el.className = 'damage-number';
         el.textContent = `-${Math.floor(amount)}`;
-        el.style.left = `${rect.left + this.offsetX + iso.x + (Math.random() - 0.5) * 30}px`;
-        el.style.top = `${rect.top + this.offsetY + iso.y - 20}px`;
+        el.style.left = `${rect.left + this.offsetX + iso.x * s + (Math.random() - 0.5) * 30}px`;
+        el.style.top = `${rect.top + this.offsetY + iso.y * s - 20}px`;
 
         container.appendChild(el);
         setTimeout(() => el.remove(), 800);
@@ -695,12 +734,13 @@ export class TDRenderer {
     showFloatingGold(x, y, amount, container) {
         const iso = toIso(x, y);
         const rect = this.app.canvas.getBoundingClientRect();
+        const s = this.mapScale;
 
         const el = document.createElement('div');
         el.className = 'damage-number gold';
         el.textContent = `+${amount}💰`;
-        el.style.left = `${rect.left + this.offsetX + iso.x}px`;
-        el.style.top = `${rect.top + this.offsetY + iso.y - 30}px`;
+        el.style.left = `${rect.left + this.offsetX + iso.x * s}px`;
+        el.style.top = `${rect.top + this.offsetY + iso.y * s - 30}px`;
 
         container.appendChild(el);
         setTimeout(() => el.remove(), 800);

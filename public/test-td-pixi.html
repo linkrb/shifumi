@@ -33,15 +33,17 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 15px;
+            padding: 8px 10px;
             background: rgba(0,0,0,0.3);
             color: white;
             flex-shrink: 0;
+            flex-wrap: wrap;
+            gap: 6px;
         }
 
         .stats {
             display: flex;
-            gap: 15px;
+            gap: 8px;
         }
 
         .stat {
@@ -77,6 +79,7 @@
         /* ===== GAME CANVAS ===== */
         #game-container {
             flex: 1;
+            min-height: 0;
             display: flex;
             align-items: center;
             justify-content: center;
