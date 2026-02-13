@@ -348,7 +348,7 @@ export class TDEngine {
                 const move = proj.speed * dt * 0.025;
                 proj.x += (dx / dist) * move;
                 proj.y += (dy / dist) * move;
-                if (this.onProjectileMoved) this.onProjectileMoved(proj, dt);
+                if (this.onProjectileMoved) this.onProjectileMoved(proj, dt, target);
             }
         }
     }

@@ -95,9 +95,14 @@ export class TowerDefenseGame {
             this.renderer.removeProjectileFromStage(proj);
         };
 
-        this.engine.onProjectileMoved = (proj, dt) => {
+        this.engine.onProjectileMoved = (proj, dt, target) => {
             this.renderer.updateProjectilePosition(proj);
-            proj.sprite.rotation += dt * 0.2;
+            // Rotate sprite toward target
+            if (target && proj.sprite) {
+                const targetIso = this.renderer.toIso(target.x, target.y);
+                const projIso = this.renderer.toIso(proj.x, proj.y);
+                proj.sprite.rotation = Math.atan2(targetIso.y - projIso.y, targetIso.x - projIso.x);
+            }
         };
 
         this.engine.onWaveStarted = (waveNumber) => {

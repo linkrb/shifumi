@@ -113,7 +113,8 @@ export class TDRenderer {
         }
 
         const tileAssets = ['tile_grass', 'tile_path', 'castle', 'coin', 'heart', 'tree'];
-        for (const name of tileAssets) {
+        const projAssets = ['proj_archer', 'proj_cannon', 'proj_ice', 'proj_sniper'];
+        for (const name of [...tileAssets, ...projAssets]) {
             try {
                 const texture = await PIXI.Assets.load(`/images/td/${name}.png`);
                 this.assets[name] = texture;
@@ -458,26 +459,26 @@ export class TDRenderer {
     }
 
     createProjectileSprite(towerType) {
+        const assetKey = `proj_${towerType}`;
+        if (this.assets[assetKey]) {
+            const sprite = new PIXI.Sprite(this.assets[assetKey]);
+            sprite.anchor.set(0.5, 0.5);
+            const size = towerType === 'cannon' ? 28 : 22;
+            sprite.width = size;
+            sprite.height = size;
+            return sprite;
+        }
+
+        // Fallback to graphics
         const colors = {
             archer: 0xFFD700,
             cannon: 0x333333,
             ice: 0x00FFFF,
             sniper: 0xFF4444
         };
-
         const sprite = new PIXI.Graphics();
-
-        if (towerType === 'cannon') {
-            sprite.circle(0, 0, 7);
-            sprite.fill({ color: colors.cannon });
-        } else if (towerType === 'ice') {
-            sprite.star(0, 0, 6, 8, 4);
-            sprite.fill({ color: colors.ice });
-        } else {
-            sprite.circle(0, 0, 5);
-            sprite.fill({ color: colors[towerType] });
-        }
-
+        sprite.circle(0, 0, 5);
+        sprite.fill({ color: colors[towerType] || 0xFFFFFF });
         return sprite;
     }
 
@@ -677,6 +678,10 @@ export class TDRenderer {
             tree.skew.x = (wind + gust) * 0.06;
             tree.scale.x = tree._baseScaleX * (1 + wind * 0.02);
         }
+    }
+
+    toIso(x, y) {
+        return toIso(x, y);
     }
 
     showRangePreview(x, y, towerType) {
