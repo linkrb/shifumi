@@ -15,7 +15,8 @@ export const ENEMY_TYPES = {
     basic: { hp: 80, speed: 2.2, reward: 7, color: 0xFFB5C5, size: 0.9, anchorY: 0.65 },
     fast: { hp: 50, speed: 3.2, reward: 10, color: 0xFFD93D, size: 1.0, anchorY: 0.65 },
     tank: { hp: 280, speed: 1.2, reward: 25, color: 0x9B59B6, size: 1.1, anchorY: 0.65 },
-    boss: { hp: 900, speed: 0.9, reward: 100, color: 0xC0392B, size: 1.5, anchorY: 0.85 }
+    boss: { hp: 900, speed: 0.9, reward: 100, color: 0xC0392B, size: 1.5, anchorY: 0.85 },
+    flying: { hp: 65, speed: 2.5, reward: 15, color: 0xBB88FF, size: 0.85, anchorY: 0.5, flying: true }
 };
 
 // ============== LEVELS ==============
@@ -35,7 +36,8 @@ export const LEVELS = [
             [{ type: 'basic', count: 5 }],
             [{ type: 'basic', count: 8 }],
             [{ type: 'basic', count: 5 }, { type: 'fast', count: 4 }],
-            [{ type: 'fast', count: 12 }],
+            [{ type: 'fast', count: 8 }, { type: 'flying', count: 3 }],
+            [{ type: 'basic', count: 10 }, { type: 'flying', count: 5 }],
         ]
     },
     {

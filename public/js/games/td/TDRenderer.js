@@ -89,7 +89,7 @@ export class TDRenderer {
     }
 
     async loadAssets() {
-        const enemyAssets = ['enemy_basic', 'enemy_fast', 'enemy_tank', 'enemy_boss'];
+        const enemyAssets = ['enemy_basic', 'enemy_fast', 'enemy_tank', 'enemy_boss', 'enemy_flying'];
         const towerTypes = ['archer', 'cannon', 'ice', 'sniper'];
 
         for (const name of enemyAssets) {
@@ -399,6 +399,7 @@ export class TDRenderer {
         const iso = toIso(enemy.x, enemy.y);
         enemy.sprite.x = iso.x;
         enemy.sprite.y = iso.y + TILE_HEIGHT / 2;
+        if (enemy.flying) enemy.sprite._flying = true;
         this.entityLayer.addChild(enemy.sprite);
         this.updateEnemyHpBar(enemy);
         this.sortEntities();
@@ -429,16 +430,25 @@ export class TDRenderer {
     }
 
     updateEnemyAnimation(enemy, now) {
-        const bounce = Math.sin(now * 0.012 + enemy.id) * 0.5 + 0.5;
-        enemy.body.y = bounce * -4;
-
-        const stretch = 1 + Math.sin(now * 0.012 + enemy.id) * 0.08;
         const bsx = enemy.baseScaleX || 1;
         const bsy = enemy.baseScaleY || 1;
         const flipX = enemy._facingLeft ? -1 : 1;
-        enemy.body.scale.set((bsx / stretch) * flipX, bsy * stretch);
 
-        enemy.body.rotation = Math.sin(now * 0.006 + enemy.id * 1.5) * 0.1;
+        if (enemy.flying) {
+            // Flying: higher hover + wing flap effect
+            const hover = Math.sin(now * 0.008 + enemy.id) * 8 + 12;
+            enemy.body.y = -hover;
+            const wingFlap = 1 + Math.sin(now * 0.025 + enemy.id) * 0.12;
+            enemy.body.scale.set(bsx * wingFlap * flipX, bsy / wingFlap);
+            enemy.body.rotation = Math.sin(now * 0.004 + enemy.id) * 0.15;
+        } else {
+            // Ground: normal bounce
+            const bounce = Math.sin(now * 0.012 + enemy.id) * 0.5 + 0.5;
+            enemy.body.y = bounce * -4;
+            const stretch = 1 + Math.sin(now * 0.012 + enemy.id) * 0.08;
+            enemy.body.scale.set((bsx / stretch) * flipX, bsy * stretch);
+            enemy.body.rotation = Math.sin(now * 0.006 + enemy.id * 1.5) * 0.1;
+        }
     }
 
     updateEnemyTint(enemy, isSlow) {
@@ -769,7 +779,12 @@ export class TDRenderer {
     }
 
     sortEntities() {
-        this.entityLayer.children.sort((a, b) => a.y - b.y);
+        this.entityLayer.children.sort((a, b) => {
+            // Flying enemies always render on top of everything
+            if (a._flying && !b._flying) return 1;
+            if (!a._flying && b._flying) return -1;
+            return a.y - b.y;
+        });
     }
 
     showFloatingDamage(x, y, amount, container) {

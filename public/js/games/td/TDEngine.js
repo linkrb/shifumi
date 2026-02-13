@@ -177,7 +177,17 @@ export class TDEngine {
     spawnEnemy(type, sprite, body, hpBar, baseScaleX, baseScaleY) {
         const config = ENEMY_TYPES[type];
         const id = ++this.enemyId;
-        const route = this.routes[id % this.routes.length];
+
+        let route;
+        if (config.flying) {
+            // Flying enemies go in a straight line from spawn to base
+            const baseRoute = this.routes[0];
+            const spawn = baseRoute[0];
+            const base = baseRoute[baseRoute.length - 1];
+            route = [spawn, base];
+        } else {
+            route = this.routes[id % this.routes.length];
+        }
         const spawn = route[0];
 
         const enemy = {
@@ -191,6 +201,7 @@ export class TDEngine {
             reward: config.reward,
             pathIndex: 0,
             route,
+            flying: !!config.flying,
             slowUntil: 0,
             sprite,
             body,
