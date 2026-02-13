@@ -15,32 +15,126 @@ export const ENEMY_TYPES = {
     basic: { hp: 80, speed: 2.2, reward: 7, color: 0xFFB5C5, size: 0.9, anchorY: 0.65 },
     fast: { hp: 50, speed: 3.2, reward: 10, color: 0xFFD93D, size: 1.0, anchorY: 0.65 },
     tank: { hp: 280, speed: 1.2, reward: 25, color: 0x9B59B6, size: 1.1, anchorY: 0.65 },
-    boss: { hp: 900, speed: 0.9, reward: 100, color: 0xC0392B, size: 1.5, anchorY: 0.85 }
+    boss: { hp: 900, speed: 0.9, reward: 100, color: 0xC0392B, size: 1.5, anchorY: 0.85 },
+    flying: { hp: 65, speed: 2.5, reward: 15, color: 0xBB88FF, size: 0.85, anchorY: 0.5, flying: true }
 };
 
-// S-shaped path: starts going DOWN then zigzags
-// x+y never decreases → path ALWAYS goes downward on screen
-export const PATH = [
-    {x:0, y:0},
-    {x:0, y:1}, {x:0, y:2}, {x:0, y:3},
-    {x:1, y:3}, {x:2, y:3}, {x:3, y:3}, {x:4, y:3}, {x:5, y:3}, {x:6, y:3},
-    {x:6, y:4}, {x:6, y:5}, {x:6, y:6},
-    {x:5, y:7}, {x:4, y:8}, {x:3, y:9}, {x:2, y:10}, {x:1, y:11},
-    {x:2, y:11}, {x:3, y:11}, {x:4, y:11}, {x:5, y:11}, {x:6, y:11}
+// ============== LEVELS ==============
+// All paths: x+y never decreases → path ALWAYS goes downward on screen (mirrored iso)
+export const LEVELS = [
+    {
+        name: 'Prairie',
+        path: [
+            {x:0, y:0},
+            {x:0, y:1}, {x:0, y:2}, {x:0, y:3},
+            {x:1, y:3}, {x:2, y:3}, {x:3, y:3}, {x:4, y:3}, {x:5, y:3}, {x:6, y:3},
+            {x:6, y:4}, {x:6, y:5}, {x:6, y:6},
+            {x:5, y:7}, {x:4, y:8}, {x:3, y:9}, {x:2, y:10}, {x:1, y:11},
+            {x:2, y:11}, {x:3, y:11}, {x:4, y:11}, {x:5, y:11}, {x:6, y:11}
+        ],
+        waves: [
+            [{ type: 'basic', count: 5 }],
+            [{ type: 'basic', count: 8 }],
+            [{ type: 'basic', count: 5 }, { type: 'fast', count: 4 }],
+            [{ type: 'fast', count: 8 }, { type: 'flying', count: 3 }],
+            [{ type: 'basic', count: 10 }, { type: 'flying', count: 5 }],
+        ]
+    },
+    {
+        name: 'Canyon',
+        path: [
+            {x:6, y:0},
+            {x:6, y:1}, {x:6, y:2},
+            {x:5, y:3}, {x:4, y:4}, {x:3, y:5}, {x:2, y:6}, {x:1, y:7}, {x:0, y:8},
+            {x:0, y:9}, {x:0, y:10},
+            {x:1, y:10}, {x:2, y:10}, {x:3, y:10}, {x:4, y:10}, {x:5, y:10}, {x:6, y:10},
+            {x:6, y:11}
+        ],
+        waves: [
+            [{ type: 'basic', count: 8 }, { type: 'fast', count: 4 }],
+            [{ type: 'tank', count: 3 }, { type: 'basic', count: 8 }],
+            [{ type: 'tank', count: 6 }, { type: 'fast', count: 6 }],
+            [{ type: 'basic', count: 15 }, { type: 'fast', count: 10 }],
+        ]
+    },
+    {
+        name: 'Volcan',
+        path: [
+            {x:3, y:0}, {x:3, y:1}, {x:3, y:2}, {x:3, y:3},
+            { fork: [
+                [{x:2, y:4}, {x:1, y:5}, {x:0, y:6}, {x:0, y:7}, {x:1, y:8}, {x:2, y:9}],
+                [{x:4, y:4}, {x:5, y:5}, {x:6, y:6}, {x:6, y:7}, {x:5, y:8}, {x:4, y:9}]
+            ]},
+            {x:3, y:10}, {x:3, y:11}
+        ],
+        waves: [
+            [{ type: 'tank', count: 10 }],
+            [{ type: 'fast', count: 20 }, { type: 'tank', count: 5 }],
+            [{ type: 'boss', count: 1 }, { type: 'tank', count: 8 }, { type: 'fast', count: 15 }]
+        ]
+    }
 ];
 
-export const WAVES = [
-    [{ type: 'basic', count: 5 }],
-    [{ type: 'basic', count: 8 }],
-    [{ type: 'basic', count: 5 }, { type: 'fast', count: 4 }],
-    [{ type: 'fast', count: 12 }],
-    [{ type: 'tank', count: 3 }, { type: 'basic', count: 8 }],
-    [{ type: 'tank', count: 6 }, { type: 'fast', count: 6 }],
-    [{ type: 'basic', count: 15 }, { type: 'fast', count: 10 }],
-    [{ type: 'tank', count: 10 }],
-    [{ type: 'fast', count: 20 }, { type: 'tank', count: 5 }],
-    [{ type: 'boss', count: 1 }, { type: 'tank', count: 8 }, { type: 'fast', count: 15 }]
-];
+// Resolve a path with potential forks into concrete routes and flat tile list
+export function resolvePaths(path) {
+    // Separate segments into: prefix points, fork object, suffix points
+    const points = [];    // simple {x,y} before any fork
+    const forks = [];     // fork objects in order
+    const segments = [];  // ordered list: { type:'points', data:[...] } | { type:'fork', data:[[...],[...]] }
+
+    for (const seg of path) {
+        if (seg.fork) {
+            if (points.length > 0) {
+                segments.push({ type: 'points', data: [...points] });
+                points.length = 0;
+            }
+            segments.push({ type: 'fork', data: seg.fork });
+        } else {
+            points.push(seg);
+        }
+    }
+    if (points.length > 0) {
+        segments.push({ type: 'points', data: points });
+    }
+
+    // Build routes by expanding forks (cartesian product of all fork branches)
+    let routes = [[]];
+    for (const seg of segments) {
+        if (seg.type === 'points') {
+            routes = routes.map(r => [...r, ...seg.data]);
+        } else {
+            const newRoutes = [];
+            for (const route of routes) {
+                for (const branch of seg.data) {
+                    newRoutes.push([...route, ...branch]);
+                }
+            }
+            routes = newRoutes;
+        }
+    }
+
+    // allTiles: flatten all segments (all branches included)
+    const allTiles = [];
+    const seen = new Set();
+    for (const seg of segments) {
+        const lists = seg.type === 'points' ? [seg.data] : seg.data;
+        for (const list of lists) {
+            for (const p of list) {
+                const key = `${p.x},${p.y}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    allTiles.push(p);
+                }
+            }
+        }
+    }
+
+    return { routes, allTiles };
+}
+
+// Backward-compatible aliases (level 0)
+export const PATH = LEVELS[0].path;
+export const WAVES = LEVELS[0].waves;
 
 export const SHOP_ITEMS = {
     heart: { cost: 50, name: '+1 Vie' },

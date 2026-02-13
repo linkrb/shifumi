@@ -1,6 +1,6 @@
 import {
     TILE_WIDTH, TILE_HEIGHT, GRID_WIDTH, GRID_HEIGHT,
-    TOWER_TYPES, ENEMY_TYPES, PATH, toIso
+    TOWER_TYPES, ENEMY_TYPES, toIso
 } from './tdConfig.js';
 
 export class TDRenderer {
@@ -21,6 +21,7 @@ export class TDRenderer {
         this.ghostSprite = null;
         this.ghostType = null;
         this.ghostOrientation = null;
+        this.treeSprites = [];
     }
 
     async init(container) {
@@ -31,7 +32,7 @@ export class TDRenderer {
         await this.app.init({
             width,
             height,
-            backgroundColor: 0x2d5a3d,
+            backgroundColor: 0x1a1a2e,
             antialias: true,
             resolution: window.devicePixelRatio || 1,
             autoDensity: true
@@ -60,10 +61,11 @@ export class TDRenderer {
         const mapWidth = (GRID_WIDTH + GRID_HEIGHT) * (TILE_WIDTH / 2);
         const mapHeight = (GRID_WIDTH + GRID_HEIGHT) * (TILE_HEIGHT / 2);
 
-        // Auto-scale to fit screen
-        const pad = 10;
-        const scaleX = (this.app.screen.width - pad * 2) / mapWidth;
-        const scaleY = (this.app.screen.height - pad * 2) / mapHeight;
+        // Auto-scale to fit screen (minimal padding on mobile)
+        const padX = this.app.screen.width < 600 ? 0 : 10;
+        const padY = this.app.screen.width < 600 ? 0 : 10;
+        const scaleX = (this.app.screen.width - padX * 2) / mapWidth;
+        const scaleY = (this.app.screen.height - padY * 2) / mapHeight;
         this.mapScale = Math.min(scaleX, scaleY, 1.5);
 
         // Center diamond properly (non-square grid offset)
@@ -87,7 +89,7 @@ export class TDRenderer {
     }
 
     async loadAssets() {
-        const enemyAssets = ['enemy_basic', 'enemy_fast', 'enemy_tank', 'enemy_boss'];
+        const enemyAssets = ['enemy_basic', 'enemy_fast', 'enemy_tank', 'enemy_boss', 'enemy_flying'];
         const towerTypes = ['archer', 'cannon', 'ice', 'sniper'];
 
         for (const name of enemyAssets) {
@@ -110,12 +112,36 @@ export class TDRenderer {
             } catch (e) { }
         }
 
-        const tileAssets = ['tile_grass', 'tile_path', 'castle', 'coin', 'heart'];
-        for (const name of tileAssets) {
+        const tileAssets = ['tile_grass', 'tile_path', 'castle', 'coin', 'heart', 'tree', 'tree_pine'];
+        const projAssets = ['proj_archer', 'proj_cannon', 'proj_ice', 'proj_sniper'];
+        for (const name of [...tileAssets, ...projAssets]) {
             try {
                 const texture = await PIXI.Assets.load(`/images/td/${name}.png`);
                 this.assets[name] = texture;
             } catch (e) { }
+        }
+    }
+
+    clearStage() {
+        // Remove all children from layers
+        this.groundLayer.removeChildren();
+        this.entityLayer.removeChildren();
+        this.projectileLayer.removeChildren();
+        this.effectLayer.removeChildren();
+        this.rangeLayer.removeChildren();
+
+        // Reset tracking arrays
+        this.tileSprites = [];
+        this.tileMap = {};
+        this.particles = [];
+        this.treeSprites = [];
+
+        // Clean up ghost tower
+        if (this.ghostSprite) {
+            this.ghostSprite.destroy({ children: true });
+            this.ghostSprite = null;
+            this.ghostType = null;
+            this.ghostOrientation = null;
         }
     }
 
@@ -213,9 +239,28 @@ export class TDRenderer {
                         icon.y = iso.y + TILE_HEIGHT / 2;
                         this.groundLayer.addChild(icon);
                     }
-                } else if (cell.type === 'grass' && !useSprites) {
+                } else if (cell.type === 'grass') {
                     const rand = Math.random();
-                    if (rand < 0.15) {
+                    if (rand < 0.22 && this.assets.tree) {
+                        // Randomly pick between regular tree and pine
+                        const usePine = Math.random() < 0.4 && this.assets.tree_pine;
+                        const tree = new PIXI.Sprite(usePine ? this.assets.tree_pine : this.assets.tree);
+                        tree.anchor.set(0.5, 0.85);
+                        const tRef = Math.max(TILE_WIDTH, TILE_HEIGHT);
+                        tree.width = tRef * (0.9 + Math.random() * 0.4);
+                        tree.height = tree.width;
+                        tree.x = iso.x;
+                        tree.y = iso.y + TILE_HEIGHT / 2;
+                        tree.eventMode = 'none';
+                        tree._windPhase = Math.random() * Math.PI * 2;
+                        tree._windSpeed = 0.8 + Math.random() * 0.4;
+                        tree._baseScaleX = tree.scale.x;
+                        tree._baseSkew = 0;
+                        this.entityLayer.addChild(tree);
+                        this.treeSprites.push(tree);
+                        // Mark cell so towers can't be placed here
+                        cell.hasTree = true;
+                    } else if (rand < 0.25 && !useSprites) {
                         const flowers = ['🌸', '🌼', '🌺'][Math.floor(Math.random() * 3)];
                         const deco = new PIXI.Text({ text: flowers, style: { fontSize: 10 } });
                         deco.anchor.set(0.5);
@@ -356,6 +401,7 @@ export class TDRenderer {
         const iso = toIso(enemy.x, enemy.y);
         enemy.sprite.x = iso.x;
         enemy.sprite.y = iso.y + TILE_HEIGHT / 2;
+        if (enemy.flying) enemy.sprite._flying = true;
         this.entityLayer.addChild(enemy.sprite);
         this.updateEnemyHpBar(enemy);
         this.sortEntities();
@@ -386,16 +432,25 @@ export class TDRenderer {
     }
 
     updateEnemyAnimation(enemy, now) {
-        const bounce = Math.sin(now * 0.012 + enemy.id) * 0.5 + 0.5;
-        enemy.body.y = bounce * -4;
-
-        const stretch = 1 + Math.sin(now * 0.012 + enemy.id) * 0.08;
         const bsx = enemy.baseScaleX || 1;
         const bsy = enemy.baseScaleY || 1;
         const flipX = enemy._facingLeft ? -1 : 1;
-        enemy.body.scale.set((bsx / stretch) * flipX, bsy * stretch);
 
-        enemy.body.rotation = Math.sin(now * 0.006 + enemy.id * 1.5) * 0.1;
+        if (enemy.flying) {
+            // Flying: higher hover + wing flap effect
+            const hover = Math.sin(now * 0.008 + enemy.id) * 8 + 12;
+            enemy.body.y = -hover;
+            const wingFlap = 1 + Math.sin(now * 0.025 + enemy.id) * 0.12;
+            enemy.body.scale.set(bsx * wingFlap * flipX, bsy / wingFlap);
+            enemy.body.rotation = Math.sin(now * 0.004 + enemy.id) * 0.15;
+        } else {
+            // Ground: normal bounce
+            const bounce = Math.sin(now * 0.012 + enemy.id) * 0.5 + 0.5;
+            enemy.body.y = bounce * -4;
+            const stretch = 1 + Math.sin(now * 0.012 + enemy.id) * 0.08;
+            enemy.body.scale.set((bsx / stretch) * flipX, bsy * stretch);
+            enemy.body.rotation = Math.sin(now * 0.006 + enemy.id * 1.5) * 0.1;
+        }
     }
 
     updateEnemyTint(enemy, isSlow) {
@@ -416,26 +471,26 @@ export class TDRenderer {
     }
 
     createProjectileSprite(towerType) {
+        const assetKey = `proj_${towerType}`;
+        if (this.assets[assetKey]) {
+            const sprite = new PIXI.Sprite(this.assets[assetKey]);
+            sprite.anchor.set(0.5, 0.5);
+            const size = towerType === 'cannon' ? 28 : 22;
+            sprite.width = size;
+            sprite.height = size;
+            return sprite;
+        }
+
+        // Fallback to graphics
         const colors = {
             archer: 0xFFD700,
             cannon: 0x333333,
             ice: 0x00FFFF,
             sniper: 0xFF4444
         };
-
         const sprite = new PIXI.Graphics();
-
-        if (towerType === 'cannon') {
-            sprite.circle(0, 0, 7);
-            sprite.fill({ color: colors.cannon });
-        } else if (towerType === 'ice') {
-            sprite.star(0, 0, 6, 8, 4);
-            sprite.fill({ color: colors.ice });
-        } else {
-            sprite.circle(0, 0, 5);
-            sprite.fill({ color: colors[towerType] });
-        }
-
+        sprite.circle(0, 0, 5);
+        sprite.fill({ color: colors[towerType] || 0xFFFFFF });
         return sprite;
     }
 
@@ -628,6 +683,19 @@ export class TDRenderer {
         }
     }
 
+    updateWindAnimation(now) {
+        for (const tree of this.treeSprites) {
+            const wind = Math.sin(now * 0.001 * tree._windSpeed + tree._windPhase);
+            const gust = Math.sin(now * 0.0025 + tree._windPhase * 2) * 0.3;
+            tree.skew.x = (wind + gust) * 0.06;
+            tree.scale.x = tree._baseScaleX * (1 + wind * 0.02);
+        }
+    }
+
+    toIso(x, y) {
+        return toIso(x, y);
+    }
+
     showRangePreview(x, y, towerType) {
         this.hideRangePreview();
 
@@ -713,7 +781,12 @@ export class TDRenderer {
     }
 
     sortEntities() {
-        this.entityLayer.children.sort((a, b) => a.y - b.y);
+        this.entityLayer.children.sort((a, b) => {
+            // Flying enemies always render on top of everything
+            if (a._flying && !b._flying) return 1;
+            if (!a._flying && b._flying) return -1;
+            return a.y - b.y;
+        });
     }
 
     showFloatingDamage(x, y, amount, container) {
