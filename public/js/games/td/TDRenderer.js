@@ -31,7 +31,7 @@ export class TDRenderer {
         await this.app.init({
             width,
             height,
-            backgroundColor: 0x2d5a3d,
+            backgroundColor: 0x1a1a2e,
             antialias: true,
             resolution: window.devicePixelRatio || 1,
             autoDensity: true
@@ -60,10 +60,11 @@ export class TDRenderer {
         const mapWidth = (GRID_WIDTH + GRID_HEIGHT) * (TILE_WIDTH / 2);
         const mapHeight = (GRID_WIDTH + GRID_HEIGHT) * (TILE_HEIGHT / 2);
 
-        // Auto-scale to fit screen
-        const pad = 10;
-        const scaleX = (this.app.screen.width - pad * 2) / mapWidth;
-        const scaleY = (this.app.screen.height - pad * 2) / mapHeight;
+        // Auto-scale to fit screen (minimal padding on mobile)
+        const padX = this.app.screen.width < 600 ? 0 : 10;
+        const padY = this.app.screen.width < 600 ? 0 : 10;
+        const scaleX = (this.app.screen.width - padX * 2) / mapWidth;
+        const scaleY = (this.app.screen.height - padY * 2) / mapHeight;
         this.mapScale = Math.min(scaleX, scaleY, 1.5);
 
         // Center diamond properly (non-square grid offset)
