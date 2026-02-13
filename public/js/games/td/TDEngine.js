@@ -18,6 +18,7 @@ export class TDEngine {
         this.spawnQueue = [];
         this.lastSpawn = 0;
         this.enemyId = 0;
+        this.towerId = 0;
         this.gameSpeed = 1;
         this.buffs = { damage: false, slow: false };
         this.routes = [];
@@ -42,6 +43,7 @@ export class TDEngine {
         this.onNuke = null;              // ()
         this.onSplashKill = null;        // (enemy, index)
         this.onBuffsChanged = null;      // (buffs)
+        this.onTowerLevelUp = null;      // (tower)
     }
 
     initLevel() {
@@ -122,6 +124,7 @@ export class TDEngine {
         this.gold -= config.cost;
 
         const tower = {
+            id: ++this.towerId,
             x, y,
             type: towerType,
             ...config,
@@ -129,7 +132,11 @@ export class TDEngine {
             sprite,
             baseScaleX,
             baseScaleY,
-            angle: 0
+            orientation: this.getTowerOrientation(x, y),
+            angle: 0,
+            level: 1,
+            xp: 0,
+            xpToLevel: 100
         };
 
         this.towers.push(tower);
@@ -324,6 +331,7 @@ export class TDEngine {
             x: tower.x,
             y: tower.y,
             targetId: target.id,
+            towerId: tower.id,
             damage: tower.damage,
             speed: tower.speed,
             type: tower.type,
@@ -385,6 +393,8 @@ export class TDEngine {
 
         if (proj.slow) target.slowUntil = now + 2500;
 
+        const sourceTower = this.towers.find(t => t.id === proj.towerId);
+
         if (this.onProjectileHit) this.onProjectileHit(proj, target, damage);
 
         // Splash damage
@@ -397,9 +407,9 @@ export class TDEngine {
                     enemy.hp -= damage * 0.4;
                     if (enemy.hp <= 0) {
                         this.gold += enemy.reward;
+                        this.awardXp(sourceTower, enemy.reward);
                         this.enemies.splice(j, 1);
                         if (this.onSplashKill) this.onSplashKill(enemy, j);
-                        // Adjust target index if needed
                     }
                 }
             }
@@ -409,9 +419,24 @@ export class TDEngine {
             const idx = this.enemies.indexOf(target);
             if (idx > -1) {
                 this.gold += target.reward;
+                this.awardXp(sourceTower, target.reward);
                 this.enemies.splice(idx, 1);
                 if (this.onEnemyDied) this.onEnemyDied(target, idx);
             }
+        }
+    }
+
+    awardXp(tower, amount) {
+        if (!tower || tower.level >= 3) return;
+        tower.xp += amount;
+        if (tower.xp >= tower.xpToLevel) {
+            tower.xp -= tower.xpToLevel;
+            tower.level++;
+            tower.damage = Math.round(tower.damage * 1.25);
+            tower.cooldown = Math.round(tower.cooldown * 0.9);
+            tower.range += 0.3;
+            if (tower.level >= 3) tower.xp = tower.xpToLevel;
+            if (this.onTowerLevelUp) this.onTowerLevelUp(tower);
         }
     }
 

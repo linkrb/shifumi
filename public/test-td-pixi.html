@@ -315,10 +315,27 @@
             transition: opacity 0.25s, transform 0.25s;
             z-index: 60;
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
-            gap: 14px;
+            gap: 10px 14px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .tower-xp-bar-container {
+            flex-basis: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .tower-xp-bar {
+            height: 100%;
+            width: 0%;
+            background: #9b59b6;
+            border-radius: 2px;
+            transition: width 0.3s ease;
         }
 
         .tower-info.visible {
@@ -646,6 +663,10 @@
                 <div class="tower-info-stat"><span class="label">Deg</span><span class="value" id="ti-dmg">25</span></div>
                 <div class="tower-info-stat"><span class="label">Port</span><span class="value" id="ti-range">3</span></div>
                 <div class="tower-info-stat"><span class="label">Vit</span><span class="value" id="ti-cd">0.7s</span></div>
+                <div class="tower-info-stat"><span class="label">XP</span><span class="value" id="ti-xp">0/100</span></div>
+            </div>
+            <div class="tower-xp-bar-container">
+                <div class="tower-xp-bar" id="ti-xp-bar"></div>
             </div>
             <button class="sell-btn" id="sell-btn">Vendre 30💰</button>
         </div>
@@ -667,25 +688,25 @@
     <!-- TOWER BAR -->
     <div class="tower-bar">
         <div class="tower-btn selected" data-tower="archer">
-            <div class="tower-preview"><img src="/images/td/tower_archer_front.png" alt="Archer"></div>
+            <div class="tower-preview"><img src="/images/td/towers/archer/tower_archer_front.png" alt="Archer"></div>
             <div class="tower-cost">50g</div>
             <div class="tower-name">Archer</div>
             <div class="tower-range">⊕3</div>
         </div>
         <div class="tower-btn" data-tower="cannon">
-            <div class="tower-preview"><img src="/images/td/tower_cannon_front.png" alt="Canon"></div>
+            <div class="tower-preview"><img src="/images/td/towers/cannon/tower_cannon_front.png" alt="Canon"></div>
             <div class="tower-cost">100g</div>
             <div class="tower-name">Canon</div>
             <div class="tower-range">⊕2.5</div>
         </div>
         <div class="tower-btn" data-tower="ice">
-            <div class="tower-preview"><img src="/images/td/tower_ice_front.png" alt="Glace"></div>
+            <div class="tower-preview"><img src="/images/td/towers/ice/tower_ice_front.png" alt="Glace"></div>
             <div class="tower-cost">75g</div>
             <div class="tower-name">Glace</div>
             <div class="tower-range">⊕2.5</div>
         </div>
         <div class="tower-btn" data-tower="sniper">
-            <div class="tower-preview"><img src="/images/td/tower_sniper_front.png" alt="Sniper"></div>
+            <div class="tower-preview"><img src="/images/td/towers/sniper/tower_sniper_front.png" alt="Sniper"></div>
             <div class="tower-cost">150g</div>
             <div class="tower-name">Sniper</div>
             <div class="tower-range">⊕5</div>

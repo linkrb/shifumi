@@ -100,16 +100,26 @@ export class TDRenderer {
         }
 
         for (const type of towerTypes) {
+            const base = `/images/td/towers/${type}`;
             for (const variant of ['front', 'side', 'left', 'back']) {
                 try {
-                    const tex = await PIXI.Assets.load(`/images/td/tower_${type}_${variant}.png`);
+                    const tex = await PIXI.Assets.load(`${base}/tower_${type}_${variant}.png`);
                     this.assets[`tower_${type}_${variant}`] = tex;
                 } catch (e) { }
             }
             try {
-                const tex = await PIXI.Assets.load(`/images/td/tower_${type}.png`);
+                const tex = await PIXI.Assets.load(`${base}/tower_${type}.png`);
                 this.assets[`tower_${type}`] = tex;
             } catch (e) { }
+            // Level 2 & 3 directional sprites
+            for (const lvl of [2, 3]) {
+                for (const variant of ['front', 'side', 'left', 'back']) {
+                    try {
+                        const tex = await PIXI.Assets.load(`${base}/tower_${type}_lvl${lvl}_${variant}.png`);
+                        this.assets[`tower_${type}_lvl${lvl}_${variant}`] = tex;
+                    } catch (e) { }
+                }
+            }
         }
 
         const tileAssets = ['tile_grass', 'tile_path', 'castle', 'coin', 'heart', 'tree', 'tree_pine'];
@@ -351,6 +361,7 @@ export class TDRenderer {
 
     removeTowerFromStage(tower) {
         this.entityLayer.removeChild(tower.sprite);
+        this.removeTowerXpBar(tower);
         const iso = toIso(tower.x, tower.y);
         this.createPlaceEffect(iso.x, iso.y + TILE_HEIGHT / 2);
     }
@@ -654,7 +665,11 @@ export class TDRenderer {
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
 
-            if (p.isPoof) {
+            if (p.isLevelUp) {
+                p.y += p.vy;
+                p.alpha = Math.min(1, p.life);
+                p.scale.set(1 + (2 - p.life) * 0.1);
+            } else if (p.isPoof) {
                 p.scale.set(p.scale.x + dt * 0.15);
                 p.alpha = p.life * 2;
             } else if (p.isFlash) {
@@ -713,10 +728,9 @@ export class TDRenderer {
 
     showTowerRangePreview(tower) {
         this.hideRangePreview();
-        const config = TOWER_TYPES[tower.type];
         const iso = toIso(tower.x, tower.y);
         const preview = new PIXI.Graphics();
-        preview.circle(iso.x, iso.y + TILE_HEIGHT / 2, config.range * (TILE_WIDTH + TILE_HEIGHT) / 2 * 0.7);
+        preview.circle(iso.x, iso.y + TILE_HEIGHT / 2, tower.range * (TILE_WIDTH + TILE_HEIGHT) / 2 * 0.7);
         preview.fill({ color: 0x4ECDC4, alpha: 0.12 });
         preview.stroke({ width: 2, color: 0x4ECDC4, alpha: 0.5 });
         preview.name = 'rangePreview';
@@ -778,6 +792,109 @@ export class TDRenderer {
 
     unhighlightTowerSprite(tower) {
         if (tower.sprite) tower.sprite.tint = 0xffffff;
+    }
+
+    updateTowerSprite(tower) {
+        if (tower.level <= 1) return;
+        if (!tower.sprite || !(tower.sprite instanceof PIXI.Sprite)) return;
+
+        // Try directional sprite first, then fallback to generic level sprite
+        const orientation = tower.orientation || 'front';
+        const dirKey = `tower_${tower.type}_lvl${tower.level}_${orientation}`;
+        const lvlKey = `tower_${tower.type}_lvl${tower.level}`;
+        const texture = this.assets[dirKey] || this.assets[lvlKey];
+        if (!texture) return;
+
+        tower.sprite.texture = texture;
+    }
+
+    createLevelUpEffect(tower) {
+        const iso = toIso(tower.x, tower.y);
+        const cx = iso.x;
+        const cy = iso.y + TILE_HEIGHT / 2;
+
+        // Golden particles burst
+        for (let i = 0; i < 14; i++) {
+            const particle = new PIXI.Graphics();
+            particle.star(0, 0, 5, 6, 3);
+            particle.fill({ color: 0xFFD700 });
+            particle.x = cx;
+            particle.y = cy - 20;
+            const angle = (i / 14) * Math.PI * 2;
+            particle.vx = Math.cos(angle) * 4;
+            particle.vy = Math.sin(angle) * 4 - 2;
+            particle.life = 1.5;
+            this.effectLayer.addChild(particle);
+            this.particles.push(particle);
+        }
+
+        // "LVL UP!" floating text
+        const text = new PIXI.Text({
+            text: `LVL ${tower.level}!`,
+            style: {
+                fontSize: 16,
+                fontWeight: 'bold',
+                fill: 0xFFD700,
+                stroke: { color: 0x000000, width: 3 },
+                dropShadow: { color: 0x000000, blur: 2, distance: 1 }
+            }
+        });
+        text.anchor.set(0.5);
+        text.x = cx;
+        text.y = cy - 30;
+        text.vx = 0;
+        text.vy = -1.5;
+        text.life = 2;
+        text.isLevelUp = true;
+        this.effectLayer.addChild(text);
+        this.particles.push(text);
+    }
+
+    drawTowerXpBar(tower) {
+        if (!tower.sprite) return;
+        // Create XP bar graphics attached to tower
+        if (!tower._xpBar) {
+            tower._xpBar = new PIXI.Graphics();
+            this.entityLayer.addChild(tower._xpBar);
+        }
+        this.updateTowerXpBar(tower);
+    }
+
+    updateTowerXpBar(tower) {
+        if (!tower._xpBar) {
+            tower._xpBar = new PIXI.Graphics();
+            this.entityLayer.addChild(tower._xpBar);
+        }
+        const bar = tower._xpBar;
+        bar.clear();
+
+        // Hide bar if max level
+        if (tower.level >= 3) {
+            bar.visible = false;
+            return;
+        }
+        bar.visible = true;
+
+        const iso = toIso(tower.x, tower.y);
+        const width = 24;
+        const height = 4;
+        const cx = iso.x;
+        const cy = iso.y + TILE_HEIGHT / 2 + 8;
+        const ratio = Math.min(1, tower.xp / tower.xpToLevel);
+
+        bar.roundRect(cx - width / 2 - 1, cy - 1, width + 2, height + 2, 1);
+        bar.fill({ color: 0x222222, alpha: 0.7 });
+        if (ratio > 0) {
+            bar.roundRect(cx - width / 2, cy, width * ratio, height, 1);
+            bar.fill({ color: 0x9b59b6 });
+        }
+    }
+
+    removeTowerXpBar(tower) {
+        if (tower._xpBar) {
+            this.entityLayer.removeChild(tower._xpBar);
+            tower._xpBar = null;
+        }
     }
 
     sortEntities() {

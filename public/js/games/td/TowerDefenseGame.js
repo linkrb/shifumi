@@ -89,6 +89,9 @@ export class TowerDefenseGame {
             this.renderer.updateEnemyHpBar(target);
             this.renderer.showFloatingDamage(target.x, target.y, damage, this.container);
             this.renderer.createHitEffect(target.x, target.y, proj.type);
+            // Update XP bar of source tower
+            const sourceTower = this.engine.towers.find(t => t.id === proj.towerId);
+            if (sourceTower) this.renderer.updateTowerXpBar(sourceTower);
         };
 
         this.engine.onProjectileMissed = (proj) => {
@@ -135,6 +138,16 @@ export class TowerDefenseGame {
 
         this.engine.onNuke = () => {
             this.renderer.createNukeFlash();
+        };
+
+        this.engine.onTowerLevelUp = (tower) => {
+            this.renderer.updateTowerSprite(tower);
+            this.renderer.createLevelUpEffect(tower);
+            this.renderer.updateTowerXpBar(tower);
+            // Refresh info panel if this tower is selected
+            if (this.selectedPlacedTower === tower) {
+                this.showTowerInfo(tower);
+            }
         };
     }
 
@@ -222,6 +235,7 @@ export class TowerDefenseGame {
         const { sprite, baseScaleX, baseScaleY } = this.renderer.createTowerSprite(this.selectedTower, orientation);
         const tower = this.engine.placeTower(x, y, this.selectedTower, sprite, baseScaleX, baseScaleY);
         this.renderer.addTowerToStage(tower);
+        this.renderer.drawTowerXpBar(tower);
 
         this.renderer.hideRangePreview();
         this.renderer.hideGhostTower();
@@ -242,10 +256,29 @@ export class TowerDefenseGame {
         const icons = { archer: '🏹', cannon: '💣', ice: '❄️', sniper: '🎯' };
         const names = { archer: 'Archer', cannon: 'Canon', ice: 'Glace', sniper: 'Sniper' };
 
-        document.getElementById('tower-info-name').textContent = `${icons[tower.type]} ${names[tower.type]}`;
-        document.getElementById('ti-dmg').textContent = config.damage;
-        document.getElementById('ti-range').textContent = config.range;
-        document.getElementById('ti-cd').textContent = (config.cooldown / 1000).toFixed(1) + 's';
+        const lvlSuffix = tower.level > 1 ? ` Nv.${tower.level}` : '';
+        document.getElementById('tower-info-name').textContent = `${icons[tower.type]} ${names[tower.type]}${lvlSuffix}`;
+        document.getElementById('ti-dmg').textContent = tower.damage;
+        document.getElementById('ti-range').textContent = tower.range.toFixed(1);
+        document.getElementById('ti-cd').textContent = (tower.cooldown / 1000).toFixed(1) + 's';
+
+        // XP display
+        const xpEl = document.getElementById('ti-xp');
+        if (xpEl) {
+            if (tower.level >= 3) {
+                xpEl.textContent = 'MAX';
+            } else {
+                xpEl.textContent = `${tower.xp}/${tower.xpToLevel}`;
+            }
+        }
+        // XP progress bar in panel
+        const xpBarEl = document.getElementById('ti-xp-bar');
+        if (xpBarEl) {
+            const ratio = tower.level >= 3 ? 100 : Math.floor((tower.xp / tower.xpToLevel) * 100);
+            xpBarEl.style.width = `${ratio}%`;
+            xpBarEl.style.background = tower.level >= 3 ? '#f1c40f' : '#9b59b6';
+        }
+
         document.getElementById('sell-btn').textContent = `Vendre ${sellValue}💰`;
         document.getElementById('tower-info').classList.add('visible');
 
