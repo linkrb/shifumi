@@ -342,8 +342,22 @@ export class TDEngine {
             const target = this.enemies.find(e => e.id === proj.targetId);
 
             if (!target) {
-                this.projectiles.splice(i, 1);
-                if (this.onProjectileMissed) this.onProjectileMissed(proj, i);
+                // Retarget to nearest enemy instead of disappearing
+                let nearest = null;
+                let nearestDist = Infinity;
+                for (const enemy of this.enemies) {
+                    const d = Math.sqrt((enemy.x - proj.x) ** 2 + (enemy.y - proj.y) ** 2);
+                    if (d < nearestDist) {
+                        nearestDist = d;
+                        nearest = enemy;
+                    }
+                }
+                if (nearest) {
+                    proj.targetId = nearest.id;
+                } else {
+                    this.projectiles.splice(i, 1);
+                    if (this.onProjectileMissed) this.onProjectileMissed(proj, i);
+                }
                 continue;
             }
 
