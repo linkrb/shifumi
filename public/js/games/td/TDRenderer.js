@@ -21,6 +21,7 @@ export class TDRenderer {
         this.ghostSprite = null;
         this.ghostType = null;
         this.ghostOrientation = null;
+        this.treeSprites = [];
     }
 
     async init(container) {
@@ -111,7 +112,7 @@ export class TDRenderer {
             } catch (e) { }
         }
 
-        const tileAssets = ['tile_grass', 'tile_path', 'castle', 'coin', 'heart'];
+        const tileAssets = ['tile_grass', 'tile_path', 'castle', 'coin', 'heart', 'tree'];
         for (const name of tileAssets) {
             try {
                 const texture = await PIXI.Assets.load(`/images/td/${name}.png`);
@@ -132,6 +133,7 @@ export class TDRenderer {
         this.tileSprites = [];
         this.tileMap = {};
         this.particles = [];
+        this.treeSprites = [];
 
         // Clean up ghost tower
         if (this.ghostSprite) {
@@ -236,9 +238,26 @@ export class TDRenderer {
                         icon.y = iso.y + TILE_HEIGHT / 2;
                         this.groundLayer.addChild(icon);
                     }
-                } else if (cell.type === 'grass' && !useSprites) {
+                } else if (cell.type === 'grass') {
                     const rand = Math.random();
-                    if (rand < 0.15) {
+                    if (rand < 0.22 && this.assets.tree) {
+                        const tree = new PIXI.Sprite(this.assets.tree);
+                        tree.anchor.set(0.5, 0.85);
+                        const tRef = Math.max(TILE_WIDTH, TILE_HEIGHT);
+                        tree.width = tRef * (0.9 + Math.random() * 0.4);
+                        tree.height = tree.width;
+                        tree.x = iso.x;
+                        tree.y = iso.y + TILE_HEIGHT / 2;
+                        tree.eventMode = 'none';
+                        tree._windPhase = Math.random() * Math.PI * 2;
+                        tree._windSpeed = 0.8 + Math.random() * 0.4;
+                        tree._baseScaleX = tree.scale.x;
+                        tree._baseSkew = 0;
+                        this.entityLayer.addChild(tree);
+                        this.treeSprites.push(tree);
+                        // Mark cell so towers can't be placed here
+                        cell.hasTree = true;
+                    } else if (rand < 0.25 && !useSprites) {
                         const flowers = ['🌸', '🌼', '🌺'][Math.floor(Math.random() * 3)];
                         const deco = new PIXI.Text({ text: flowers, style: { fontSize: 10 } });
                         deco.anchor.set(0.5);
@@ -648,6 +667,15 @@ export class TDRenderer {
                 }
                 this.particles.splice(i, 1);
             }
+        }
+    }
+
+    updateWindAnimation(now) {
+        for (const tree of this.treeSprites) {
+            const wind = Math.sin(now * 0.001 * tree._windSpeed + tree._windPhase);
+            const gust = Math.sin(now * 0.0025 + tree._windPhase * 2) * 0.3;
+            tree.skew.x = (wind + gust) * 0.06;
+            tree.scale.x = tree._baseScaleX * (1 + wind * 0.02);
         }
     }
 

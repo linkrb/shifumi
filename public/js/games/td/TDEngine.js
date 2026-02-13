@@ -90,7 +90,7 @@ export class TDEngine {
     canPlaceTower(x, y, towerType) {
         if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) return false;
         const cell = this.grid[y][x];
-        if (cell.type !== 'grass' || cell.tower) return false;
+        if (cell.type !== 'grass' || cell.tower || cell.hasTree) return false;
         return this.gold >= TOWER_TYPES[towerType].cost;
     }
 

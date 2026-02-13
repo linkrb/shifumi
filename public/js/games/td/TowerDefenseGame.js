@@ -38,6 +38,7 @@ export class TowerDefenseGame {
             const now = performance.now();
             this.engine.update(ticker.deltaTime, now);
             this.renderer.updateParticles((ticker.deltaTime / 60) * this.engine.gameSpeed);
+            this.renderer.updateWindAnimation(now);
             this.renderer.sortEntities();
             this.updateEnemyCount();
         });
