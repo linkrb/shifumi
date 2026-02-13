@@ -112,7 +112,7 @@ export class TDRenderer {
             } catch (e) { }
         }
 
-        const tileAssets = ['tile_grass', 'tile_path', 'castle', 'coin', 'heart', 'tree'];
+        const tileAssets = ['tile_grass', 'tile_path', 'castle', 'coin', 'heart', 'tree', 'tree_pine'];
         const projAssets = ['proj_archer', 'proj_cannon', 'proj_ice', 'proj_sniper'];
         for (const name of [...tileAssets, ...projAssets]) {
             try {
@@ -242,7 +242,9 @@ export class TDRenderer {
                 } else if (cell.type === 'grass') {
                     const rand = Math.random();
                     if (rand < 0.22 && this.assets.tree) {
-                        const tree = new PIXI.Sprite(this.assets.tree);
+                        // Randomly pick between regular tree and pine
+                        const usePine = Math.random() < 0.4 && this.assets.tree_pine;
+                        const tree = new PIXI.Sprite(usePine ? this.assets.tree_pine : this.assets.tree);
                         tree.anchor.set(0.5, 0.85);
                         const tRef = Math.max(TILE_WIDTH, TILE_HEIGHT);
                         tree.width = tRef * (0.9 + Math.random() * 0.4);
