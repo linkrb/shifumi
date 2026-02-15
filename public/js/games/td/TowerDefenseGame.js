@@ -440,8 +440,8 @@ export class TowerDefenseGame {
         this.engine.spawnQueue = [];
         this.engine.towers = [];
         this.engine.buffs = { damage: false, slow: false };
-        this.engine.gold = 200;
-        this.engine.health = 20;
+        this.engine.gold = 150;
+        this.engine.health = 15;
         this.engine.initLevel();
 
         this.renderer.setTheme(this.engine.currentLevelData);

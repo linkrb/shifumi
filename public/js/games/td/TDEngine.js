@@ -6,9 +6,9 @@ import {
 
 export class TDEngine {
     constructor() {
-        this.gold = 200;
-        this.health = 20;
-        this.maxHealth = 20;
+        this.gold = 150;
+        this.health = 15;
+        this.maxHealth = 15;
         this.level = 0;
         this.wave = 0;
         this.waveInProgress = false;
@@ -137,7 +137,7 @@ export class TDEngine {
             angle: 0,
             level: 1,
             xp: 0,
-            xpToLevel: 100
+            xpToLevel: 60
         };
 
         this.towers.push(tower);
@@ -198,13 +198,17 @@ export class TDEngine {
         }
         const spawn = route[0];
 
+        // HP scales +12% per wave (wave 1 = base, wave 10 = ~2.8x)
+        const hpScale = 1 + (this.wave - 1) * 0.12;
+        const scaledHp = Math.round(config.hp * hpScale);
+
         const enemy = {
             id,
             type,
             x: spawn.x,
             y: spawn.y,
-            hp: config.hp,
-            maxHp: config.hp,
+            hp: scaledHp,
+            maxHp: scaledHp,
             speed: config.speed,
             reward: config.reward,
             pathIndex: 0,
@@ -236,7 +240,7 @@ export class TDEngine {
         // Check wave complete
         if (this.waveInProgress && this.spawnQueue.length === 0 && this.enemies.length === 0) {
             this.waveInProgress = false;
-            this.gold += 10 + this.wave * 5;
+            this.gold += 5 + this.wave * 3;
 
             if (this.buffs.damage || this.buffs.slow) {
                 this.buffs.damage = false;
@@ -433,9 +437,10 @@ export class TDEngine {
         if (tower.xp >= tower.xpToLevel) {
             tower.xp -= tower.xpToLevel;
             tower.level++;
-            tower.damage = Math.round(tower.damage * 1.25);
-            tower.cooldown = Math.round(tower.cooldown * 0.9);
-            tower.range += 0.3;
+            tower.damage = Math.round(tower.damage * 1.15);
+            tower.cooldown = Math.round(tower.cooldown * 0.95);
+            tower.range += 0.2;
+            tower.xpToLevel = Math.round(tower.xpToLevel * 1.4);
             if (tower.level >= 3) tower.xp = tower.xpToLevel;
             if (this.onTowerLevelUp) this.onTowerLevelUp(tower);
         }

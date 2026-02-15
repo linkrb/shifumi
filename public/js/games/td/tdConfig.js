@@ -8,15 +8,15 @@ export const TOWER_TYPES = {
     archer: { cost: 50, damage: 20, range: 3, cooldown: 750, speed: 42, color: 0x98D4BB },
     cannon: { cost: 100, damage: 55, range: 2.5, cooldown: 1300, speed: 28, color: 0xFF7F7F, splash: 1.2 },
     ice: { cost: 75, damage: 8, range: 2.5, cooldown: 900, speed: 36, color: 0x87CEEB, slow: 0.5 },
-    sniper: { cost: 200, damage: 100, range: 5, cooldown: 2000, speed: 60, color: 0xE6E6FA }
+    sniper: { cost: 250, damage: 75, range: 4.5, cooldown: 2500, speed: 60, color: 0xE6E6FA }
 };
 
 export const ENEMY_TYPES = {
-    basic: { hp: 80, speed: 2.2, reward: 7, color: 0xFFB5C5, size: 0.9, anchorY: 0.65 },
-    fast: { hp: 50, speed: 3.2, reward: 10, color: 0xFFD93D, size: 1.0, anchorY: 0.65 },
-    tank: { hp: 280, speed: 1.2, reward: 25, color: 0x9B59B6, size: 1.1, anchorY: 0.65 },
-    boss: { hp: 900, speed: 0.9, reward: 100, color: 0xC0392B, size: 1.5, anchorY: 0.85 },
-    flying: { hp: 65, speed: 2.5, reward: 15, color: 0xBB88FF, size: 0.85, anchorY: 0.5, flying: true }
+    basic: { hp: 120, speed: 2.2, reward: 4, color: 0xFFB5C5, size: 0.9, anchorY: 0.65 },
+    fast: { hp: 70, speed: 3.4, reward: 6, color: 0xFFD93D, size: 1.0, anchorY: 0.65 },
+    tank: { hp: 400, speed: 1.2, reward: 15, color: 0x9B59B6, size: 1.1, anchorY: 0.65 },
+    boss: { hp: 1400, speed: 0.9, reward: 60, color: 0xC0392B, size: 1.5, anchorY: 0.85 },
+    flying: { hp: 90, speed: 2.7, reward: 8, color: 0xBB88FF, size: 0.85, anchorY: 0.5, flying: true }
 };
 
 // ============== LEVELS ==============
@@ -51,11 +51,11 @@ export const LEVELS = [
             [{ type: 'basic', count: 5 }, { type: 'fast', count: 4 }],
             [{ type: 'basic', count: 8 }, { type: 'tank', count: 2 }],
             [{ type: 'basic', count: 6 }, { type: 'fast', count: 5 }, { type: 'tank', count: 2 }],
-            [{ type: 'fast', count: 8 }, { type: 'flying', count: 4 }],
-            [{ type: 'basic', count: 10 }, { type: 'fast', count: 5 }, { type: 'flying', count: 3 }],
-            [{ type: 'fast', count: 12 }, { type: 'flying', count: 6 }],
-            [{ type: 'tank', count: 5 }, { type: 'fast', count: 10 }],
-            [{ type: 'boss', count: 1 }, { type: 'basic', count: 8 }, { type: 'fast', count: 6 }, { type: 'flying', count: 4 }],
+            [{ type: 'fast', count: 12 }, { type: 'flying', count: 6 }, { type: 'tank', count: 3 }],
+            [{ type: 'basic', count: 15 }, { type: 'fast', count: 8 }, { type: 'flying', count: 5 }, { type: 'tank', count: 3 }],
+            [{ type: 'fast', count: 18 }, { type: 'flying', count: 10 }, { type: 'tank', count: 4 }],
+            [{ type: 'tank', count: 8 }, { type: 'fast', count: 15 }, { type: 'flying', count: 6 }],
+            [{ type: 'boss', count: 2 }, { type: 'tank', count: 6 }, { type: 'fast', count: 12 }, { type: 'flying', count: 8 }],
         ]
     },
     {
@@ -95,11 +95,11 @@ export const LEVELS = [
             [{ type: 'basic', count: 12 }, { type: 'fast', count: 6 }],
             [{ type: 'tank', count: 4 }, { type: 'fast', count: 6 }],
             [{ type: 'basic', count: 10 }, { type: 'fast', count: 8 }, { type: 'tank', count: 3 }],
-            [{ type: 'flying', count: 6 }, { type: 'fast', count: 8 }],
-            [{ type: 'basic', count: 12 }, { type: 'tank', count: 5 }, { type: 'flying', count: 4 }],
-            [{ type: 'fast', count: 15 }, { type: 'flying', count: 8 }],
-            [{ type: 'tank', count: 8 }, { type: 'fast', count: 12 }],
-            [{ type: 'boss', count: 1 }, { type: 'tank', count: 8 }, { type: 'fast', count: 12 }, { type: 'flying', count: 6 }],
+            [{ type: 'flying', count: 10 }, { type: 'fast', count: 12 }, { type: 'tank', count: 4 }],
+            [{ type: 'basic', count: 15 }, { type: 'tank', count: 7 }, { type: 'flying', count: 6 }],
+            [{ type: 'fast', count: 20 }, { type: 'flying', count: 12 }, { type: 'tank', count: 5 }],
+            [{ type: 'tank', count: 10 }, { type: 'fast', count: 18 }, { type: 'flying', count: 8 }],
+            [{ type: 'boss', count: 2 }, { type: 'tank', count: 8 }, { type: 'fast', count: 15 }, { type: 'flying', count: 10 }],
         ]
     },
     {
@@ -139,11 +139,11 @@ export const LEVELS = [
             [{ type: 'basic', count: 15 }, { type: 'fast', count: 8 }],
             [{ type: 'tank', count: 8 }, { type: 'flying', count: 4 }],
             [{ type: 'basic', count: 12 }, { type: 'fast', count: 10 }, { type: 'tank', count: 5 }],
-            [{ type: 'flying', count: 8 }, { type: 'tank', count: 6 }],
-            [{ type: 'basic', count: 15 }, { type: 'fast', count: 12 }, { type: 'flying', count: 6 }],
-            [{ type: 'fast', count: 18 }, { type: 'flying', count: 10 }],
-            [{ type: 'tank', count: 10 }, { type: 'fast', count: 15 }],
-            [{ type: 'boss', count: 3 }, { type: 'tank', count: 8 }, { type: 'fast', count: 15 }, { type: 'flying', count: 8 }],
+            [{ type: 'flying', count: 12 }, { type: 'tank', count: 8 }, { type: 'fast', count: 10 }],
+            [{ type: 'basic', count: 18 }, { type: 'fast', count: 15 }, { type: 'flying', count: 8 }, { type: 'tank', count: 6 }],
+            [{ type: 'fast', count: 22 }, { type: 'flying', count: 14 }, { type: 'tank', count: 6 }],
+            [{ type: 'tank', count: 12 }, { type: 'fast', count: 20 }, { type: 'flying', count: 10 }],
+            [{ type: 'boss', count: 3 }, { type: 'tank', count: 10 }, { type: 'fast', count: 18 }, { type: 'flying', count: 12 }],
         ]
     }
 ];
