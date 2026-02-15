@@ -106,9 +106,17 @@ export const LEVELS = [
         name: 'Volcan',
         theme: {
             id: 'volcano',
+            castleScale: 1.4,
+            towerScale: 0.85,
+            enemyScale: 0.85,
+            enemyScales: { tank: 1.3, boss: 1.4 },
             tiles: { grass: 'tile_grass', path: 'tile_path' },
-            decorations: ['crystal', 'geyser'],
-            decoRate: 0.18,
+            decorations: [
+                { name: 'geyser', scale: 0.7, anchorY: 0.9 },
+                { name: 'fire_tree', scale: 0.75, anchorY: 0.9 },
+                { name: 'lamppost', scale: 0.95, anchorY: 0.9 }
+            ],
+            decoRate: 0.20,
             enemies: {
                 basic: 'enemy_basic',
                 fast: 'enemy_fast',
