@@ -1,6 +1,6 @@
 import {
     TILE_WIDTH, TILE_HEIGHT, GRID_WIDTH, GRID_HEIGHT,
-    TOWER_TYPES, ENEMY_TYPES, toIso
+    TOWER_TYPES, ENEMY_TYPES, LEVELS, toIso
 } from './tdConfig.js';
 
 export class TDRenderer {
@@ -22,6 +22,7 @@ export class TDRenderer {
         this.ghostType = null;
         this.ghostOrientation = null;
         this.treeSprites = [];
+        this.currentTheme = null;
     }
 
     async init(container) {
@@ -92,6 +93,7 @@ export class TDRenderer {
         const enemyAssets = ['enemy_basic', 'enemy_fast', 'enemy_tank', 'enemy_boss', 'enemy_flying'];
         const towerTypes = ['archer', 'cannon', 'ice', 'sniper'];
 
+        // Load base enemy assets
         for (const name of enemyAssets) {
             try {
                 const texture = await PIXI.Assets.load(`/images/td/${name}.png`);
@@ -130,6 +132,51 @@ export class TDRenderer {
                 this.assets[name] = texture;
             } catch (e) { }
         }
+
+        // Load themed assets for each level
+        for (const level of LEVELS) {
+            if (!level.theme) continue;
+            const themeId = level.theme.id;
+            const basePath = `/images/td/levels/${themeId}`;
+
+            // Themed tiles
+            for (const tileKey of Object.values(level.theme.tiles)) {
+                const assetKey = `${tileKey}_${themeId}`;
+                try {
+                    const tex = await PIXI.Assets.load(`${basePath}/${tileKey}.png`);
+                    this.assets[assetKey] = tex;
+                } catch (e) { }
+            }
+
+            // Themed decorations
+            for (const deco of level.theme.decorations) {
+                const decoName = typeof deco === 'string' ? deco : deco.name;
+                const assetKey = `${decoName}_${themeId}`;
+                try {
+                    const tex = await PIXI.Assets.load(`${basePath}/${decoName}.png`);
+                    this.assets[assetKey] = tex;
+                } catch (e) { }
+            }
+
+            // Themed enemies
+            for (const enemyAsset of Object.values(level.theme.enemies)) {
+                const assetKey = `${enemyAsset}_${themeId}`;
+                try {
+                    const tex = await PIXI.Assets.load(`${basePath}/${enemyAsset}.png`);
+                    this.assets[assetKey] = tex;
+                } catch (e) { }
+            }
+
+            // Themed castle
+            try {
+                const tex = await PIXI.Assets.load(`${basePath}/castle.png`);
+                this.assets[`castle_${themeId}`] = tex;
+            } catch (e) { }
+        }
+    }
+
+    setTheme(levelData) {
+        this.currentTheme = levelData.theme || null;
     }
 
     clearStage() {
@@ -155,7 +202,37 @@ export class TDRenderer {
         }
     }
 
+    _getThemedAsset(baseName) {
+        if (this.currentTheme) {
+            const themed = this.assets[`${baseName}_${this.currentTheme.id}`];
+            if (themed) return themed;
+        }
+        return this.assets[baseName] || null;
+    }
+
+    _getDecorationEntries() {
+        if (this.currentTheme) {
+            const entries = [];
+            for (const deco of this.currentTheme.decorations) {
+                const name = typeof deco === 'string' ? deco : deco.name;
+                const scale = typeof deco === 'object' ? deco.scale : 1.0;
+                const anchorY = typeof deco === 'object' ? deco.anchorY : 0.85;
+                const tex = this._getThemedAsset(name) || this.assets[name];
+                if (tex) entries.push({ tex, scale, anchorY });
+            }
+            if (entries.length > 0) return entries;
+        }
+        // Fallback: use base tree assets
+        const fallback = [];
+        if (this.assets.tree) fallback.push({ tex: this.assets.tree, scale: 1.0, anchorY: 0.85 });
+        if (this.assets.tree_pine) fallback.push({ tex: this.assets.tree_pine, scale: 1.0, anchorY: 0.85 });
+        return fallback;
+    }
+
     drawGround(grid) {
+        const theme = this.currentTheme;
+        const decoRate = theme ? theme.decoRate : 0.22;
+
         for (let sum = 0; sum < GRID_WIDTH + GRID_HEIGHT - 1; sum++) {
             for (let x = 0; x < GRID_WIDTH; x++) {
                 const y = sum - x;
@@ -165,16 +242,22 @@ export class TDRenderer {
                 const cell = grid[y][x];
 
                 let tile;
-                const useSprites = this.assets.tile_grass && this.assets.tile_path;
+                const grassTex = theme
+                    ? (this._getThemedAsset(theme.tiles.grass) || this.assets.tile_grass)
+                    : this.assets.tile_grass;
+                const pathTex = theme
+                    ? (this._getThemedAsset(theme.tiles.path) || this.assets.tile_path)
+                    : this.assets.tile_path;
+                const useSprites = grassTex && pathTex;
 
                 if (useSprites) {
                     let texture;
                     if (cell.type === 'grass') {
-                        texture = this.assets.tile_grass;
+                        texture = grassTex;
                     } else if (cell.type === 'path' || cell.type === 'spawn' || cell.type === 'base') {
-                        texture = this.assets.tile_path;
+                        texture = pathTex;
                     } else {
-                        texture = this.assets.tile_grass;
+                        texture = grassTex;
                     }
 
                     tile = new PIXI.Sprite(texture);
@@ -233,12 +316,14 @@ export class TDRenderer {
                 this.tileSprites.push(tile);
 
                 if (cell.type === 'base') {
-                    if (this.assets.castle) {
-                        const castle = new PIXI.Sprite(this.assets.castle);
+                    const castleTex = this._getThemedAsset('castle');
+                    if (castleTex) {
+                        const castle = new PIXI.Sprite(castleTex);
                         castle.anchor.set(0.5, 0.75);
                         const cRef = Math.max(TILE_WIDTH, TILE_HEIGHT);
-                        castle.width = cRef * 1.8;
-                        castle.height = cRef * 1.8;
+                        const cScale = (theme && theme.castleScale) || 1.8;
+                        castle.width = cRef * cScale;
+                        castle.height = cRef * cScale;
                         castle.x = iso.x;
                         castle.y = iso.y + TILE_HEIGHT * 0.6;
                         this.entityLayer.addChild(castle);
@@ -251,14 +336,15 @@ export class TDRenderer {
                     }
                 } else if (cell.type === 'grass') {
                     const rand = Math.random();
-                    if (rand < 0.22 && this.assets.tree) {
-                        // Randomly pick between regular tree and pine
-                        const usePine = Math.random() < 0.4 && this.assets.tree_pine;
-                        const tree = new PIXI.Sprite(usePine ? this.assets.tree_pine : this.assets.tree);
-                        tree.anchor.set(0.5, 0.85);
+                    const decoEntries = this._getDecorationEntries();
+                    if (rand < decoRate && decoEntries.length > 0) {
+                        const entry = decoEntries[Math.floor(Math.random() * decoEntries.length)];
+                        const tree = new PIXI.Sprite(entry.tex);
+                        tree.anchor.set(0.5, entry.anchorY);
                         const tRef = Math.max(TILE_WIDTH, TILE_HEIGHT);
-                        tree.width = tRef * (0.9 + Math.random() * 0.4);
-                        tree.height = tree.width;
+                        const baseSize = tRef * (0.9 + Math.random() * 0.4) * entry.scale;
+                        tree.width = baseSize;
+                        tree.height = baseSize;
                         tree.x = iso.x;
                         tree.y = iso.y + TILE_HEIGHT / 2;
                         tree.eventMode = 'none';
@@ -270,7 +356,7 @@ export class TDRenderer {
                         this.treeSprites.push(tree);
                         // Mark cell so towers can't be placed here
                         cell.hasTree = true;
-                    } else if (rand < 0.25 && !useSprites) {
+                    } else if (rand < decoRate + 0.03 && !useSprites) {
                         const flowers = ['🌸', '🌼', '🌺'][Math.floor(Math.random() * 3)];
                         const deco = new PIXI.Text({ text: flowers, style: { fontSize: 10 } });
                         deco.anchor.set(0.5);
@@ -315,8 +401,9 @@ export class TDRenderer {
             sprite = new PIXI.Sprite(texture);
             sprite.anchor.set(0.5, 0.85);
             const tRef = Math.max(TILE_WIDTH, TILE_HEIGHT);
-            sprite.width = tRef * 1.1;
-            sprite.height = tRef * 1.1;
+            const tScale = (this.currentTheme && this.currentTheme.towerScale) || 1.0;
+            sprite.width = tRef * 1.1 * tScale;
+            sprite.height = tRef * 1.1 * tScale;
             // Flip horizontally to compensate for mirrored iso projection
             sprite.scale.x *= -1;
             baseScaleX = sprite.scale.x;
@@ -372,12 +459,18 @@ export class TDRenderer {
         let body;
         let baseScaleX, baseScaleY;
 
-        if (this.assets[`enemy_${type}`]) {
-            body = new PIXI.Sprite(this.assets[`enemy_${type}`]);
+        // Try themed enemy sprite first, then fallback to base
+        const themedKey = this.currentTheme ? this.currentTheme.enemies[type] : null;
+        const enemyTex = (themedKey ? this._getThemedAsset(themedKey) : null) || this.assets[`enemy_${type}`];
+
+        if (enemyTex) {
+            body = new PIXI.Sprite(enemyTex);
             body.anchor.set(0.5, config.anchorY);
             const eRef = Math.max(TILE_WIDTH, TILE_HEIGHT);
-            body.width = eRef * config.size * 0.9;
-            body.height = eRef * config.size * 0.9;
+            const eScale = (this.currentTheme && this.currentTheme.enemyScale) || 1.0;
+            const eTypeScale = (this.currentTheme && this.currentTheme.enemyScales && this.currentTheme.enemyScales[type]) || 1.0;
+            body.width = eRef * config.size * 0.9 * eScale * eTypeScale;
+            body.height = eRef * config.size * 0.9 * eScale * eTypeScale;
             baseScaleX = body.scale.x;
             baseScaleY = body.scale.y;
         } else {

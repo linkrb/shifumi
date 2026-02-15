@@ -44,6 +44,7 @@ export class TDEngine {
         this.onSplashKill = null;        // (enemy, index)
         this.onBuffsChanged = null;      // (buffs)
         this.onTowerLevelUp = null;      // (tower)
+        this.onLevelChanged = null;      // (levelData)
     }
 
     initLevel() {
@@ -495,6 +496,7 @@ export class TDEngine {
         this.towers = [];
         this.buffs = { damage: false, slow: false };
         this.initLevel();
+        if (this.onLevelChanged) this.onLevelChanged(this.currentLevelData);
     }
 
     toggleSpeed() {

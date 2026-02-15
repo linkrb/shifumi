@@ -544,6 +544,94 @@
             color: #FFD700;
         }
 
+        /* ===== DEV LEVEL SELECTOR ===== */
+        .dev-btn {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: rgba(255,255,255,0.5);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            cursor: pointer;
+            z-index: 60;
+            transition: all 0.2s;
+        }
+
+        .dev-btn:hover {
+            background: rgba(255,255,255,0.25);
+            color: white;
+        }
+
+        .level-selector {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 180;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            backdrop-filter: blur(5px);
+        }
+
+        .level-selector.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .level-selector-title {
+            color: #FFD700;
+            font-size: 1.2rem;
+            font-weight: 800;
+        }
+
+        .level-selector-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .level-select-btn {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.25);
+            color: white;
+            padding: 14px 22px;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .level-select-btn:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: #FFD700;
+            transform: translateY(-2px);
+        }
+
+        .level-select-btn .level-num {
+            font-size: 1.4rem;
+            font-weight: 800;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .level-select-btn .level-name {
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.6);
+        }
+
         /* ===== RESPONSIVE ===== */
         @media (min-width: 768px) {
             .tower-btn {
@@ -598,6 +686,10 @@
             <div class="stat">
                 <img class="stat-icon" src="/images/td/icon_heart.png" alt="Health">
                 <span class="stat-value" id="health">20</span>
+            </div>
+            <div class="stat">
+                <span style="font-size:0.85rem">📍</span>
+                <span class="stat-value" id="level">1</span>
             </div>
             <div class="stat">
                 <img class="stat-icon" src="/images/td/icon_wave.png" alt="Wave">
@@ -682,6 +774,26 @@
             <h1 id="level-transition-title">Niveau 2</h1>
             <div class="wave-reached">Préparez vos défenses !</div>
             <button id="level-continue-btn">Continuer</button>
+        </div>
+
+        <!-- DEV LEVEL SELECTOR -->
+        <button class="dev-btn" id="dev-btn">DEV</button>
+        <div class="level-selector" id="level-selector">
+            <div class="level-selector-title">Sélection du niveau</div>
+            <div class="level-selector-buttons">
+                <button class="level-select-btn" data-level="0">
+                    <span class="level-num">1</span>
+                    <span class="level-name">Prairie</span>
+                </button>
+                <button class="level-select-btn" data-level="1">
+                    <span class="level-num">2</span>
+                    <span class="level-name">Cimetière</span>
+                </button>
+                <button class="level-select-btn" data-level="2">
+                    <span class="level-num">3</span>
+                    <span class="level-name">Volcan</span>
+                </button>
+            </div>
         </div>
     </div>
 

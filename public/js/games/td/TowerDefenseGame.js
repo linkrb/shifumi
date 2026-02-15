@@ -21,6 +21,7 @@ export class TowerDefenseGame {
         this.container = container || document.getElementById('game-container');
 
         await this.renderer.init(this.container);
+        this.renderer.setTheme(this.engine.currentLevelData);
         this.renderer.drawGround(this.engine.grid);
 
         this.wireCallbacks();
@@ -30,6 +31,7 @@ export class TowerDefenseGame {
         this.setupSellButton();
         this.setupSpeedButton();
         this.setupShop();
+        this.setupLevelSelector();
 
         window.addEventListener('resize', () => this.renderer.handleResize(this.container));
 
@@ -148,6 +150,10 @@ export class TowerDefenseGame {
             if (this.selectedPlacedTower === tower) {
                 this.showTowerInfo(tower);
             }
+        };
+
+        this.engine.onLevelChanged = (levelData) => {
+            this.renderer.setTheme(levelData);
         };
     }
 
@@ -385,6 +391,69 @@ export class TowerDefenseGame {
         });
     }
 
+    // ===== DEBUG LEVEL SELECTOR =====
+
+    setupLevelSelector() {
+        const overlay = document.getElementById('level-selector');
+        if (!overlay) return;
+
+        const devBtn = document.getElementById('dev-btn');
+        if (devBtn) {
+            devBtn.addEventListener('click', () => {
+                overlay.classList.toggle('visible');
+            });
+        }
+
+        document.querySelectorAll('.level-select-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const levelIndex = parseInt(btn.dataset.level, 10);
+                this.jumpToLevel(levelIndex);
+                overlay.classList.remove('visible');
+            });
+        });
+
+        // Keyboard shortcut: L to toggle
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'l' || e.key === 'L') {
+                overlay.classList.toggle('visible');
+            }
+        });
+    }
+
+    jumpToLevel(levelIndex) {
+        if (levelIndex < 0 || levelIndex >= LEVELS.length) return;
+
+        // Set level to target - 1 so nextLevel() increments to the right one
+        // But if jumping to level 0, we need to reset directly
+        this.engine.level = levelIndex;
+        this.engine.wave = 0;
+        this.engine.waveInProgress = false;
+        this.engine.enemies = [];
+        this.engine.projectiles = [];
+        this.engine.spawnQueue = [];
+        this.engine.towers = [];
+        this.engine.buffs = { damage: false, slow: false };
+        this.engine.gold = 200;
+        this.engine.health = 20;
+        this.engine.initLevel();
+
+        this.renderer.setTheme(this.engine.currentLevelData);
+        this.renderer.clearStage();
+        this.renderer.drawGround(this.engine.grid);
+        this.renderer.calculateOffset();
+
+        this.selectedPlacedTower = null;
+        this.hoveredTile = null;
+        this.hideTowerInfo();
+
+        // Reset game over / transition overlays
+        document.getElementById('game-over').classList.remove('visible');
+        const transition = document.getElementById('level-transition');
+        if (transition) transition.classList.remove('visible');
+
+        this.updateUI();
+    }
+
     // ===== UI UPDATES =====
 
     updateUI() {
@@ -483,6 +552,7 @@ export class TowerDefenseGame {
     startNextLevel() {
         this.engine.nextLevel();
 
+        this.renderer.setTheme(this.engine.currentLevelData);
         this.renderer.clearStage();
         this.renderer.drawGround(this.engine.grid);
         this.renderer.calculateOffset();
