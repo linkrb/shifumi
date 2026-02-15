@@ -632,6 +632,45 @@
             color: rgba(255,255,255,0.6);
         }
 
+        /* ===== LOADER ===== */
+        .loader-overlay {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s;
+        }
+
+        .loader-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loader-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(255,255,255,0.15);
+            border-top-color: #FFD700;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .loader-text {
+            color: rgba(255,255,255,0.7);
+            font-family: 'Nunito', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-top: 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         /* ===== RESPONSIVE ===== */
         @media (min-width: 768px) {
             .tower-btn {
@@ -676,16 +715,22 @@
     </style>
 </head>
 <body>
+    <!-- LOADER -->
+    <div class="loader-overlay" id="loader">
+        <div class="loader-spinner"></div>
+        <div class="loader-text">Chargement...</div>
+    </div>
+
     <!-- TOP BAR -->
     <div class="top-bar">
         <div class="stats">
             <div class="stat">
                 <img class="stat-icon" src="/images/td/icon_gold.png" alt="Gold">
-                <span class="stat-value" id="gold">200</span>
+                <span class="stat-value" id="gold">150</span>
             </div>
             <div class="stat">
                 <img class="stat-icon" src="/images/td/icon_heart.png" alt="Health">
-                <span class="stat-value" id="health">20</span>
+                <span class="stat-value" id="health">15</span>
             </div>
             <div class="stat">
                 <span style="font-size:0.85rem">📍</span>
@@ -819,9 +864,9 @@
         </div>
         <div class="tower-btn" data-tower="sniper">
             <div class="tower-preview"><img src="/images/td/towers/sniper/tower_sniper_front.png" alt="Sniper"></div>
-            <div class="tower-cost">200g</div>
+            <div class="tower-cost">250g</div>
             <div class="tower-name">Sniper</div>
-            <div class="tower-range">⊕5</div>
+            <div class="tower-range">⊕4.5</div>
         </div>
     </div>
 
@@ -831,6 +876,8 @@
         const game = new TowerDefenseGame();
         await game.init(document.getElementById('game-container'));
         window.game = game;
+        document.getElementById('loader').classList.add('hidden');
+        setTimeout(() => document.getElementById('loader').remove(), 600);
     </script>
 </body>
 </html>

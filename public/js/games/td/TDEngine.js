@@ -400,6 +400,9 @@ export class TDEngine {
 
         const sourceTower = this.towers.find(t => t.id === proj.towerId);
 
+        // Small XP on hit (1 per hit), kill XP is awarded separately below
+        if (sourceTower) this.awardXp(sourceTower, 1);
+
         if (this.onProjectileHit) this.onProjectileHit(proj, target, damage);
 
         // Splash damage
@@ -412,7 +415,6 @@ export class TDEngine {
                     enemy.hp -= damage * 0.4;
                     if (enemy.hp <= 0) {
                         this.gold += enemy.reward;
-                        this.awardXp(sourceTower, enemy.reward);
                         this.enemies.splice(j, 1);
                         if (this.onSplashKill) this.onSplashKill(enemy, j);
                     }
@@ -424,7 +426,6 @@ export class TDEngine {
             const idx = this.enemies.indexOf(target);
             if (idx > -1) {
                 this.gold += target.reward;
-                this.awardXp(sourceTower, target.reward);
                 this.enemies.splice(idx, 1);
                 if (this.onEnemyDied) this.onEnemyDied(target, idx);
             }
