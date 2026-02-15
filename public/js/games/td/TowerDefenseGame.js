@@ -397,7 +397,14 @@ export class TowerDefenseGame {
         const overlay = document.getElementById('level-selector');
         if (!overlay) return;
 
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
         const devBtn = document.getElementById('dev-btn');
+
+        if (!isLocal) {
+            if (devBtn) devBtn.style.display = 'none';
+            return;
+        }
+
         if (devBtn) {
             devBtn.addEventListener('click', () => {
                 overlay.classList.toggle('visible');
