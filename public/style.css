@@ -306,6 +306,20 @@ p {
     box-shadow: 0 6px 20px rgba(100, 214, 255, 0.4);
 }
 
+.btn.td-btn {
+    background: linear-gradient(135deg, #ff6b35, #ff9a56);
+    color: white;
+    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+    display: inline-block;
+    text-decoration: none;
+    text-align: center;
+}
+
+.btn.td-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+}
+
 .divider {
     margin: 20px 0;
     color: #CCC;
