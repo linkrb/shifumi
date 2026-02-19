@@ -191,6 +191,44 @@
         .tower-btn[data-tower="cannon"] .tower-preview { background: linear-gradient(135deg, #FF7F7F, #ee6b6b); }
         .tower-btn[data-tower="ice"] .tower-preview { background: linear-gradient(135deg, #87CEEB, #6bb8d9); }
         .tower-btn[data-tower="sniper"] .tower-preview { background: linear-gradient(135deg, #E6E6FA, #d4d4f0); }
+        .tower-btn[data-tower="wind"] .tower-preview { background: linear-gradient(135deg, #A8E6CF, #85d4b5); }
+
+        /* Locked tower state */
+        .tower-btn.locked {
+            position: relative;
+            opacity: 0.7;
+        }
+
+        .tower-btn.locked .tower-preview {
+            filter: brightness(0.6);
+        }
+
+        .lock-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+        }
+
+        .lock-overlay .lock-icon {
+            font-size: 1.1rem;
+        }
+
+        .lock-overlay .unlock-cost {
+            font-size: 0.6rem;
+            font-weight: 800;
+            color: #FFD700;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+        }
+
+        .tower-btn.hidden-tower {
+            display: none;
+        }
 
         .tower-btn .tower-cost {
             font-size: 0.75rem;
@@ -566,6 +604,28 @@
             color: white;
         }
 
+        .devmode-toggle.active {
+            background: rgba(78,205,196,0.35);
+            border-color: #4ECDC4;
+            color: #4ECDC4;
+        }
+
+        .devmode-badge {
+            position: absolute;
+            top: 56px;
+            left: 8px;
+            background: rgba(78,205,196,0.25);
+            border: 1px solid #4ECDC4;
+            color: #4ECDC4;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.55rem;
+            font-weight: 800;
+            z-index: 60;
+            animation: buffPulse 1.5s ease-in-out infinite;
+            pointer-events: none;
+        }
+
         .level-selector {
             position: absolute;
             inset: 0;
@@ -691,8 +751,10 @@
         }
 
         @media (max-width: 600px) {
+            .tower-bar { gap: 5px; }
+
             .tower-btn {
-                width: 62px;
+                width: 58px;
                 height: 68px;
             }
 
@@ -711,6 +773,13 @@
             }
 
             .stat-icon { width: 20px; height: 20px; }
+        }
+
+        @media (max-width: 360px) {
+            .tower-bar { gap: 3px; padding: 6px 4px; }
+            .tower-btn { width: 52px; height: 62px; }
+            .tower-btn .tower-preview { width: 28px; height: 28px; font-size: 1rem; }
+            .tower-btn .tower-cost { font-size: 0.65rem; }
         }
     </style>
 </head>
@@ -821,8 +890,10 @@
             <button id="level-continue-btn">Continuer</button>
         </div>
 
-        <!-- DEV LEVEL SELECTOR -->
-        <button class="dev-btn" id="dev-btn">DEV</button>
+        <!-- DEV BUTTONS -->
+        <button class="dev-btn" id="dev-btn" style="top:8px">LVL</button>
+        <button class="dev-btn devmode-toggle" id="devmode-btn" style="top:32px">DEV</button>
+        <div class="devmode-badge" id="devmode-badge" style="display:none">DEV MODE</div>
         <div class="level-selector" id="level-selector">
             <div class="level-selector-title">Sélection du niveau</div>
             <div class="level-selector-buttons">
@@ -867,6 +938,16 @@
             <div class="tower-cost">250g</div>
             <div class="tower-name">Sniper</div>
             <div class="tower-range">⊕4.5</div>
+        </div>
+        <div class="tower-btn locked" data-tower="wind">
+            <div class="tower-preview">🌀</div>
+            <div class="tower-cost">125g</div>
+            <div class="tower-name">Eolienne</div>
+            <div class="tower-range">⊕2.5</div>
+            <div class="lock-overlay">
+                <span class="lock-icon">🔓</span>
+                <span class="unlock-cost">400g</span>
+            </div>
         </div>
     </div>
 

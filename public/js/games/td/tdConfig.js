@@ -8,7 +8,8 @@ export const TOWER_TYPES = {
     archer: { cost: 50, damage: 20, range: 3, cooldown: 750, speed: 42, color: 0x98D4BB },
     cannon: { cost: 100, damage: 55, range: 2.5, cooldown: 1300, speed: 28, color: 0xFF7F7F, splash: 1.2 },
     ice: { cost: 75, damage: 8, range: 2.5, cooldown: 900, speed: 36, color: 0x87CEEB, slow: 0.5 },
-    sniper: { cost: 250, damage: 75, range: 4.5, cooldown: 2500, speed: 60, color: 0xE6E6FA }
+    sniper: { cost: 250, damage: 75, range: 4.5, cooldown: 2500, speed: 60, color: 0xE6E6FA },
+    wind: { cost: 125, damage: 5, range: 2.5, cooldown: 1200, speed: 0, color: 0xA8E6CF, pushback: 0.8, aoe: true, unlockCost: 400 }
 };
 
 export const ENEMY_TYPES = {

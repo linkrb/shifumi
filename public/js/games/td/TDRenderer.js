@@ -91,7 +91,7 @@ export class TDRenderer {
 
     async loadAssets() {
         const enemyAssets = ['enemy_basic', 'enemy_fast', 'enemy_tank', 'enemy_boss', 'enemy_flying'];
-        const towerTypes = ['archer', 'cannon', 'ice', 'sniper'];
+        const towerTypes = ['archer', 'cannon', 'ice', 'sniper', 'wind'];
 
         // Load base enemy assets
         for (const name of enemyAssets) {
@@ -123,6 +123,12 @@ export class TDRenderer {
                 }
             }
         }
+
+        // Wind tower propeller
+        try {
+            const tex = await PIXI.Assets.load('/images/td/towers/wind/wind_propeller.png');
+            this.assets['wind_propeller'] = tex;
+        } catch (e) { }
 
         const tileAssets = ['tile_grass', 'tile_path', 'castle', 'coin', 'heart', 'tree', 'tree_pine'];
         const projAssets = ['proj_archer', 'proj_cannon', 'proj_ice', 'proj_sniper'];
@@ -422,7 +428,7 @@ export class TDRenderer {
             body.stroke({ width: 3, color: 0x333333 });
             sprite.addChild(body);
 
-            const icons = { archer: '🏹', cannon: '💣', ice: '❄️', sniper: '🎯' };
+            const icons = { archer: '🏹', cannon: '💣', ice: '❄️', sniper: '🎯', wind: '🌀' };
             const icon = new PIXI.Text({ text: icons[towerType], style: { fontSize: 18 } });
             icon.anchor.set(0.5);
             icon.y = -25;
@@ -638,7 +644,8 @@ export class TDRenderer {
             archer: 0xFFFF00,
             cannon: 0xFF6600,
             ice: 0x00FFFF,
-            sniper: 0xFF0000
+            sniper: 0xFF0000,
+            wind: 0xA8E6CF
         };
 
         const flash = new PIXI.Graphics();
@@ -669,7 +676,7 @@ export class TDRenderer {
 
     createHitEffect(x, y, type) {
         const iso = toIso(x, y);
-        const colors = { archer: 0xFFD700, cannon: 0xFF6600, ice: 0x00FFFF, sniper: 0xFF0000 };
+        const colors = { archer: 0xFFD700, cannon: 0xFF6600, ice: 0x00FFFF, sniper: 0xFF0000, wind: 0xA8E6CF };
 
         for (let i = 0; i < 6; i++) {
             const particle = new PIXI.Graphics();
@@ -758,7 +765,14 @@ export class TDRenderer {
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
 
-            if (p.isLevelUp) {
+            if (p.isWindPulse) {
+                // Expanding ring effect
+                const progress = 1 - (p.life / 1.2);
+                const radius = p._startRadius + (p._maxRadius - p._startRadius) * progress;
+                p.clear();
+                p.circle(0, 0, radius);
+                p.stroke({ width: 2 * p.life, color: 0xA8E6CF, alpha: p.life * 0.6 });
+            } else if (p.isLevelUp) {
                 p.y += p.vy;
                 p.alpha = Math.min(1, p.life);
                 p.scale.set(1 + (2 - p.life) * 0.1);
@@ -988,6 +1002,66 @@ export class TDRenderer {
             this.entityLayer.removeChild(tower._xpBar);
             tower._xpBar = null;
         }
+    }
+
+    createWindPulseEffect(tower) {
+        const iso = toIso(tower.x, tower.y);
+        const cx = iso.x;
+        const cy = iso.y + TILE_HEIGHT / 2;
+
+        // Expanding ring
+        const ring = new PIXI.Graphics();
+        ring.circle(0, 0, 10);
+        ring.stroke({ width: 3, color: 0xA8E6CF, alpha: 0.8 });
+        ring.x = cx;
+        ring.y = cy;
+        ring.life = 1.2;
+        ring.vx = 0;
+        ring.vy = 0;
+        ring.isWindPulse = true;
+        ring._maxRadius = tower.range * (TILE_WIDTH + TILE_HEIGHT) / 2 * 0.7;
+        ring._startRadius = 10;
+        this.effectLayer.addChild(ring);
+        this.particles.push(ring);
+
+        // Spiral particles
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const particle = new PIXI.Graphics();
+            particle.circle(0, 0, 3);
+            particle.fill({ color: 0xA8E6CF });
+            particle.x = cx;
+            particle.y = cy;
+            particle.vx = Math.cos(angle) * 3;
+            particle.vy = Math.sin(angle) * 2;
+            particle.life = 0.8;
+            this.effectLayer.addChild(particle);
+            this.particles.push(particle);
+        }
+    }
+
+    createPushbackEffect(enemy) {
+        const iso = toIso(enemy.x, enemy.y);
+
+        for (let i = 0; i < 4; i++) {
+            const line = new PIXI.Graphics();
+            const angle = (i / 4) * Math.PI * 2 + Math.random() * 0.5;
+            const len = 8 + Math.random() * 6;
+            line.moveTo(0, 0);
+            line.lineTo(Math.cos(angle) * len, Math.sin(angle) * len);
+            line.stroke({ width: 2, color: 0xA8E6CF, alpha: 0.9 });
+            line.x = iso.x + (Math.random() - 0.5) * 12;
+            line.y = iso.y + (Math.random() - 0.5) * 12;
+            line.vx = Math.cos(angle) * 2;
+            line.vy = Math.sin(angle) * 1.5;
+            line.life = 0.6;
+            this.effectLayer.addChild(line);
+            this.particles.push(line);
+        }
+    }
+
+    animateWindTowers(towers, now) {
+        // No-op for now (wind tower uses standard sprite)
     }
 
     sortEntities() {

@@ -166,6 +166,51 @@ SPA with catch-all `app.get('*')` serving `index.html`. Client-side routing:
 - **WebRTC**: `webrtc_offer` / `webrtc_answer` / `webrtc_ice_candidate` (forwarded)
 - **Error**: `error`
 
+## Tower Defense (Standalone)
+
+The Tower Defense is a standalone single-player game at `/test-td-pixi.html`, built with PixiJS v8.
+
+### TD Architecture
+```
+public/
+├── test-td-pixi.html              # Entry point (HTML + CSS + bootstrap)
+└── js/games/td/
+    ├── tdConfig.js                 # TOWER_TYPES, ENEMY_TYPES, LEVELS, paths, shop, iso helpers
+    ├── TDEngine.js                 # Pure game logic (no rendering), callback-driven
+    ├── TDRenderer.js               # PixiJS rendering, sprites, particles, effects
+    └── TowerDefenseGame.js         # Orchestrator: wires engine callbacks → renderer, DOM setup
+```
+
+### Key Concepts
+- **Isometric grid**: 7x12, mirrored iso projection (`toIso`/`fromIso` in tdConfig)
+- **Levels**: 3 themed levels (Prairie, Cimetière, Volcan) with unique paths, decorations, enemies
+- **Forked paths**: Level 3 (Volcan) uses `{ fork: [[...], [...]] }` syntax; `resolvePaths()` resolves routes
+- **Towers**: 5 types (archer, cannon, ice, sniper, wind). Wind is AoE pulse with pushback, unlockable
+- **Tower XP**: Towers gain XP on hit (1 per hit), level up at thresholds (max level 3)
+- **Unlock system**: Some towers (wind) require a one-time gold unlock via `unlockTower()`, gated by level
+- **Enemies**: 5 types (basic, fast, tank, boss, flying). HP scales +12% per wave
+- **Shop**: 5 consumables (heart, repair, nuke, rage buff, blizzard buff)
+- **Engine/Renderer split**: TDEngine has no DOM/PixiJS dependencies; TowerDefenseGame wires callbacks
+
+### TD Assets
+```
+public/images/td/
+├── towers/{type}/tower_{type}_{orientation}.png    # front/side/left/back per tower
+├── towers/{type}/tower_{type}_lvl{2,3}_{orientation}.png  # leveled variants
+├── enemy_{type}.png                                # base enemy sprites
+├── proj_{type}.png                                 # projectile sprites
+├── levels/{theme}/                                 # themed tiles, decorations, enemies, castle
+├── tile_grass.png, tile_path.png, castle.png       # base tiles
+└── icon_*.png                                      # HUD icons
+```
+
+### Adding a New Tower
+1. **tdConfig.js**: Add entry to `TOWER_TYPES` with cost, damage, range, cooldown, speed, color. Optional: `splash`, `slow`, `pushback`, `aoe`, `unlockCost`, `availableFromLevel`
+2. **TDEngine.js**: If special behavior (like AoE), add handling in `updateTowers()`. Add callback if needed
+3. **TDRenderer.js**: Add type to `towerTypes` array (asset loading), icon/color maps. Add visual effects if needed
+4. **test-td-pixi.html**: Add `.tower-btn[data-tower="newtype"]` in tower bar, preview gradient CSS
+5. **TowerDefenseGame.js**: Wire any new callbacks, update `icons`/`names` maps in `showTowerInfo` and `setupTowerButtons`
+
 ## Environment Variables
 
 - `PORT` - Server port (default: 3000)

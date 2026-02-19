@@ -20,6 +20,8 @@ export class TDEngine {
         this.enemyId = 0;
         this.towerId = 0;
         this.gameSpeed = 1;
+        this.unlockedTowers = new Set();
+        this.devMode = false;
         this.buffs = { damage: false, slow: false };
         this.routes = [];
         this.initLevel();
@@ -44,6 +46,7 @@ export class TDEngine {
         this.onSplashKill = null;        // (enemy, index)
         this.onBuffsChanged = null;      // (buffs)
         this.onTowerLevelUp = null;      // (tower)
+        this.onWindPulse = null;         // (tower, targets)
         this.onLevelChanged = null;      // (levelData)
     }
 
@@ -90,10 +93,38 @@ export class TDEngine {
         return grid;
     }
 
+    isTowerAvailable(type) {
+        const config = TOWER_TYPES[type];
+        if (!config) return false;
+        if (config.availableFromLevel !== undefined && this.level < config.availableFromLevel) return false;
+        if (config.unlockCost && !this.unlockedTowers.has(type)) return false;
+        return true;
+    }
+
+    isTowerLocked(type) {
+        const config = TOWER_TYPES[type];
+        if (!config) return true;
+        if (config.availableFromLevel !== undefined && this.level < config.availableFromLevel) return false; // not visible yet
+        return !!config.unlockCost && !this.unlockedTowers.has(type);
+    }
+
+    unlockTower(type) {
+        const config = TOWER_TYPES[type];
+        if (!config || !config.unlockCost) return false;
+        if (config.availableFromLevel !== undefined && this.level < config.availableFromLevel) return false;
+        if (this.unlockedTowers.has(type)) return false;
+        if (!this.devMode && this.gold < config.unlockCost) return false;
+        if (!this.devMode) this.gold -= config.unlockCost;
+        this.unlockedTowers.add(type);
+        return true;
+    }
+
     canPlaceTower(x, y, towerType) {
         if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) return false;
         const cell = this.grid[y][x];
         if (cell.type !== 'grass' || cell.tower || cell.hasTree) return false;
+        if (!this.devMode && !this.isTowerAvailable(towerType)) return false;
+        if (this.devMode) return true;
         return this.gold >= TOWER_TYPES[towerType].cost;
     }
 
@@ -122,7 +153,7 @@ export class TDEngine {
 
     placeTower(x, y, towerType, sprite, baseScaleX, baseScaleY) {
         const config = TOWER_TYPES[towerType];
-        this.gold -= config.cost;
+        if (!this.devMode) this.gold -= config.cost;
 
         const tower = {
             id: ++this.towerId,
@@ -310,6 +341,22 @@ export class TDEngine {
         for (const tower of this.towers) {
             if (now - tower.lastShot < tower.cooldown / this.gameSpeed) continue;
 
+            // AoE pulse towers (wind) - hit all enemies in range, no projectile
+            if (tower.aoe) {
+                const targets = [];
+                for (const enemy of this.enemies) {
+                    const dx = enemy.x - tower.x;
+                    const dy = enemy.y - tower.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist <= tower.range) targets.push(enemy);
+                }
+                if (targets.length > 0) {
+                    tower.lastShot = now;
+                    this.handleWindPulse(tower, targets, now);
+                }
+                continue;
+            }
+
             let bestTarget = null;
             let bestProgress = -1;
 
@@ -328,6 +375,56 @@ export class TDEngine {
                 tower.lastShot = now;
                 this.fireProjectile(tower, bestTarget);
             }
+        }
+    }
+
+    handleWindPulse(tower, targets, now) {
+        const dmgMult = this.buffs.damage ? 1.5 : 1;
+        const damage = tower.damage * dmgMult;
+
+        let xpGained = 0;
+        for (let i = targets.length - 1; i >= 0; i--) {
+            const enemy = targets[i];
+            enemy.hp -= damage;
+
+            // Pushback: flying enemies pushed 1.2x more, but respect per-enemy cooldown
+            if (!enemy._lastPushback || now - enemy._lastPushback > 2500) {
+                const pushAmount = tower.pushback * (enemy.flying ? 1.2 : 1);
+                this.pushEnemyBack(enemy, pushAmount);
+                enemy._lastPushback = now;
+            }
+
+            // Cap XP at 4 per pulse to prevent AoE farming
+            if (xpGained < 4) {
+                this.awardXp(tower, 1);
+                xpGained++;
+            }
+
+            if (enemy.hp <= 0) {
+                const idx = this.enemies.indexOf(enemy);
+                if (idx > -1) {
+                    this.gold += enemy.reward;
+                    this.enemies.splice(idx, 1);
+                    if (this.onEnemyDied) this.onEnemyDied(enemy, idx);
+                }
+            }
+        }
+
+        if (this.onWindPulse) this.onWindPulse(tower, targets);
+    }
+
+    pushEnemyBack(enemy, amount) {
+        // Decrement pathIndex to push enemy backward along its route
+        // amount is in grid-cells; each pathIndex step ≈ 1 cell
+        const steps = Math.round(amount);
+        enemy.pathIndex = Math.max(0, enemy.pathIndex - steps);
+
+        // Snap position to the new path point
+        const target = enemy.route[enemy.pathIndex];
+        if (target) {
+            // Lerp partially toward new position for smoother feel
+            enemy.x = enemy.x * 0.3 + target.x * 0.7;
+            enemy.y = enemy.y * 0.3 + target.y * 0.7;
         }
     }
 
@@ -449,22 +546,22 @@ export class TDEngine {
 
     // Shop actions
     buyHeart() {
-        if (this.gold < SHOP_ITEMS.heart.cost) return false;
-        this.gold -= SHOP_ITEMS.heart.cost;
+        if (!this.devMode && this.gold < SHOP_ITEMS.heart.cost) return false;
+        if (!this.devMode) this.gold -= SHOP_ITEMS.heart.cost;
         this.health = Math.min(this.health + 1, this.maxHealth);
         return true;
     }
 
     buyRepair() {
-        if (this.gold < SHOP_ITEMS.repair.cost) return false;
-        this.gold -= SHOP_ITEMS.repair.cost;
+        if (!this.devMode && this.gold < SHOP_ITEMS.repair.cost) return false;
+        if (!this.devMode) this.gold -= SHOP_ITEMS.repair.cost;
         this.health = Math.min(this.health + 5, this.maxHealth);
         return true;
     }
 
     buyNuke() {
-        if (this.gold < SHOP_ITEMS.nuke.cost) return false;
-        this.gold -= SHOP_ITEMS.nuke.cost;
+        if (!this.devMode && this.gold < SHOP_ITEMS.nuke.cost) return false;
+        if (!this.devMode) this.gold -= SHOP_ITEMS.nuke.cost;
 
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
@@ -477,16 +574,16 @@ export class TDEngine {
     }
 
     activateDamageBuff() {
-        if (this.gold < SHOP_ITEMS.damage.cost) return false;
-        this.gold -= SHOP_ITEMS.damage.cost;
+        if (!this.devMode && this.gold < SHOP_ITEMS.damage.cost) return false;
+        if (!this.devMode) this.gold -= SHOP_ITEMS.damage.cost;
         this.buffs.damage = true;
         if (this.onBuffsChanged) this.onBuffsChanged(this.buffs);
         return true;
     }
 
     activateSlowBuff() {
-        if (this.gold < SHOP_ITEMS.slow.cost) return false;
-        this.gold -= SHOP_ITEMS.slow.cost;
+        if (!this.devMode && this.gold < SHOP_ITEMS.slow.cost) return false;
+        if (!this.devMode) this.gold -= SHOP_ITEMS.slow.cost;
         this.buffs.slow = true;
         if (this.onBuffsChanged) this.onBuffsChanged(this.buffs);
         return true;

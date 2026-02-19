@@ -32,6 +32,7 @@ export class TowerDefenseGame {
         this.setupSpeedButton();
         this.setupShop();
         this.setupLevelSelector();
+        this.setupDevMode();
 
         window.addEventListener('resize', () => this.renderer.handleResize(this.container));
 
@@ -41,6 +42,7 @@ export class TowerDefenseGame {
             this.engine.update(ticker.deltaTime, now);
             this.renderer.updateParticles((ticker.deltaTime / 60) * this.engine.gameSpeed);
             this.renderer.updateWindAnimation(now);
+            this.renderer.animateWindTowers(this.engine.towers, now);
             this.renderer.sortEntities();
             this.updateEnemyCount();
         });
@@ -152,6 +154,19 @@ export class TowerDefenseGame {
             }
         };
 
+        this.engine.onWindPulse = (tower, targets) => {
+            this.renderer.createWindPulseEffect(tower);
+            for (const enemy of targets) {
+                if (enemy.hp > 0) {
+                    this.renderer.createPushbackEffect(enemy);
+                    this.renderer.updateEnemyHpBar(enemy);
+                    this.renderer.showFloatingDamage(enemy.x, enemy.y, tower.damage, this.container);
+                }
+            }
+            this.renderer.updateTowerXpBar(tower);
+            this.updateUI();
+        };
+
         this.engine.onLevelChanged = (levelData) => {
             this.renderer.setTheme(levelData);
         };
@@ -259,8 +274,8 @@ export class TowerDefenseGame {
         const config = TOWER_TYPES[tower.type];
         const sellValue = Math.floor(config.cost * 0.6);
 
-        const icons = { archer: '🏹', cannon: '💣', ice: '❄️', sniper: '🎯' };
-        const names = { archer: 'Archer', cannon: 'Canon', ice: 'Glace', sniper: 'Sniper' };
+        const icons = { archer: '🏹', cannon: '💣', ice: '❄️', sniper: '🎯', wind: '🌀' };
+        const names = { archer: 'Archer', cannon: 'Canon', ice: 'Glace', sniper: 'Sniper', wind: 'Eolienne' };
 
         const lvlSuffix = tower.level > 1 ? ` Nv.${tower.level}` : '';
         document.getElementById('tower-info-name').textContent = `${icons[tower.type]} ${names[tower.type]}${lvlSuffix}`;
@@ -318,14 +333,30 @@ export class TowerDefenseGame {
     setupTowerButtons() {
         document.querySelectorAll('.tower-btn').forEach(btn => {
             btn.addEventListener('click', () => {
+                const type = btn.dataset.tower;
+
+                // If tower is locked, try to unlock it
+                if (this.engine.isTowerLocked(type)) {
+                    const success = this.engine.unlockTower(type);
+                    if (success) {
+                        this.updateUI();
+                        // Flash feedback
+                        btn.style.boxShadow = '0 0 20px rgba(168,230,207,0.8)';
+                        setTimeout(() => btn.style.boxShadow = '', 500);
+                    }
+                    return;
+                }
+
                 this.hideTowerInfo();
                 document.querySelectorAll('.tower-btn').forEach(b => b.classList.remove('selected'));
                 btn.classList.add('selected');
-                this.selectedTower = btn.dataset.tower;
+                this.selectedTower = type;
 
                 const info = document.getElementById('selection-info');
                 const config = TOWER_TYPES[this.selectedTower];
-                info.textContent = `${this.selectedTower.charAt(0).toUpperCase() + this.selectedTower.slice(1)} - Dégâts: ${config.damage} | Portée: ${config.range}`;
+                const names = { archer: 'Archer', cannon: 'Canon', ice: 'Glace', sniper: 'Sniper', wind: 'Eolienne' };
+                const name = names[this.selectedTower] || this.selectedTower;
+                info.textContent = `${name} - Dégâts: ${config.damage} | Portée: ${config.range}`;
                 info.classList.add('visible');
                 setTimeout(() => info.classList.remove('visible'), 2000);
             });
@@ -427,6 +458,50 @@ export class TowerDefenseGame {
         });
     }
 
+    setupDevMode() {
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        const btn = document.getElementById('devmode-btn');
+        if (!isLocal || !btn) {
+            if (btn) btn.style.display = 'none';
+            return;
+        }
+
+        btn.addEventListener('click', () => this.toggleDevMode());
+
+        // Keyboard shortcut: D to toggle
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'd' || e.key === 'D') {
+                this.toggleDevMode();
+            }
+        });
+    }
+
+    toggleDevMode() {
+        const engine = this.engine;
+        engine.devMode = !engine.devMode;
+
+        const btn = document.getElementById('devmode-btn');
+        const badge = document.getElementById('devmode-badge');
+
+        if (engine.devMode) {
+            // Save real gold, set display to infinity
+            this._savedGold = engine.gold;
+            // Unlock all lockable towers
+            for (const [type, config] of Object.entries(TOWER_TYPES)) {
+                if (config.unlockCost) engine.unlockedTowers.add(type);
+            }
+            if (btn) { btn.textContent = 'DEV ✓'; btn.classList.add('active'); }
+            if (badge) badge.style.display = '';
+        } else {
+            // Restore real gold
+            engine.gold = this._savedGold ?? engine.gold;
+            if (btn) { btn.textContent = 'DEV'; btn.classList.remove('active'); }
+            if (badge) badge.style.display = 'none';
+        }
+
+        this.updateUI();
+    }
+
     jumpToLevel(levelIndex) {
         if (levelIndex < 0 || levelIndex >= LEVELS.length) return;
 
@@ -464,7 +539,7 @@ export class TowerDefenseGame {
     // ===== UI UPDATES =====
 
     updateUI() {
-        document.getElementById('gold').textContent = this.engine.gold;
+        document.getElementById('gold').textContent = this.engine.devMode ? '∞' : this.engine.gold;
         document.getElementById('health').textContent = this.engine.health;
         document.getElementById('wave').textContent = this.engine.wave;
         this.updateEnemyCount();
@@ -487,8 +562,32 @@ export class TowerDefenseGame {
 
         document.querySelectorAll('.tower-btn').forEach(btn => {
             const type = btn.dataset.tower;
-            const cost = TOWER_TYPES[type].cost;
-            btn.classList.toggle('disabled', this.engine.gold < cost);
+            const config = TOWER_TYPES[type];
+
+            // Hide if level requirement not met
+            if (config.availableFromLevel !== undefined && this.engine.level < config.availableFromLevel) {
+                btn.classList.add('hidden-tower');
+                return;
+            }
+            btn.classList.remove('hidden-tower');
+
+            const lockOverlay = btn.querySelector('.lock-overlay');
+            if (this.engine.isTowerLocked(type)) {
+                // Show locked state
+                btn.classList.add('locked');
+                btn.classList.remove('disabled');
+                if (lockOverlay) {
+                    lockOverlay.style.display = '';
+                    const costEl = lockOverlay.querySelector('.unlock-cost');
+                    if (costEl) costEl.textContent = `${config.unlockCost}g`;
+                    // Grey out if can't afford unlock
+                    btn.classList.toggle('disabled', this.engine.gold < config.unlockCost);
+                }
+            } else {
+                btn.classList.remove('locked');
+                if (lockOverlay) lockOverlay.style.display = 'none';
+                btn.classList.toggle('disabled', this.engine.gold < config.cost);
+            }
         });
     }
 
