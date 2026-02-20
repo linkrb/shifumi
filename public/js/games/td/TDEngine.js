@@ -6,7 +6,7 @@ import {
 
 export class TDEngine {
     constructor() {
-        this.gold = 100;
+        this.gold = 150;
         this.health = 15;
         this.maxHealth = 15;
         this.level = 0;
