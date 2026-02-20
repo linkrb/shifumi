@@ -6,7 +6,7 @@ import {
 
 export class TDEngine {
     constructor() {
-        this.gold = 150;
+        this.gold = 100;
         this.health = 15;
         this.maxHealth = 15;
         this.level = 0;
@@ -271,7 +271,7 @@ export class TDEngine {
         // Check wave complete
         if (this.waveInProgress && this.spawnQueue.length === 0 && this.enemies.length === 0) {
             this.waveInProgress = false;
-            this.gold += 5 + this.wave * 3;
+            this.gold += 5;
 
             if (this.buffs.damage || this.buffs.slow) {
                 this.buffs.damage = false;

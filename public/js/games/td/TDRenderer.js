@@ -269,8 +269,9 @@ export class TDRenderer {
                     tile = new PIXI.Sprite(texture);
                     tile.anchor.set(0.5, 0.5);
                     const tileRef = Math.max(TILE_WIDTH, TILE_HEIGHT);
-                    tile.width = tileRef * 1.35;
-                    tile.height = tileRef * 1.35;
+                    const tileScale = (this.currentTheme && this.currentTheme.tileScale) || 1.0;
+                    tile.width = tileRef * 1.35 * tileScale;
+                    tile.height = tileRef * 1.35 * tileScale;
 
                     if (cell.type === 'spawn') {
                         tile.tint = 0xffaaaa;
@@ -325,7 +326,7 @@ export class TDRenderer {
                     const castleTex = this._getThemedAsset('castle');
                     if (castleTex) {
                         const castle = new PIXI.Sprite(castleTex);
-                        castle.anchor.set(0.5, 0.75);
+                        castle.anchor.set(0.5, (theme && theme.castleAnchorY) || 0.75);
                         const cRef = Math.max(TILE_WIDTH, TILE_HEIGHT);
                         const cScale = (theme && theme.castleScale) || 1.8;
                         castle.width = cRef * cScale;
@@ -524,18 +525,17 @@ export class TDRenderer {
     updateEnemyPosition(enemy) {
         const iso = toIso(enemy.x, enemy.y);
 
-        // Determine facing from grid movement (not pixel position)
-        if (enemy._prevGX !== undefined) {
-            const dx = enemy.x - enemy._prevGX;
-            const dy = enemy.y - enemy._prevGY;
+        // Determine facing from direction toward next waypoint
+        const nextWp = enemy.route && enemy.route[enemy.pathIndex + 1];
+        if (nextWp) {
+            const dx = nextWp.x - enemy.x;
+            const dy = nextWp.y - enemy.y;
             // Mirrored iso: screen_x = (y - x) * TW/2, so screenDx ∝ (dy - dx)
             const screenDx = dy - dx;
-            if (Math.abs(screenDx) > 0.001) {
+            if (Math.abs(screenDx) > 0.01) {
                 enemy._facingLeft = screenDx < 0;
             }
         }
-        enemy._prevGX = enemy.x;
-        enemy._prevGY = enemy.y;
 
         enemy.sprite.x = iso.x;
         enemy.sprite.y = iso.y + TILE_HEIGHT / 2;
@@ -553,6 +553,13 @@ export class TDRenderer {
             const wingFlap = 1 + Math.sin(now * 0.025 + enemy.id) * 0.12;
             enemy.body.scale.set(bsx * wingFlap * flipX, bsy / wingFlap);
             enemy.body.rotation = Math.sin(now * 0.004 + enemy.id) * 0.15;
+        } else if (enemy.type === 'boss') {
+            // Boss: slow heavy walk, minimal bounce
+            const bounce = Math.sin(now * 0.006 + enemy.id) * 0.3 + 0.3;
+            enemy.body.y = bounce * -2;
+            const stretch = 1 + Math.sin(now * 0.006 + enemy.id) * 0.03;
+            enemy.body.scale.set((bsx / stretch) * flipX, bsy * stretch);
+            enemy.body.rotation = Math.sin(now * 0.003 + enemy.id * 1.5) * 0.03;
         } else {
             // Ground: normal bounce
             const bounce = Math.sin(now * 0.012 + enemy.id) * 0.5 + 0.5;

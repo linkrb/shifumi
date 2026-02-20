@@ -13,11 +13,11 @@ export const TOWER_TYPES = {
 };
 
 export const ENEMY_TYPES = {
-    basic: { hp: 120, speed: 2.2, reward: 4, color: 0xFFB5C5, size: 0.9, anchorY: 0.65 },
-    fast: { hp: 70, speed: 3.4, reward: 6, color: 0xFFD93D, size: 1.0, anchorY: 0.65 },
-    tank: { hp: 400, speed: 1.2, reward: 15, color: 0x9B59B6, size: 1.1, anchorY: 0.65 },
-    boss: { hp: 1400, speed: 0.9, reward: 60, color: 0xC0392B, size: 1.5, anchorY: 0.85 },
-    flying: { hp: 90, speed: 2.7, reward: 8, color: 0xBB88FF, size: 0.85, anchorY: 0.5, flying: true }
+    basic: { hp: 120, speed: 2.2, reward: 3, color: 0xFFB5C5, size: 0.9, anchorY: 0.65 },
+    fast: { hp: 70, speed: 3.4, reward: 4, color: 0xFFD93D, size: 1.0, anchorY: 0.65 },
+    tank: { hp: 400, speed: 1.2, reward: 10, color: 0x9B59B6, size: 1.1, anchorY: 0.65 },
+    boss: { hp: 1400, speed: 0.9, reward: 40, color: 0xC0392B, size: 1.5, anchorY: 0.85 },
+    flying: { hp: 90, speed: 2.7, reward: 5, color: 0xBB88FF, size: 0.85, anchorY: 0.5, flying: true }
 };
 
 // ============== LEVELS ==============
@@ -145,6 +145,53 @@ export const LEVELS = [
             [{ type: 'fast', count: 22 }, { type: 'flying', count: 14 }, { type: 'tank', count: 6 }],
             [{ type: 'tank', count: 12 }, { type: 'fast', count: 20 }, { type: 'flying', count: 10 }],
             [{ type: 'boss', count: 3 }, { type: 'tank', count: 10 }, { type: 'fast', count: 18 }, { type: 'flying', count: 12 }],
+        ]
+    },
+    {
+        name: 'Glacier',
+        theme: {
+            id: 'ice',
+            castleScale: 1.1,
+            castleAnchorY: 0.75,
+            tileScale: 0.85,
+            towerScale: 0.85,
+            enemyScale: 1.2,
+            enemyScales: { tank: 1.2, boss: 1.0 },
+            tiles: { grass: 'tile_grass', path: 'tile_path' },
+            decorations: [
+                { name: 'snowy_tree', scale: 1.0, anchorY: 0.75 },
+                { name: 'snowy_tree', scale: 0.85, anchorY: 0.75 },
+                { name: 'ice_portal', scale: 0.7, anchorY: 0.75 }
+            ],
+            decoRate: 0.20,
+            enemies: {
+                basic:  'enemy_basic',
+                fast:   'enemy_fast',
+                tank:   'enemy_tank',
+                flying: 'enemy_flying',
+                boss:   'enemy_boss'
+            }
+        },
+        path: [
+            {x:0, y:0}, {x:0, y:1}, {x:0, y:2},
+            {x:1, y:2}, {x:2, y:2}, {x:3, y:2}, {x:4, y:2}, {x:5, y:2}, {x:6, y:2},
+            {x:6, y:3}, {x:6, y:4}, {x:6, y:5},
+            {x:5, y:5}, {x:4, y:5}, {x:3, y:5}, {x:2, y:5}, {x:1, y:5}, {x:0, y:5},
+            {x:0, y:6}, {x:0, y:7}, {x:0, y:8},
+            {x:1, y:8}, {x:2, y:8}, {x:3, y:8}, {x:4, y:8}, {x:5, y:8}, {x:6, y:8},
+            {x:6, y:9}, {x:6, y:10}, {x:6, y:11}
+        ],
+        waves: [
+            [{ type: 'basic', count: 10 }, { type: 'fast', count: 4 }],
+            [{ type: 'fast', count: 10 }, { type: 'basic', count: 8 }],
+            [{ type: 'tank', count: 4 }, { type: 'basic', count: 10 }],
+            [{ type: 'flying', count: 8 }, { type: 'fast', count: 8 }],
+            [{ type: 'basic', count: 12 }, { type: 'tank', count: 5 }, { type: 'fast', count: 8 }],
+            [{ type: 'flying', count: 12 }, { type: 'fast', count: 12 }, { type: 'tank', count: 4 }],
+            [{ type: 'tank', count: 8 }, { type: 'flying', count: 10 }, { type: 'fast', count: 12 }],
+            [{ type: 'basic', count: 20 }, { type: 'fast', count: 15 }, { type: 'flying', count: 8 }],
+            [{ type: 'tank', count: 12 }, { type: 'fast', count: 18 }, { type: 'flying', count: 10 }],
+            [{ type: 'boss', count: 3 }, { type: 'tank', count: 10 }, { type: 'flying', count: 14 }, { type: 'fast', count: 16 }],
         ]
     }
 ];
