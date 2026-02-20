@@ -309,6 +309,22 @@ export class TDEngine {
                 isSlow = true;
             }
 
+            // Smooth pushback: slide toward pushback target before resuming path
+            if (enemy._pushbackTarget) {
+                const pbx = enemy._pushbackTarget.x - enemy.x;
+                const pby = enemy._pushbackTarget.y - enemy.y;
+                const pbDist = Math.sqrt(pbx * pbx + pby * pby);
+                if (pbDist < 0.08) {
+                    enemy._pushbackTarget = null;
+                } else {
+                    const move = speed * 2.5 * dt * 0.35;
+                    enemy.x += (pbx / pbDist) * Math.min(move, pbDist);
+                    enemy.y += (pby / pbDist) * Math.min(move, pbDist);
+                    if (this.onEnemyMoved) this.onEnemyMoved(enemy, now, isSlow);
+                    continue;
+                }
+            }
+
             const target = enemy.route[enemy.pathIndex + 1];
             if (!target) {
                 this.health--;
@@ -414,17 +430,13 @@ export class TDEngine {
     }
 
     pushEnemyBack(enemy, amount) {
-        // Decrement pathIndex to push enemy backward along its route
-        // amount is in grid-cells; each pathIndex step ≈ 1 cell
         const steps = Math.round(amount);
         enemy.pathIndex = Math.max(0, enemy.pathIndex - steps);
 
-        // Snap position to the new path point
+        // Set smooth pushback target — position will be interpolated in updateEnemies
         const target = enemy.route[enemy.pathIndex];
         if (target) {
-            // Lerp partially toward new position for smoother feel
-            enemy.x = enemy.x * 0.3 + target.x * 0.7;
-            enemy.y = enemy.y * 0.3 + target.y * 0.7;
+            enemy._pushbackTarget = { x: target.x, y: target.y };
         }
     }
 
@@ -439,6 +451,7 @@ export class TDEngine {
             type: tower.type,
             splash: tower.splash || 0,
             slow: tower.slow || 0,
+            pushback: tower.pushback || 0,
             sprite: null
         };
 
@@ -494,6 +507,12 @@ export class TDEngine {
         target.hp -= damage;
 
         if (proj.slow) target.slowUntil = now + 2500;
+
+        if (proj.pushback && (!target._lastPushback || now - target._lastPushback > 2500)) {
+            const pushAmount = proj.pushback * (target.flying ? 1.2 : 1);
+            this.pushEnemyBack(target, pushAmount);
+            target._lastPushback = now;
+        }
 
         const sourceTower = this.towers.find(t => t.id === proj.towerId);
 

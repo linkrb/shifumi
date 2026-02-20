@@ -33,6 +33,7 @@ export class TowerDefenseGame {
         this.setupShop();
         this.setupLevelSelector();
         this.setupDevMode();
+        this.setupSpawnButtons();
 
         window.addEventListener('resize', () => this.renderer.handleResize(this.container));
 
@@ -93,7 +94,7 @@ export class TowerDefenseGame {
             this.renderer.updateEnemyHpBar(target);
             this.renderer.showFloatingDamage(target.x, target.y, damage, this.container);
             this.renderer.createHitEffect(target.x, target.y, proj.type);
-            // Update XP bar of source tower
+            if (proj.pushback) this.renderer.createPushbackEffect(target);
             const sourceTower = this.engine.towers.find(t => t.id === proj.towerId);
             if (sourceTower) this.renderer.updateTowerXpBar(sourceTower);
         };
@@ -154,18 +155,6 @@ export class TowerDefenseGame {
             }
         };
 
-        this.engine.onWindPulse = (tower, targets) => {
-            this.renderer.createWindPulseEffect(tower);
-            for (const enemy of targets) {
-                if (enemy.hp > 0) {
-                    this.renderer.createPushbackEffect(enemy);
-                    this.renderer.updateEnemyHpBar(enemy);
-                    this.renderer.showFloatingDamage(enemy.x, enemy.y, tower.damage, this.container);
-                }
-            }
-            this.renderer.updateTowerXpBar(tower);
-            this.updateUI();
-        };
 
         this.engine.onLevelChanged = (levelData) => {
             this.renderer.setTheme(levelData);
@@ -482,6 +471,7 @@ export class TowerDefenseGame {
 
         const btn = document.getElementById('devmode-btn');
         const badge = document.getElementById('devmode-badge');
+        const spawnPanel = document.getElementById('dev-spawn-panel');
 
         if (engine.devMode) {
             // Save real gold, set display to infinity
@@ -492,14 +482,25 @@ export class TowerDefenseGame {
             }
             if (btn) { btn.textContent = 'DEV ✓'; btn.classList.add('active'); }
             if (badge) badge.style.display = '';
+            if (spawnPanel) spawnPanel.style.display = '';
         } else {
             // Restore real gold
             engine.gold = this._savedGold ?? engine.gold;
             if (btn) { btn.textContent = 'DEV'; btn.classList.remove('active'); }
             if (badge) badge.style.display = 'none';
+            if (spawnPanel) spawnPanel.style.display = 'none';
         }
 
         this.updateUI();
+    }
+
+    setupSpawnButtons() {
+        document.querySelectorAll('.dev-spawn-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.dataset.enemy;
+                if (type) this.engine.spawnQueue.push(type);
+            });
+        });
     }
 
     jumpToLevel(levelIndex) {

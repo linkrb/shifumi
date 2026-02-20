@@ -131,7 +131,7 @@ export class TDRenderer {
         } catch (e) { }
 
         const tileAssets = ['tile_grass', 'tile_path', 'castle', 'coin', 'heart', 'tree', 'tree_pine'];
-        const projAssets = ['proj_archer', 'proj_cannon', 'proj_ice', 'proj_sniper'];
+        const projAssets = ['proj_archer', 'proj_cannon', 'proj_ice', 'proj_sniper', 'proj_wind'];
         for (const name of [...tileAssets, ...projAssets]) {
             try {
                 const texture = await PIXI.Assets.load(`/images/td/${name}.png`);
