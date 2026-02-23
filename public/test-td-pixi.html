@@ -659,7 +659,7 @@
         .level-selector {
             position: absolute;
             inset: 0;
-            background: rgba(0,0,0,0.85);
+            background: rgba(0,0,0,0.88);
             z-index: 180;
             display: flex;
             flex-direction: column;
@@ -669,7 +669,7 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(6px);
         }
 
         .level-selector.visible {
@@ -679,47 +679,152 @@
 
         .level-selector-title {
             color: #FFD700;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 800;
+            letter-spacing: 0.05em;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.6);
         }
 
-        .level-selector-buttons {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            justify-content: center;
+        /* ===== WORLDMAP ===== */
+        .worldmap-container {
+            position: relative;
+            width: min(88vw, 82vh);
+            height: min(88vw, 82vh);
+        }
+
+        .worldmap-img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 18px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+        }
+
+        /* SVG clickable zones */
+        .worldmap-zones {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 18px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .zone-poly {
+            fill: transparent;
+            stroke: transparent;
+            stroke-width: 0;
+            transition: fill 0.25s, filter 0.25s, stroke-width 0.25s;
+            cursor: pointer;
+        }
+
+        .zone-poly:hover, .zone-poly.active {
+            stroke: rgba(255,255,255,0.4);
+            stroke-width: 1.5;
+        }
+
+        .zone-poly[data-zone="prairie"]:hover, .zone-poly[data-zone="prairie"].active {
+            fill: rgba(80, 200, 80, 0.30);
+            filter: drop-shadow(0 0 16px rgba(80, 200, 80, 0.8));
+        }
+
+        .zone-poly[data-zone="volcan"]:hover, .zone-poly[data-zone="volcan"].active {
+            fill: rgba(255, 100, 30, 0.30);
+            filter: drop-shadow(0 0 16px rgba(255, 100, 30, 0.8));
+        }
+
+        .zone-poly[data-zone="glacier"]:hover, .zone-poly[data-zone="glacier"].active {
+            fill: rgba(100, 190, 255, 0.30);
+            filter: drop-shadow(0 0 16px rgba(100, 190, 255, 0.8));
+        }
+
+        .zone-poly[data-zone="cimetiere"]:hover, .zone-poly[data-zone="cimetiere"].active {
+            fill: rgba(180, 80, 220, 0.30);
+            filter: drop-shadow(0 0 16px rgba(180, 80, 220, 0.8));
         }
 
         .level-select-btn {
-            background: rgba(255,255,255,0.1);
-            border: 2px solid rgba(255,255,255,0.25);
-            color: white;
-            padding: 14px 22px;
-            border-radius: 14px;
-            font-weight: 700;
-            font-size: 0.9rem;
+            position: absolute;
+            transform: translate(-50%, -50%);
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.12);
+            border: 3px solid rgba(255,255,255,0.45);
             cursor: pointer;
             transition: all 0.2s;
-            text-align: center;
-            min-width: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            z-index: 2;
         }
 
         .level-select-btn:hover {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.3);
             border-color: #FFD700;
-            transform: translateY(-2px);
+            transform: translate(-50%, -50%) scale(1.15);
+            box-shadow: 0 0 22px rgba(255,215,0,0.55);
         }
 
-        .level-select-btn .level-num {
-            font-size: 1.4rem;
+        .zone-label {
+            color: white;
             font-weight: 800;
-            display: block;
-            margin-bottom: 4px;
+            font-size: 0.6rem;
+            text-shadow: 0 1px 5px rgba(0,0,0,0.9);
+            text-align: center;
+            line-height: 1.2;
+            pointer-events: none;
         }
 
-        .level-select-btn .level-name {
-            font-size: 0.75rem;
-            color: rgba(255,255,255,0.6);
+        /* ===== WORLDMAP ENEMIES ===== */
+        @keyframes mapFloat {
+            0%, 100% { transform: translateY(0px); }
+            50%       { transform: translateY(-9px); }
+        }
+
+        @keyframes mapFloatMirror {
+            0%, 100% { transform: translateY(0px) scaleX(-1); }
+            50%       { transform: translateY(-9px) scaleX(-1); }
+        }
+
+        @keyframes mapPatrolLR {
+            0%   { transform: translateX(0px)  translateY(0px)  scaleX(1);  }
+            48%  { transform: translateX(38px) translateY(-5px) scaleX(1);  }
+            50%  { transform: translateX(38px) translateY(-5px) scaleX(-1); }
+            98%  { transform: translateX(0px)  translateY(0px)  scaleX(-1); }
+            100% { transform: translateX(0px)  translateY(0px)  scaleX(1);  }
+        }
+
+        @keyframes mapBirdFly {
+            0%   { transform: translateX(0px)  translateY(0px)   scaleX(-1); }
+            48%  { transform: translateX(65px) translateY(-12px) scaleX(-1); }
+            50%  { transform: translateX(65px) translateY(-12px) scaleX(1);  }
+            98%  { transform: translateX(0px)  translateY(0px)   scaleX(1);  }
+            100% { transform: translateX(0px)  translateY(0px)   scaleX(-1); }
+        }
+
+        .map-enemy {
+            position: absolute;
+            width: 44px;
+            height: 44px;
+            object-fit: contain;
+            pointer-events: none;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.55));
+            animation: mapFloat 2.4s ease-in-out infinite;
+        }
+
+        .map-enemy.mirror {
+            animation-name: mapFloatMirror;
+        }
+
+        .map-enemy.patrol {
+            animation-name: mapPatrolLR;
+        }
+
+        .map-enemy.bird {
+            animation-name: mapBirdFly;
         }
 
         /* ===== LOADER ===== */
@@ -932,24 +1037,40 @@
             <button class="dev-spawn-btn" data-enemy="flying">🦋 Flying</button>
         </div>
         <div class="level-selector" id="level-selector">
-            <div class="level-selector-title">Sélection du niveau</div>
-            <div class="level-selector-buttons">
-                <button class="level-select-btn" data-level="0">
-                    <span class="level-num">1</span>
-                    <span class="level-name">Prairie</span>
-                </button>
-                <button class="level-select-btn" data-level="1">
-                    <span class="level-num">2</span>
-                    <span class="level-name">Cimetière</span>
-                </button>
-                <button class="level-select-btn" data-level="2">
-                    <span class="level-num">3</span>
-                    <span class="level-name">Volcan</span>
-                </button>
-                <button class="level-select-btn" data-level="3">
-                    <span class="level-num">4</span>
-                    <span class="level-name">Glacier</span>
-                </button>
+            <div class="level-selector-title">✦ Choisissez votre monde ✦</div>
+            <div class="worldmap-container">
+                <img src="/images/td/worldmap.png" class="worldmap-img" alt="Carte du monde" draggable="false">
+                <!-- Ennemis décoratifs animés -->
+                <!-- Prairie : basic patrouille G-D, renard sur le chemin -->
+                <img class="map-enemy patrol" src="/images/td/levels/prairie/enemy_basic.png"
+                     style="left:6%;top:72%;animation-delay:0s;animation-duration:3.8s">
+                <img class="map-enemy mirror" src="/images/td/levels/prairie/enemy_fast.png"
+                     style="left:15%;top:78%;animation-delay:0.6s;animation-duration:1.8s">
+                <!-- Volcan -->
+                <img class="map-enemy" src="/images/td/levels/volcano/enemy_fast.png"
+                     style="left:28%;top:30%;animation-delay:0.3s;animation-duration:1.6s">
+                <!-- Glacier : oiseau vole G-D, yéti dans la neige -->
+                <img class="map-enemy bird" src="/images/td/levels/ice/enemy_flying.png"
+                     style="left:66%;top:23%;width:68px;height:68px;animation-delay:0.4s;animation-duration:3.2s">
+                <!-- Cimetière : fantôme à gauche sur les tombes, loup sur le chemin à droite -->
+                <img class="map-enemy mirror" src="/images/td/levels/cemetery/enemy_fast.png"
+                     style="left:52%;top:83%;animation-delay:1.4s;animation-duration:1.9s">
+
+                <!-- Zones cliquables SVG sur la carte -->
+                <svg class="worldmap-zones" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <!-- Prairie: bas-gauche -->
+                    <polygon class="zone-poly" data-level="0" data-zone="prairie"
+                        points="0,50 52,46 52,100 0,100"/>
+                    <!-- Volcan: haut-gauche/centre -->
+                    <polygon class="zone-poly" data-level="2" data-zone="volcan"
+                        points="0,0 62,0 62,42 0,48"/>
+                    <!-- Glacier: haut-droite -->
+                    <polygon class="zone-poly" data-level="3" data-zone="glacier"
+                        points="58,0 100,0 100,52 58,44"/>
+                    <!-- Cimetière: bas-droite -->
+                    <polygon class="zone-poly" data-level="1" data-zone="cimetiere"
+                        points="48,42 100,48 100,100 48,100"/>
+                </svg>
             </div>
         </div>
     </div>

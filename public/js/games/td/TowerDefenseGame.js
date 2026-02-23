@@ -420,15 +420,16 @@ export class TowerDefenseGame {
         const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
         const devBtn = document.getElementById('dev-btn');
 
-        if (!isLocal) {
-            if (devBtn) devBtn.style.display = 'none';
-            return;
-        }
-
-        if (devBtn) {
+        // Dev-btn toggles worldmap on localhost (quick level switch)
+        if (isLocal && devBtn) {
             devBtn.addEventListener('click', () => {
                 overlay.classList.toggle('visible');
             });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'l' || e.key === 'L') overlay.classList.toggle('visible');
+            });
+        } else if (devBtn) {
+            devBtn.style.display = 'none';
         }
 
         document.querySelectorAll('.level-select-btn').forEach(btn => {
@@ -439,12 +440,16 @@ export class TowerDefenseGame {
             });
         });
 
-        // Keyboard shortcut: L to toggle
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'l' || e.key === 'L') {
-                overlay.classList.toggle('visible');
-            }
+        document.querySelectorAll('.zone-poly').forEach(poly => {
+            poly.addEventListener('click', () => {
+                const levelIndex = parseInt(poly.dataset.level, 10);
+                this.jumpToLevel(levelIndex);
+                overlay.classList.remove('visible');
+            });
         });
+
+        // Show worldmap on startup
+        overlay.classList.add('visible');
     }
 
     setupDevMode() {
