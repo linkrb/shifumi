@@ -192,6 +192,7 @@
         .tower-btn[data-tower="ice"] .tower-preview { background: linear-gradient(135deg, #87CEEB, #6bb8d9); }
         .tower-btn[data-tower="sniper"] .tower-preview { background: linear-gradient(135deg, #E6E6FA, #d4d4f0); }
         .tower-btn[data-tower="wind"] .tower-preview { background: linear-gradient(135deg, #A8E6CF, #85d4b5); }
+        .tower-btn[data-tower="cemetery"] .tower-preview { background: linear-gradient(135deg, #4ECDC4, #2a9d8f); }
 
         /* Locked tower state */
         .tower-btn.locked {
@@ -228,6 +229,31 @@
 
         .tower-btn.hidden-tower {
             display: none;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25%       { transform: translateX(-4px) rotate(-2deg); }
+            75%       { transform: translateX(4px) rotate(2deg); }
+        }
+        .tower-btn.shake { animation: shake 0.3s ease; }
+
+        .unlock-notif {
+            position: absolute;
+            bottom: 110px; left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: linear-gradient(135deg, #4ECDC4, #44a08d);
+            color: white; padding: 10px 24px; border-radius: 20px;
+            font-weight: 800; font-size: 0.95rem;
+            box-shadow: 0 4px 20px rgba(78,205,196,0.5);
+            animation: notifPop 3s ease forwards;
+            pointer-events: none; z-index: 200;
+        }
+        @keyframes notifPop {
+            0%   { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            15%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+            75%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
         }
 
         .tower-btn .tower-cost {
@@ -1089,11 +1115,15 @@
             <div class="tower-name">Canon</div>
             <div class="tower-range">⊕2.5</div>
         </div>
-        <div class="tower-btn" data-tower="ice">
+        <div class="tower-btn locked" data-tower="ice">
             <div class="tower-preview"><img src="/images/td/towers/ice/tower_ice_front.png" alt="Glace"></div>
             <div class="tower-cost">75g</div>
             <div class="tower-name">Glace</div>
             <div class="tower-range">⊕2.5</div>
+            <div class="lock-overlay">
+                <span class="lock-icon">🔒</span>
+                <span class="unlock-cost">Glacier</span>
+            </div>
         </div>
         <div class="tower-btn" data-tower="sniper">
             <div class="tower-preview"><img src="/images/td/towers/sniper/tower_sniper_front.png" alt="Sniper"></div>
@@ -1101,14 +1131,24 @@
             <div class="tower-name">Sniper</div>
             <div class="tower-range">⊕4.5</div>
         </div>
+        <div class="tower-btn locked" data-tower="cemetery">
+            <div class="tower-preview"><img src="/images/td/towers/cemetery/tower_cemetery_front.png" alt="Fantôme"></div>
+            <div class="tower-cost">100g</div>
+            <div class="tower-name">Fantôme</div>
+            <div class="tower-range">⊕2.8</div>
+            <div class="lock-overlay">
+                <span class="lock-icon">🔒</span>
+                <span class="unlock-cost">Cimetière</span>
+            </div>
+        </div>
         <div class="tower-btn locked" data-tower="wind">
             <div class="tower-preview">🌀</div>
             <div class="tower-cost">125g</div>
             <div class="tower-name">Eolienne</div>
             <div class="tower-range">⊕2.5</div>
             <div class="lock-overlay">
-                <span class="lock-icon">🔓</span>
-                <span class="unlock-cost">400g</span>
+                <span class="lock-icon">🔒</span>
+                <span class="unlock-cost">Nuages</span>
             </div>
         </div>
     </div>

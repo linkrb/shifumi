@@ -1,7 +1,7 @@
 import {
     GRID_WIDTH, GRID_HEIGHT,
     TOWER_TYPES, SHOP_ITEMS, LEVELS,
-    fromIso
+    fromIso, getTowerUnlockedByWorld
 } from './tdConfig.js';
 import { TDRenderer } from './TDRenderer.js';
 import { TDEngine } from './TDEngine.js';
@@ -20,6 +20,7 @@ export class TowerDefenseGame {
     async init(container) {
         this.container = container || document.getElementById('game-container');
 
+        this.loadUnlockedTowers();
         await this.renderer.init(this.container);
         this.renderer.setTheme(this.engine.currentLevelData);
         this.renderer.drawGround(this.engine.grid);
@@ -42,6 +43,7 @@ export class TowerDefenseGame {
             const now = performance.now();
             this.engine.update(ticker.deltaTime, now);
             this.renderer.updateParticles((ticker.deltaTime / 60) * this.engine.gameSpeed);
+            this.renderer.updateGraspEffects(now);
             this.renderer.updateWindAnimation(now);
             this.renderer.animateWindTowers(this.engine.towers, now);
             this.renderer.sortEntities();
@@ -134,10 +136,12 @@ export class TowerDefenseGame {
         };
 
         this.engine.onLevelComplete = (level) => {
+            this.checkWorldUnlock(level);
             this.showLevelTransition(level);
         };
 
         this.engine.onVictory = () => {
+            this.checkWorldUnlock(this.engine.level);
             this.showVictory();
         };
 
@@ -155,6 +159,12 @@ export class TowerDefenseGame {
             }
         };
 
+
+        this.engine.onCemeteryGrasp = (tower, enemy, duration) => {
+            this.renderer.animateTowerShot(tower);
+            this.renderer.createGraspBeam(tower, enemy);
+            this.renderer.createGraspEffect(enemy, duration);
+        };
 
         this.engine.onLevelChanged = (levelData) => {
             this.renderer.setTheme(levelData);
@@ -263,8 +273,8 @@ export class TowerDefenseGame {
         const config = TOWER_TYPES[tower.type];
         const sellValue = Math.floor(config.cost * 0.6);
 
-        const icons = { archer: '🏹', cannon: '💣', ice: '❄️', sniper: '🎯', wind: '🌀' };
-        const names = { archer: 'Archer', cannon: 'Canon', ice: 'Glace', sniper: 'Sniper', wind: 'Eolienne' };
+        const icons = { archer: '🏹', cannon: '💣', ice: '❄️', sniper: '🎯', wind: '🌀', cemetery: '👻' };
+        const names = { archer: 'Archer', cannon: 'Canon', ice: 'Glace', sniper: 'Sniper', wind: 'Eolienne', cemetery: 'Fantôme' };
 
         const lvlSuffix = tower.level > 1 ? ` Nv.${tower.level}` : '';
         document.getElementById('tower-info-name').textContent = `${icons[tower.type]} ${names[tower.type]}${lvlSuffix}`;
@@ -324,15 +334,10 @@ export class TowerDefenseGame {
             btn.addEventListener('click', () => {
                 const type = btn.dataset.tower;
 
-                // If tower is locked, try to unlock it
+                // If tower is locked by world, show shake feedback (no gold unlock)
                 if (this.engine.isTowerLocked(type)) {
-                    const success = this.engine.unlockTower(type);
-                    if (success) {
-                        this.updateUI();
-                        // Flash feedback
-                        btn.style.boxShadow = '0 0 20px rgba(168,230,207,0.8)';
-                        setTimeout(() => btn.style.boxShadow = '', 500);
-                    }
+                    btn.classList.add('shake');
+                    setTimeout(() => btn.classList.remove('shake'), 300);
                     return;
                 }
 
@@ -343,7 +348,7 @@ export class TowerDefenseGame {
 
                 const info = document.getElementById('selection-info');
                 const config = TOWER_TYPES[this.selectedTower];
-                const names = { archer: 'Archer', cannon: 'Canon', ice: 'Glace', sniper: 'Sniper', wind: 'Eolienne' };
+                const names = { archer: 'Archer', cannon: 'Canon', ice: 'Glace', sniper: 'Sniper', wind: 'Eolienne', cemetery: 'Fantôme' };
                 const name = names[this.selectedTower] || this.selectedTower;
                 info.textContent = `${name} - Dégâts: ${config.damage} | Portée: ${config.range}`;
                 info.classList.add('visible');
@@ -413,6 +418,49 @@ export class TowerDefenseGame {
 
     // ===== DEBUG LEVEL SELECTOR =====
 
+    // ===== WORLD UNLOCK SYSTEM =====
+
+    loadUnlockedTowers() {
+        try {
+            const saved = localStorage.getItem('td_unlocked_towers');
+            if (saved) {
+                JSON.parse(saved).forEach(type => this.engine.unlockedTowers.add(type));
+            }
+        } catch (e) { /* ignore parse errors */ }
+    }
+
+    saveUnlockedTowers() {
+        localStorage.setItem('td_unlocked_towers',
+            JSON.stringify([...this.engine.unlockedTowers]));
+    }
+
+    checkWorldUnlock(levelIndex) {
+        const towerType = getTowerUnlockedByWorld(levelIndex);
+        if (!towerType) return;
+        const wasNew = this.engine.unlockTower(towerType);
+        if (wasNew) {
+            this.saveUnlockedTowers();
+            this.updateUI();
+            this.showUnlockNotification(towerType);
+        }
+    }
+
+    showUnlockNotification(type) {
+        const names = { ice: 'Tour de Glace', wind: 'Tour Éolienne', cemetery: 'Tour Fantôme' };
+        const icons = { ice: '🧊', wind: '🌀', cemetery: '👻' };
+        const name = names[type] || type;
+        const icon = icons[type] || '🏆';
+
+        const notif = document.createElement('div');
+        notif.className = 'unlock-notif';
+        notif.textContent = `${icon} ${name} débloquée !`;
+
+        const container = this.container || document.getElementById('game-container');
+        container.appendChild(notif);
+
+        setTimeout(() => notif.remove(), 3100);
+    }
+
     setupLevelSelector() {
         const overlay = document.getElementById('level-selector');
         if (!overlay) return;
@@ -481,9 +529,9 @@ export class TowerDefenseGame {
         if (engine.devMode) {
             // Save real gold, set display to infinity
             this._savedGold = engine.gold;
-            // Unlock all lockable towers
+            // Unlock all world-locked towers
             for (const [type, config] of Object.entries(TOWER_TYPES)) {
-                if (config.unlockCost) engine.unlockedTowers.add(type);
+                if (config.unlockedByWorld !== undefined) engine.unlockedTowers.add(type);
             }
             if (btn) { btn.textContent = 'DEV ✓'; btn.classList.add('active'); }
             if (badge) badge.style.display = '';
@@ -579,15 +627,16 @@ export class TowerDefenseGame {
 
             const lockOverlay = btn.querySelector('.lock-overlay');
             if (this.engine.isTowerLocked(type)) {
-                // Show locked state
+                // Show locked state (unlockable by completing a world, not by gold)
                 btn.classList.add('locked');
                 btn.classList.remove('disabled');
                 if (lockOverlay) {
                     lockOverlay.style.display = '';
                     const costEl = lockOverlay.querySelector('.unlock-cost');
-                    if (costEl) costEl.textContent = `${config.unlockCost}g`;
-                    // Grey out if can't afford unlock
-                    btn.classList.toggle('disabled', this.engine.gold < config.unlockCost);
+                    if (costEl) {
+                        const worldNames = ['Prairie', 'Cimetière', 'Volcan', 'Glacier', 'Nuages'];
+                        costEl.textContent = worldNames[config.unlockedByWorld] || '?';
+                    }
                 }
             } else {
                 btn.classList.remove('locked');

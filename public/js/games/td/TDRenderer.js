@@ -18,6 +18,7 @@ export class TDRenderer {
         this.offsetY = 0;
         this.mapScale = 1;
         this.particles = [];
+        this.graspEffects = [];
         this.ghostSprite = null;
         this.ghostType = null;
         this.ghostOrientation = null;
@@ -91,7 +92,7 @@ export class TDRenderer {
 
     async loadAssets() {
         const enemyAssets = ['enemy_basic', 'enemy_fast', 'enemy_tank', 'enemy_boss', 'enemy_flying'];
-        const towerTypes = ['archer', 'cannon', 'ice', 'sniper', 'wind'];
+        const towerTypes = ['archer', 'cannon', 'ice', 'sniper', 'wind', 'cemetery'];
 
         // Load base enemy assets
         for (const name of enemyAssets) {
@@ -131,7 +132,7 @@ export class TDRenderer {
         } catch (e) { }
 
         const tileAssets = ['tile_grass', 'tile_path', 'castle', 'coin', 'heart', 'tree', 'tree_pine'];
-        const projAssets = ['proj_archer', 'proj_cannon', 'proj_ice', 'proj_sniper', 'proj_wind'];
+        const projAssets = ['proj_archer', 'proj_cannon', 'proj_ice', 'proj_sniper', 'proj_wind', 'proj_cemetery'];
         for (const name of [...tileAssets, ...projAssets]) {
             try {
                 const texture = await PIXI.Assets.load(`/images/td/${name}.png`);
@@ -197,6 +198,7 @@ export class TDRenderer {
         this.tileSprites = [];
         this.tileMap = {};
         this.particles = [];
+        this.graspEffects = [];
         this.treeSprites = [];
 
         // Clean up ghost tower
@@ -652,7 +654,8 @@ export class TDRenderer {
             cannon: 0xFF6600,
             ice: 0x00FFFF,
             sniper: 0xFF0000,
-            wind: 0xA8E6CF
+            wind: 0xA8E6CF,
+            cemetery: 0x4ECDC4
         };
 
         const flash = new PIXI.Graphics();
@@ -809,6 +812,84 @@ export class TDRenderer {
                 }
                 this.particles.splice(i, 1);
             }
+        }
+    }
+
+    createGraspBeam(tower, enemy) {
+        const s = this.mapScale;
+        const tIso = toIso(tower.x, tower.y);
+        const eIso = toIso(enemy.x, enemy.y);
+
+        const tx = this.offsetX + tIso.x * s;
+        const ty = this.offsetY + tIso.y * s - 30 * s;
+        const ex = this.offsetX + eIso.x * s;
+        const ey = this.offsetY + eIso.y * s;
+
+        // Main beam
+        const beam = new PIXI.Graphics();
+        beam.moveTo(tx, ty);
+        beam.lineTo(ex, ey);
+        beam.stroke({ width: 4 * s, color: 0x4ECDC4, alpha: 0.9 });
+
+        // Glow halo (wider, softer)
+        const glow = new PIXI.Graphics();
+        glow.moveTo(tx, ty);
+        glow.lineTo(ex, ey);
+        glow.stroke({ width: 10 * s, color: 0x7FFFD4, alpha: 0.35 });
+
+        beam.life = 0.9;
+        beam.isFlash = true;
+        glow.life = 0.9;
+        glow.isFlash = true;
+
+        this.app.stage.addChild(glow);
+        this.app.stage.addChild(beam);
+        this.particles.push(glow, beam);
+    }
+
+    createGraspEffect(enemy, duration) {
+        if (!this.assets['proj_cemetery']) return;
+        const tex = this.assets['proj_cemetery'];
+        const sprite = new PIXI.Sprite(tex);
+        sprite.anchor.set(0.5, 0.85);
+        sprite.scale.set(0);
+        sprite._enemy = enemy;
+        sprite._duration = duration;
+        sprite._born = performance.now();
+        this.effectLayer.addChild(sprite);
+        this.graspEffects.push(sprite);
+    }
+
+    updateGraspEffects(now) {
+        for (let i = this.graspEffects.length - 1; i >= 0; i--) {
+            const s = this.graspEffects[i];
+            const elapsed = now - s._born;
+            const progress = elapsed / s._duration;
+
+            if (progress >= 1) {
+                this.effectLayer.removeChild(s);
+                s.destroy();
+                this.graspEffects.splice(i, 1);
+                continue;
+            }
+
+            // Scale: pop up in first 15%, hold, shrink in last 15%
+            let scale;
+            if (progress < 0.15) scale = (progress / 0.15) * 0.7;
+            else if (progress > 0.85) scale = ((1 - progress) / 0.15) * 0.7;
+            else scale = 0.7;
+
+            s.scale.set(scale * this.mapScale);
+            s.alpha = scale / 0.7;
+
+            // Follow enemy position
+            const iso = toIso(s._enemy.x, s._enemy.y);
+            s.x = this.offsetX + iso.x * this.mapScale;
+            s.y = this.offsetY + iso.y * this.mapScale;
+
+            // Subtle pulse
+            const pulse = 1 + Math.sin(now * 0.008) * 0.04;
+            s.scale.set(s.scale.x * pulse);
         }
     }
 

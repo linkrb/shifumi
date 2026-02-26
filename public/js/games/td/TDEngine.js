@@ -47,6 +47,7 @@ export class TDEngine {
         this.onBuffsChanged = null;      // (buffs)
         this.onTowerLevelUp = null;      // (tower)
         this.onWindPulse = null;         // (tower, targets)
+        this.onCemeteryGrasp = null;     // (tower, enemy, duration)
         this.onLevelChanged = null;      // (levelData)
     }
 
@@ -97,7 +98,7 @@ export class TDEngine {
         const config = TOWER_TYPES[type];
         if (!config) return false;
         if (config.availableFromLevel !== undefined && this.level < config.availableFromLevel) return false;
-        if (config.unlockCost && !this.unlockedTowers.has(type)) return false;
+        if (config.unlockedByWorld !== undefined && !this.unlockedTowers.has(type)) return false;
         return true;
     }
 
@@ -105,16 +106,13 @@ export class TDEngine {
         const config = TOWER_TYPES[type];
         if (!config) return true;
         if (config.availableFromLevel !== undefined && this.level < config.availableFromLevel) return false; // not visible yet
-        return !!config.unlockCost && !this.unlockedTowers.has(type);
+        return config.unlockedByWorld !== undefined && !this.unlockedTowers.has(type);
     }
 
     unlockTower(type) {
         const config = TOWER_TYPES[type];
-        if (!config || !config.unlockCost) return false;
-        if (config.availableFromLevel !== undefined && this.level < config.availableFromLevel) return false;
+        if (!config || config.unlockedByWorld === undefined) return false;
         if (this.unlockedTowers.has(type)) return false;
-        if (!this.devMode && this.gold < config.unlockCost) return false;
-        if (!this.devMode) this.gold -= config.unlockCost;
         this.unlockedTowers.add(type);
         return true;
     }
@@ -309,6 +307,22 @@ export class TDEngine {
                 isSlow = true;
             }
 
+            // Cemetery grasp: enemy is frozen + takes DoT
+            if (enemy.graspUntil > now) {
+                if (now >= enemy.graspDotNext) {
+                    enemy.hp -= enemy.graspDotDmg;
+                    enemy.graspDotNext = now + 500;
+                    if (enemy.hp <= 0) {
+                        this.gold += enemy.reward;
+                        this.enemies.splice(i, 1);
+                        if (this.onEnemyDied) this.onEnemyDied(enemy, i);
+                        if (this.onGoldChanged) this.onGoldChanged(this.gold);
+                    }
+                }
+                if (this.onEnemyMoved) this.onEnemyMoved(enemy, now, true);
+                continue;
+            }
+
             // Smooth pushback: slide toward pushback target before resuming path
             if (enemy._pushbackTarget) {
                 const pbx = enemy._pushbackTarget.x - enemy.x;
@@ -389,7 +403,30 @@ export class TDEngine {
 
             if (bestTarget) {
                 tower.lastShot = now;
-                this.fireProjectile(tower, bestTarget);
+                if (tower.grasp) {
+                    this.handleGraspAttack(tower, bestTarget, now);
+                } else {
+                    this.fireProjectile(tower, bestTarget);
+                }
+            }
+        }
+    }
+
+    handleGraspAttack(tower, target, now) {
+        const dmgMult = this.buffs.damage ? 1.5 : 1;
+        target.hp -= tower.damage * dmgMult;
+        target.graspUntil = now + tower.graspDuration;
+        target.graspDotDmg = Math.round(tower.graspDot * dmgMult);
+        target.graspDotNext = now + 500;
+        this.awardXp(tower, 1);
+        if (this.onCemeteryGrasp) this.onCemeteryGrasp(tower, target, tower.graspDuration);
+        if (target.hp <= 0) {
+            this.gold += target.reward;
+            const idx = this.enemies.indexOf(target);
+            if (idx > -1) {
+                this.enemies.splice(idx, 1);
+                if (this.onEnemyDied) this.onEnemyDied(target, idx);
+                if (this.onGoldChanged) this.onGoldChanged(this.gold);
             }
         }
     }

@@ -7,9 +7,10 @@ export const GRID_HEIGHT = 12;
 export const TOWER_TYPES = {
     archer: { cost: 50, damage: 20, range: 3, cooldown: 750, speed: 42, color: 0x98D4BB },
     cannon: { cost: 100, damage: 55, range: 2.5, cooldown: 1300, speed: 28, color: 0xFF7F7F, splash: 1.2 },
-    ice: { cost: 75, damage: 8, range: 2.5, cooldown: 900, speed: 36, color: 0x87CEEB, slow: 0.5 },
+    ice: { cost: 75, damage: 8, range: 2.5, cooldown: 900, speed: 36, color: 0x87CEEB, slow: 0.5, unlockedByWorld: 3 },
     sniper: { cost: 250, damage: 75, range: 4.5, cooldown: 2500, speed: 60, color: 0xE6E6FA },
-    wind: { cost: 125, damage: 15, range: 2.5, cooldown: 1200, speed: 38, color: 0xA8E6CF, pushback: 0.8, unlockCost: 400 }
+    cemetery: { cost: 100, damage: 25, range: 2.8, cooldown: 3500, speed: 34, color: 0x4ECDC4, grasp: true, graspDuration: 2500, graspDot: 8, unlockedByWorld: 1 },
+    wind: { cost: 125, damage: 15, range: 2.5, cooldown: 1200, speed: 38, color: 0xA8E6CF, pushback: 0.8, unlockedByWorld: 4 }
 };
 
 export const ENEMY_TYPES = {
@@ -264,6 +265,14 @@ export const SHOP_ITEMS = {
     damage: { cost: 100, name: 'Rage' },
     slow: { cost: 80, name: 'Blizzard' }
 };
+
+// ============== UNLOCK HELPERS ==============
+export function getTowerUnlockedByWorld(levelIndex) {
+    for (const [type, config] of Object.entries(TOWER_TYPES)) {
+        if (config.unlockedByWorld === levelIndex) return type;
+    }
+    return null;
+}
 
 // ============== ISOMETRIC HELPERS ==============
 // Mirrored iso so Y-axis goes down-right (path flows downward)
