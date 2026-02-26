@@ -65,6 +65,7 @@ export const LEVELS = [
         theme: {
             id: 'cemetery',
             castleScale: 1.4,
+            tileScale: 0.78,
             towerScale: 0.85,
             enemyScale: 0.85,
             enemyScales: { tank: 1.3, boss: 1.4 },
@@ -109,6 +110,7 @@ export const LEVELS = [
         theme: {
             id: 'volcano',
             castleScale: 1.4,
+            tileScale: 0.85,
             towerScale: 0.85,
             enemyScale: 0.85,
             enemyScales: { tank: 1.3, boss: 1.4 },
@@ -130,10 +132,10 @@ export const LEVELS = [
         path: [
             {x:3, y:0}, {x:3, y:1}, {x:3, y:2}, {x:3, y:3},
             { fork: [
-                [{x:2, y:4}, {x:1, y:5}, {x:0, y:6}, {x:0, y:7}, {x:1, y:8}, {x:2, y:9}],
-                [{x:4, y:4}, {x:5, y:5}, {x:6, y:6}, {x:6, y:7}, {x:5, y:8}, {x:4, y:9}]
+                [{x:3,y:4},{x:3,y:5},{x:3,y:6},{x:3,y:7},{x:3,y:8},{x:3,y:9},{x:4,y:9},{x:5,y:9},{x:6,y:9}],
+                [{x:4,y:3},{x:5,y:3},{x:6,y:3},{x:6,y:4},{x:6,y:5},{x:6,y:6},{x:6,y:7},{x:6,y:8},{x:6,y:9}]
             ]},
-            {x:3, y:10}, {x:3, y:11}
+            {x:6, y:10}, {x:6, y:11}
         ],
         waves: [
             [{ type: 'tank', count: 6 }, { type: 'basic', count: 8 }],
