@@ -64,7 +64,7 @@ export const LEVELS = [
         name: 'Cimetière',
         theme: {
             id: 'cemetery',
-            castleScale: 1.4,
+            castleScale: 2.0,
             tileScale: 0.78,
             towerScale: 0.85,
             enemyScale: 0.85,
@@ -109,7 +109,7 @@ export const LEVELS = [
         name: 'Volcan',
         theme: {
             id: 'volcano',
-            castleScale: 1.4,
+            castleScale: 2.0,
             tileScale: 0.75,
             towerScale: 0.85,
             enemyScale: 0.85,
@@ -154,7 +154,7 @@ export const LEVELS = [
         name: 'Glacier',
         theme: {
             id: 'ice',
-            castleScale: 1.1,
+            castleScale: 2.0,
             castleAnchorY: 0.75,
             tileScale: 0.85,
             towerScale: 0.85,
