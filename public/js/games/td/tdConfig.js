@@ -65,14 +65,14 @@ export const LEVELS = [
         theme: {
             id: 'cemetery',
             castleScale: 2.0,
-            tileScale: 0.78,
+            tileScale: 0.68,
             towerScale: 0.85,
             enemyScale: 0.85,
             enemyScales: { tank: 1.3, boss: 1.4 },
             tiles: { grass: 'tile_grass', path: 'tile_path' },
             decorations: [
                 { name: 'tombstone', scale: 0.6, anchorY: 0.9 },
-                { name: 'dead_tree', scale: 0.75, anchorY: 0.9 },
+                { name: 'dead_tree', scale: 1.2, anchorY: 0.9 },
                 { name: 'lamppost', scale: 0.95, anchorY: 0.9 }
             ],
             decoRate: 0.20,
@@ -162,9 +162,9 @@ export const LEVELS = [
             enemyScales: { tank: 1.2, boss: 1.0 },
             tiles: { grass: 'tile_grass', path: 'tile_path' },
             decorations: [
-                { name: 'snowy_tree', scale: 1.0, anchorY: 0.75 },
-                { name: 'snowy_tree', scale: 0.85, anchorY: 0.75 },
-                { name: 'ice_portal', scale: 0.7, anchorY: 0.75 }
+                { name: 'snowy_tree', scale: 1.5, anchorY: 0.75 },
+                { name: 'snowy_tree', scale: 1.3, anchorY: 0.75 },
+                { name: 'ice_portal', scale: 1.0, anchorY: 0.75 }
             ],
             decoRate: 0.20,
             enemies: {
