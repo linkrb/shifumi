@@ -48,6 +48,7 @@ export class TDEngine {
         this.onTowerLevelUp = null;      // (tower)
         this.onWindPulse = null;         // (tower, targets)
         this.onCemeteryGrasp = null;     // (tower, enemy, duration)
+        this.onFireBurn = null;          // (enemy, duration)
         this.onEnemyDamaged = null;      // (enemy, damage)
         this.onLevelChanged = null;      // (levelData)
     }
@@ -325,6 +326,22 @@ export class TDEngine {
                 continue;
             }
 
+            // Fire burn: DoT sans freeze, l'ennemi continue à avancer
+            if (enemy.burnUntil > now) {
+                if (now >= enemy.burnDotNext) {
+                    enemy.hp -= enemy.burnDotDmg;
+                    enemy.burnDotNext = now + 500;
+                    if (this.onEnemyDamaged) this.onEnemyDamaged(enemy, enemy.burnDotDmg);
+                    if (enemy.hp <= 0) {
+                        this.gold += enemy.reward;
+                        this.enemies.splice(i, 1);
+                        if (this.onEnemyDied) this.onEnemyDied(enemy, i);
+                        if (this.onGoldChanged) this.onGoldChanged(this.gold);
+                        continue;
+                    }
+                }
+            }
+
             // Smooth pushback: slide toward pushback target before resuming path
             if (enemy._pushbackTarget) {
                 const pbx = enemy._pushbackTarget.x - enemy.x;
@@ -492,6 +509,9 @@ export class TDEngine {
             splash: tower.splash || 0,
             slow: tower.slow || 0,
             pushback: tower.pushback || 0,
+            burn: tower.burn || false,
+            burnDuration: tower.burnDuration || 0,
+            burnDot: tower.burnDot || 0,
             sprite: null
         };
 
@@ -561,6 +581,14 @@ export class TDEngine {
 
         if (this.onProjectileHit) this.onProjectileHit(proj, target, damage);
 
+        // Burn on main target
+        if (proj.burn) {
+            target.burnUntil = now + proj.burnDuration;
+            target.burnDotDmg = proj.burnDot;
+            target.burnDotNext = now + 500;
+            if (this.onFireBurn) this.onFireBurn(target, proj.burnDuration);
+        }
+
         // Splash damage
         if (proj.splash > 0) {
             for (let j = this.enemies.length - 1; j >= 0; j--) {
@@ -569,6 +597,12 @@ export class TDEngine {
                 const d = Math.sqrt((enemy.x - target.x) ** 2 + (enemy.y - target.y) ** 2);
                 if (d <= proj.splash) {
                     enemy.hp -= damage * 0.4;
+                    if (proj.burn) {
+                        enemy.burnUntil = now + proj.burnDuration;
+                        enemy.burnDotDmg = proj.burnDot;
+                        enemy.burnDotNext = now + 500;
+                        if (this.onFireBurn) this.onFireBurn(enemy, proj.burnDuration);
+                    }
                     if (enemy.hp <= 0) {
                         this.gold += enemy.reward;
                         this.enemies.splice(j, 1);

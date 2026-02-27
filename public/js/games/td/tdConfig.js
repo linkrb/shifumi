@@ -10,7 +10,8 @@ export const TOWER_TYPES = {
     ice: { cost: 75, damage: 8, range: 2.5, cooldown: 900, speed: 36, color: 0x87CEEB, slow: 0.5, unlockedByWorld: 3 },
     sniper: { cost: 250, damage: 75, range: 4.5, cooldown: 2500, speed: 60, color: 0xE6E6FA },
     cemetery: { cost: 100, damage: 25, range: 2.8, cooldown: 3500, speed: 34, color: 0x4ECDC4, grasp: true, graspDuration: 2500, graspDot: 8, unlockedByWorld: 1, displayScale: 1.25 },
-    wind: { cost: 125, damage: 15, range: 2.5, cooldown: 1200, speed: 38, color: 0xA8E6CF, pushback: 0.8, unlockedByWorld: 4 }
+    wind: { cost: 125, damage: 15, range: 2.5, cooldown: 1200, speed: 38, color: 0xA8E6CF, pushback: 0.8, unlockedByWorld: 4 },
+    fire: { cost: 150, damage: 40, range: 2.5, cooldown: 1400, speed: 32, color: 0xFF6B35, splash: 1.2, burn: true, burnDuration: 2000, burnDot: 8, unlockedByWorld: 2 }
 };
 
 export const ENEMY_TYPES = {
@@ -267,6 +268,7 @@ export const TOWER_DISPLAY = {
     sniper:   { icon: '🎯', name: 'Sniper',    unlockName: null },
     cemetery: { icon: '👻', name: 'Fantôme',   unlockName: 'Tour Fantôme' },
     wind:     { icon: '🌀', name: 'Eolienne',  unlockName: 'Tour Éolienne' },
+    fire:     { icon: '🔥', name: 'Feu',       unlockName: 'Tour de Feu' },
 };
 
 export const SHOP_ITEMS = {

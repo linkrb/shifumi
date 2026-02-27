@@ -131,6 +131,14 @@ export class TDRenderer {
             this.assets['wind_propeller'] = tex;
         } catch (e) { }
 
+        // Fire tower animation frames
+        for (let i = 0; i < 8; i++) {
+            try {
+                const tex = await PIXI.Assets.load(`/images/td/towers/fire/tower_fire_anim_${i}.png`);
+                this.assets[`tower_fire_anim_${i}`] = tex;
+            } catch (e) { }
+        }
+
         const tileAssets = ['tile_grass', 'tile_path', 'castle', 'coin', 'heart', 'tree', 'tree_pine'];
         const projAssets = ['proj_archer', 'proj_cannon', 'proj_ice', 'proj_sniper', 'proj_wind', 'proj_cemetery', 'hands_cemetery'];
         for (const name of [...tileAssets, ...projAssets]) {
@@ -406,7 +414,24 @@ export class TDRenderer {
         let sprite;
         let baseScaleX, baseScaleY;
 
-        if (texture) {
+        // Fire tower lvl1: AnimatedSprite avec les 8 frames d'animation
+        const fireFrames = towerType === 'fire'
+            ? Array.from({length: 8}, (_, i) => this.assets[`tower_fire_anim_${i}`]).filter(Boolean)
+            : [];
+
+        if (fireFrames.length > 0) {
+            sprite = new PIXI.AnimatedSprite(fireFrames);
+            sprite.anchor.set(0.5, 0.85);
+            const tRef = Math.max(TILE_WIDTH, TILE_HEIGHT);
+            const tScale = (this.currentTheme && this.currentTheme.towerScale) || 1.0;
+            sprite.width = tRef * 1.1 * tScale;
+            sprite.height = tRef * 1.1 * tScale;
+            sprite.animationSpeed = 0.08; // ~8fps
+            sprite.play();
+            sprite.scale.x *= -1;
+            baseScaleX = sprite.scale.x;
+            baseScaleY = sprite.scale.y;
+        } else if (texture) {
             sprite = new PIXI.Sprite(texture);
             sprite.anchor.set(0.5, 0.85);
             const tRef = Math.max(TILE_WIDTH, TILE_HEIGHT);
@@ -606,7 +631,8 @@ export class TDRenderer {
             archer: 0xFFD700,
             cannon: 0x333333,
             ice: 0x00FFFF,
-            sniper: 0xFF4444
+            sniper: 0xFF4444,
+            fire: 0xFF6B35
         };
         const sprite = new PIXI.Graphics();
         sprite.circle(0, 0, 5);
@@ -979,15 +1005,18 @@ export class TDRenderer {
 
     updateTowerSprite(tower) {
         if (tower.level <= 1) return;
-        if (!tower.sprite || !(tower.sprite instanceof PIXI.Sprite)) return;
+        if (!tower.sprite) return;
 
-        // Try directional sprite first, then fallback to generic level sprite
         const orientation = tower.orientation || 'front';
         const dirKey = `tower_${tower.type}_lvl${tower.level}_${orientation}`;
         const lvlKey = `tower_${tower.type}_lvl${tower.level}`;
         const texture = this.assets[dirKey] || this.assets[lvlKey];
         if (!texture) return;
 
+        // AnimatedSprite (ex: fire lvl1) → stop et affiche sprite statique
+        if (tower.sprite instanceof PIXI.AnimatedSprite) {
+            tower.sprite.stop();
+        }
         tower.sprite.texture = texture;
     }
 

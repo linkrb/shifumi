@@ -170,6 +170,10 @@ export class TowerDefenseGame {
             this.renderer.createHandEffect(enemy, duration);
         };
 
+        this.engine.onFireBurn = (enemy) => {
+            this.renderer.showFloatingDamage(enemy.x, enemy.y, '🔥', this.container);
+        };
+
         this.engine.onLevelChanged = (levelData) => {
             this.renderer.setTheme(levelData);
         };
