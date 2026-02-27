@@ -91,8 +91,8 @@ export class TDRenderer {
     }
 
     async loadAssets() {
-        const enemyAssets = ['enemy_basic', 'enemy_fast', 'enemy_tank', 'enemy_boss', 'enemy_flying'];
-        const towerTypes = ['archer', 'cannon', 'ice', 'sniper', 'wind', 'cemetery'];
+        const enemyAssets = Object.keys(ENEMY_TYPES).map(t => `enemy_${t}`);
+        const towerTypes = Object.keys(TOWER_TYPES);
 
         // Load base enemy assets
         for (const name of enemyAssets) {
@@ -132,7 +132,7 @@ export class TDRenderer {
         } catch (e) { }
 
         const tileAssets = ['tile_grass', 'tile_path', 'castle', 'coin', 'heart', 'tree', 'tree_pine'];
-        const projAssets = ['proj_archer', 'proj_cannon', 'proj_ice', 'proj_sniper', 'proj_wind', 'proj_cemetery'];
+        const projAssets = ['proj_archer', 'proj_cannon', 'proj_ice', 'proj_sniper', 'proj_wind', 'proj_cemetery', 'hands_cemetery'];
         for (const name of [...tileAssets, ...projAssets]) {
             try {
                 const texture = await PIXI.Assets.load(`/images/td/${name}.png`);
@@ -411,8 +411,9 @@ export class TDRenderer {
             sprite.anchor.set(0.5, 0.85);
             const tRef = Math.max(TILE_WIDTH, TILE_HEIGHT);
             const tScale = (this.currentTheme && this.currentTheme.towerScale) || 1.0;
-            sprite.width = tRef * 1.1 * tScale;
-            sprite.height = tRef * 1.1 * tScale;
+            const displayScale = TOWER_TYPES[towerType]?.displayScale || 1.0;
+            sprite.width = tRef * 1.1 * tScale * displayScale;
+            sprite.height = tRef * 1.1 * tScale * displayScale;
             // Flip horizontally to compensate for mirrored iso projection
             sprite.scale.x *= -1;
             baseScaleX = sprite.scale.x;
@@ -815,45 +816,31 @@ export class TDRenderer {
         }
     }
 
-    createGraspBeam(tower, enemy) {
-        const s = this.mapScale;
-        const tIso = toIso(tower.x, tower.y);
-        const eIso = toIso(enemy.x, enemy.y);
-
-        const tx = this.offsetX + tIso.x * s;
-        const ty = this.offsetY + tIso.y * s - 30 * s;
-        const ex = this.offsetX + eIso.x * s;
-        const ey = this.offsetY + eIso.y * s;
-
-        // Main beam
-        const beam = new PIXI.Graphics();
-        beam.moveTo(tx, ty);
-        beam.lineTo(ex, ey);
-        beam.stroke({ width: 4 * s, color: 0x4ECDC4, alpha: 0.9 });
-
-        // Glow halo (wider, softer)
-        const glow = new PIXI.Graphics();
-        glow.moveTo(tx, ty);
-        glow.lineTo(ex, ey);
-        glow.stroke({ width: 10 * s, color: 0x7FFFD4, alpha: 0.35 });
-
-        beam.life = 0.9;
-        beam.isFlash = true;
-        glow.life = 0.9;
-        glow.isFlash = true;
-
-        this.app.stage.addChild(glow);
-        this.app.stage.addChild(beam);
-        this.particles.push(glow, beam);
-    }
-
-    createGraspEffect(enemy, duration) {
-        if (!this.assets['proj_cemetery']) return;
-        const tex = this.assets['proj_cemetery'];
+    createHandEffect(enemy, duration) {
+        if (!this.assets['hands_cemetery']) return;
+        const tex = this.assets['hands_cemetery'];
         const sprite = new PIXI.Sprite(tex);
-        sprite.anchor.set(0.5, 0.85);
-        sprite.scale.set(0);
-        sprite._enemy = enemy;
+        // Ancre en bas au centre : les mains montent depuis le sol
+        sprite.anchor.set(0.5, 1.0);
+        sprite._targetPx = TILE_HEIGHT * 0.55;
+        sprite._texW = tex.width || 256;
+        sprite.scale.x = sprite._targetPx / sprite._texW;
+        sprite.scale.y = 0;
+        // Position fixe sur la tuile (pas sur l'ennemi qui se déplace)
+        const iso = toIso(Math.round(enemy.x), Math.round(enemy.y));
+        sprite._isoX = iso.x;
+        sprite._isoY = iso.y + TILE_HEIGHT / 2;
+        sprite.x = sprite._isoX;
+        sprite.y = sprite._isoY;
+
+        // Masque fixe : cache tout ce qui est sous la surface de la tuile
+        const mask = new PIXI.Graphics();
+        mask.rect(sprite._isoX - TILE_WIDTH * 2, sprite._isoY - TILE_HEIGHT * 6, TILE_WIDTH * 4, TILE_HEIGHT * 6);
+        mask.fill(0xFFFFFF);
+        this.effectLayer.addChild(mask);
+        sprite.mask = mask;
+        sprite._graspMask = mask;
+
         sprite._duration = duration;
         sprite._born = performance.now();
         this.effectLayer.addChild(sprite);
@@ -868,28 +855,29 @@ export class TDRenderer {
 
             if (progress >= 1) {
                 this.effectLayer.removeChild(s);
+                if (s._graspMask) {
+                    this.effectLayer.removeChild(s._graspMask);
+                    s._graspMask.destroy();
+                }
                 s.destroy();
                 this.graspEffects.splice(i, 1);
                 continue;
             }
 
-            // Scale: pop up in first 15%, hold, shrink in last 15%
-            let scale;
-            if (progress < 0.15) scale = (progress / 0.15) * 0.7;
-            else if (progress > 0.85) scale = ((1 - progress) / 0.15) * 0.7;
-            else scale = 0.7;
+            // Emerge : monte en 20%, tient, redescend en 20%
+            let env;
+            if (progress < 0.2) env = progress / 0.2;
+            else if (progress > 0.8) env = (1 - progress) / 0.2;
+            else env = 1;
 
-            s.scale.set(scale * this.mapScale);
-            s.alpha = scale / 0.7;
+            const baseScale = s._targetPx / s._texW;
+            s.scale.set(baseScale);
+            s.alpha = Math.min(env * 2, 1);
 
-            // Follow enemy position
-            const iso = toIso(s._enemy.x, s._enemy.y);
-            s.x = this.offsetX + iso.x * this.mapScale;
-            s.y = this.offsetY + iso.y * this.mapScale;
-
-            // Subtle pulse
-            const pulse = 1 + Math.sin(now * 0.008) * 0.04;
-            s.scale.set(s.scale.x * pulse);
+            // Translation : les mains montent depuis sous le sol vers la surface
+            // env=0 → sprite enterré (y = isoY + targetPx), env=1 → sorti (y = isoY)
+            s.x = s._isoX;
+            s.y = s._isoY + s._targetPx * (1 - env);
         }
     }
 

@@ -48,6 +48,7 @@ export class TDEngine {
         this.onTowerLevelUp = null;      // (tower)
         this.onWindPulse = null;         // (tower, targets)
         this.onCemeteryGrasp = null;     // (tower, enemy, duration)
+        this.onEnemyDamaged = null;      // (enemy, damage)
         this.onLevelChanged = null;      // (levelData)
     }
 
@@ -312,6 +313,7 @@ export class TDEngine {
                 if (now >= enemy.graspDotNext) {
                     enemy.hp -= enemy.graspDotDmg;
                     enemy.graspDotNext = now + 500;
+                    if (this.onEnemyDamaged) this.onEnemyDamaged(enemy, enemy.graspDotDmg);
                     if (enemy.hp <= 0) {
                         this.gold += enemy.reward;
                         this.enemies.splice(i, 1);
@@ -396,6 +398,7 @@ export class TDEngine {
                 const dist = Math.sqrt(dx * dx + dy * dy);
 
                 if (dist <= tower.range && enemy.pathIndex > bestProgress) {
+                    if (tower.grasp && enemy.flying) continue; // cemetery can't grab flying
                     bestTarget = enemy;
                     bestProgress = enemy.pathIndex;
                 }
@@ -645,8 +648,8 @@ export class TDEngine {
         return true;
     }
 
-    nextLevel() {
-        this.level++;
+    resetGameState(levelIndex) {
+        this.level = levelIndex;
         this.wave = 0;
         this.waveInProgress = false;
         this.enemies = [];
@@ -655,6 +658,10 @@ export class TDEngine {
         this.towers = [];
         this.buffs = { damage: false, slow: false };
         this.initLevel();
+    }
+
+    nextLevel() {
+        this.resetGameState(this.level + 1);
         if (this.onLevelChanged) this.onLevelChanged(this.currentLevelData);
     }
 

@@ -204,6 +204,12 @@ public/images/td/
 └── icon_*.png                                      # HUD icons
 ```
 
+**Règles pour les assets image :**
+- **Toujours redimensionner** avant d'intégrer dans le projet. Les images AI générées (Gemini) peuvent faire 1024–2048px — c'est beaucoup trop pour un sprite de jeu.
+- Tailles cibles : `256×256` pour tours/ennemis/effets, `128×128` pour tuiles, `512×512` max pour décors larges
+- Utiliser `rembg` (Python) pour supprimer les fonds + `PIL.Image.resize()` pour redimensionner
+- Ne jamais committer un asset > 512px sans raison explicite
+
 ### Adding a New Tower
 1. **tdConfig.js**: Add entry to `TOWER_TYPES` with cost, damage, range, cooldown, speed, color. Optional: `splash`, `slow`, `pushback`, `aoe`, `unlockCost`, `availableFromLevel`
 2. **TDEngine.js**: If special behavior (like AoE), add handling in `updateTowers()`. Add callback if needed

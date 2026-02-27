@@ -1,6 +1,6 @@
 import {
     GRID_WIDTH, GRID_HEIGHT,
-    TOWER_TYPES, SHOP_ITEMS, LEVELS,
+    TOWER_TYPES, TOWER_DISPLAY, SHOP_ITEMS, LEVELS,
     fromIso, getTowerUnlockedByWorld
 } from './tdConfig.js';
 import { TDRenderer } from './TDRenderer.js';
@@ -101,6 +101,11 @@ export class TowerDefenseGame {
             if (sourceTower) this.renderer.updateTowerXpBar(sourceTower);
         };
 
+        this.engine.onEnemyDamaged = (enemy, damage) => {
+            if (enemy.sprite) this.renderer.updateEnemyHpBar(enemy);
+            this.renderer.showFloatingDamage(enemy.x, enemy.y, damage, this.container);
+        };
+
         this.engine.onProjectileMissed = (proj) => {
             this.renderer.removeProjectileFromStage(proj);
         };
@@ -162,8 +167,7 @@ export class TowerDefenseGame {
 
         this.engine.onCemeteryGrasp = (tower, enemy, duration) => {
             this.renderer.animateTowerShot(tower);
-            this.renderer.createGraspBeam(tower, enemy);
-            this.renderer.createGraspEffect(enemy, duration);
+            this.renderer.createHandEffect(enemy, duration);
         };
 
         this.engine.onLevelChanged = (levelData) => {
@@ -273,11 +277,9 @@ export class TowerDefenseGame {
         const config = TOWER_TYPES[tower.type];
         const sellValue = Math.floor(config.cost * 0.6);
 
-        const icons = { archer: '🏹', cannon: '💣', ice: '❄️', sniper: '🎯', wind: '🌀', cemetery: '👻' };
-        const names = { archer: 'Archer', cannon: 'Canon', ice: 'Glace', sniper: 'Sniper', wind: 'Eolienne', cemetery: 'Fantôme' };
-
+        const display = TOWER_DISPLAY[tower.type] || {};
         const lvlSuffix = tower.level > 1 ? ` Nv.${tower.level}` : '';
-        document.getElementById('tower-info-name').textContent = `${icons[tower.type]} ${names[tower.type]}${lvlSuffix}`;
+        document.getElementById('tower-info-name').textContent = `${display.icon} ${display.name}${lvlSuffix}`;
         document.getElementById('ti-dmg').textContent = tower.damage;
         document.getElementById('ti-range').textContent = tower.range.toFixed(1);
         document.getElementById('ti-cd').textContent = (tower.cooldown / 1000).toFixed(1) + 's';
@@ -348,8 +350,7 @@ export class TowerDefenseGame {
 
                 const info = document.getElementById('selection-info');
                 const config = TOWER_TYPES[this.selectedTower];
-                const names = { archer: 'Archer', cannon: 'Canon', ice: 'Glace', sniper: 'Sniper', wind: 'Eolienne', cemetery: 'Fantôme' };
-                const name = names[this.selectedTower] || this.selectedTower;
+                const name = TOWER_DISPLAY[this.selectedTower]?.name || this.selectedTower;
                 info.textContent = `${name} - Dégâts: ${config.damage} | Portée: ${config.range}`;
                 info.classList.add('visible');
                 setTimeout(() => info.classList.remove('visible'), 2000);
@@ -446,10 +447,9 @@ export class TowerDefenseGame {
     }
 
     showUnlockNotification(type) {
-        const names = { ice: 'Tour de Glace', wind: 'Tour Éolienne', cemetery: 'Tour Fantôme' };
-        const icons = { ice: '🧊', wind: '🌀', cemetery: '👻' };
-        const name = names[type] || type;
-        const icon = icons[type] || '🏆';
+        const display = TOWER_DISPLAY[type] || {};
+        const name = display.unlockName || display.name || type;
+        const icon = display.icon || '🏆';
 
         const notif = document.createElement('div');
         notif.className = 'unlock-notif';
@@ -561,17 +561,9 @@ export class TowerDefenseGame {
 
         // Set level to target - 1 so nextLevel() increments to the right one
         // But if jumping to level 0, we need to reset directly
-        this.engine.level = levelIndex;
-        this.engine.wave = 0;
-        this.engine.waveInProgress = false;
-        this.engine.enemies = [];
-        this.engine.projectiles = [];
-        this.engine.spawnQueue = [];
-        this.engine.towers = [];
-        this.engine.buffs = { damage: false, slow: false };
+        this.engine.resetGameState(levelIndex);
         this.engine.gold = 150;
         this.engine.health = 15;
-        this.engine.initLevel();
 
         this.renderer.setTheme(this.engine.currentLevelData);
         this.renderer.clearStage();

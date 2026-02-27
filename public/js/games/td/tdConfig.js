@@ -9,7 +9,7 @@ export const TOWER_TYPES = {
     cannon: { cost: 100, damage: 55, range: 2.5, cooldown: 1300, speed: 28, color: 0xFF7F7F, splash: 1.2 },
     ice: { cost: 75, damage: 8, range: 2.5, cooldown: 900, speed: 36, color: 0x87CEEB, slow: 0.5, unlockedByWorld: 3 },
     sniper: { cost: 250, damage: 75, range: 4.5, cooldown: 2500, speed: 60, color: 0xE6E6FA },
-    cemetery: { cost: 100, damage: 25, range: 2.8, cooldown: 3500, speed: 34, color: 0x4ECDC4, grasp: true, graspDuration: 2500, graspDot: 8, unlockedByWorld: 1 },
+    cemetery: { cost: 100, damage: 25, range: 2.8, cooldown: 3500, speed: 34, color: 0x4ECDC4, grasp: true, graspDuration: 2500, graspDot: 8, unlockedByWorld: 1, displayScale: 1.25 },
     wind: { cost: 125, damage: 15, range: 2.5, cooldown: 1200, speed: 38, color: 0xA8E6CF, pushback: 0.8, unlockedByWorld: 4 }
 };
 
@@ -110,7 +110,7 @@ export const LEVELS = [
         theme: {
             id: 'volcano',
             castleScale: 1.4,
-            tileScale: 0.85,
+            tileScale: 0.75,
             towerScale: 0.85,
             enemyScale: 0.85,
             enemyScales: { tank: 1.3, boss: 1.4 },
@@ -259,6 +259,15 @@ export function resolvePaths(path) {
 // Backward-compatible aliases (level 0)
 export const PATH = LEVELS[0].path;
 export const WAVES = LEVELS[0].waves;
+
+export const TOWER_DISPLAY = {
+    archer:   { icon: '🏹', name: 'Archer',    unlockName: null },
+    cannon:   { icon: '💣', name: 'Canon',     unlockName: null },
+    ice:      { icon: '❄️', name: 'Glace',     unlockName: 'Tour de Glace' },
+    sniper:   { icon: '🎯', name: 'Sniper',    unlockName: null },
+    cemetery: { icon: '👻', name: 'Fantôme',   unlockName: 'Tour Fantôme' },
+    wind:     { icon: '🌀', name: 'Eolienne',  unlockName: 'Tour Éolienne' },
+};
 
 export const SHOP_ITEMS = {
     heart: { cost: 50, name: '+1 Vie' },
