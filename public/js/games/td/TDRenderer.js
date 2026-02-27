@@ -689,7 +689,7 @@ export class TDRenderer {
         const iso = toIso(x, y);
         const colors = { archer: 0xFFD700, cannon: 0xFF6600, ice: 0x00FFFF, sniper: 0xFF0000, wind: 0xA8E6CF };
 
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < 2; i++) {
             const particle = new PIXI.Graphics();
             particle.circle(0, 0, 3);
             particle.fill({ color: colors[type] || 0xFFFFFF });
@@ -706,7 +706,7 @@ export class TDRenderer {
     createDeathEffect(x, y) {
         const iso = toIso(x, y);
 
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 4; i++) {
             const particle = new PIXI.Graphics();
             particle.circle(0, 0, 5);
             particle.fill({ color: 0xFFD700 });
