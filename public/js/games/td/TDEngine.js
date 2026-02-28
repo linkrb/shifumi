@@ -1,7 +1,7 @@
 import {
     GRID_WIDTH, GRID_HEIGHT,
     TOWER_TYPES, ENEMY_TYPES, SHOP_ITEMS,
-    LEVELS, resolvePaths
+    LEVELS, GLOBAL_WAVES, resolvePaths
 } from './tdConfig.js';
 
 export class TDEngine {
@@ -11,6 +11,7 @@ export class TDEngine {
         this.maxHealth = 15;
         this.level = 0;
         this.wave = 0;
+        this.globalWave = 0;
         this.waveInProgress = false;
         this.towers = [];
         this.enemies = [];
@@ -190,9 +191,9 @@ export class TDEngine {
     }
 
     startWave() {
-        if (this.wave >= this.currentWaves.length) return;
+        if (this.wave >= 10) return;
 
-        const waveConfig = this.currentWaves[this.wave];
+        const waveConfig = GLOBAL_WAVES[this.globalWave] || GLOBAL_WAVES[GLOBAL_WAVES.length - 1];
         this.spawnQueue = [];
 
         waveConfig.forEach(group => {
@@ -208,6 +209,7 @@ export class TDEngine {
         }
 
         this.wave++;
+        this.globalWave++;
         this.waveInProgress = true;
 
         if (this.onWaveStarted) this.onWaveStarted(this.wave);
@@ -229,8 +231,8 @@ export class TDEngine {
         }
         const spawn = route[0];
 
-        // HP scales +12% per wave (wave 1 = base, wave 10 = ~2.8x)
-        const hpScale = 1 + (this.wave - 1) * 0.12;
+        // HP scales +8% per global wave (wave 1 = base, wave 40 = ~4x)
+        const hpScale = 1 + (this.globalWave - 1) * 0.08;
         const scaledHp = Math.round(config.hp * hpScale);
 
         const enemy = {
@@ -281,7 +283,7 @@ export class TDEngine {
 
             if (this.onWaveCompleted) this.onWaveCompleted(this.wave);
 
-            if (this.wave >= this.currentWaves.length) {
+            if (this.wave >= 10) {
                 if (this.level >= LEVELS.length - 1) {
                     if (this.onVictory) this.onVictory();
                 } else {
@@ -416,6 +418,7 @@ export class TDEngine {
 
                 if (dist <= tower.range && enemy.pathIndex > bestProgress) {
                     if (tower.grasp && enemy.flying) continue; // cemetery can't grab flying
+                    if (tower.burn && enemy.flying) continue;  // fire can't target flying
                     bestTarget = enemy;
                     bestProgress = enemy.pathIndex;
                 }
@@ -682,9 +685,10 @@ export class TDEngine {
         return true;
     }
 
-    resetGameState(levelIndex) {
+    resetGameState(levelIndex, resetGlobalWave = false) {
         this.level = levelIndex;
         this.wave = 0;
+        if (resetGlobalWave) this.globalWave = 0;
         this.waveInProgress = false;
         this.enemies = [];
         this.projectiles = [];
@@ -700,7 +704,7 @@ export class TDEngine {
     }
 
     toggleSpeed() {
-        this.gameSpeed = this.gameSpeed === 1 ? 2 : 1;
+        this.gameSpeed = this.gameSpeed === 1 ? 2 : this.gameSpeed === 2 ? 3 : 1;
         return this.gameSpeed;
     }
 

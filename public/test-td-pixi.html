@@ -608,6 +608,11 @@
             border-color: #FFD700;
             color: #FFD700;
         }
+        .speed-btn.turbo {
+            background: rgba(255,80,0,0.30);
+            border-color: #FF5000;
+            color: #FF5000;
+        }
 
         /* ===== DEV LEVEL SELECTOR ===== */
         .dev-btn {
@@ -744,6 +749,14 @@
             stroke-width: 0;
             transition: fill 0.25s, filter 0.25s, stroke-width 0.25s;
             cursor: pointer;
+        }
+
+        .zone-poly.completed {
+            fill: rgba(0, 0, 0, 0.45);
+            stroke: rgba(255, 255, 255, 0.15);
+            stroke-width: 1;
+            cursor: not-allowed;
+            pointer-events: none;
         }
 
         .zone-poly:hover, .zone-poly.active {
@@ -1116,50 +1129,50 @@
             <div class="tower-name">Canon</div>
             <div class="tower-range">⊕2.5</div>
         </div>
-        <div class="tower-btn locked" data-tower="ice">
-            <div class="tower-preview"><img src="/images/td/towers/ice/tower_ice_front.png" alt="Glace"></div>
-            <div class="tower-cost">75g</div>
-            <div class="tower-name">Glace</div>
-            <div class="tower-range">⊕2.5</div>
-            <div class="lock-overlay">
-                <span class="lock-icon">🔒</span>
-                <span class="unlock-cost">Glacier</span>
-            </div>
-        </div>
         <div class="tower-btn" data-tower="sniper">
             <div class="tower-preview"><img src="/images/td/towers/sniper/tower_sniper_front.png" alt="Sniper"></div>
             <div class="tower-cost">250g</div>
             <div class="tower-name">Sniper</div>
             <div class="tower-range">⊕4.5</div>
         </div>
+        <div class="tower-btn locked" data-tower="wind">
+            <div class="tower-preview"><img src="/images/td/towers/wind/tower_wind_front.png" alt="Eolienne"></div>
+            <div class="tower-cost">150g</div>
+            <div class="tower-name">Eolienne</div>
+            <div class="tower-range">⊕2.8</div>
+            <div class="lock-overlay">
+                <span class="lock-icon">🔒</span>
+                <span class="unlock-cost">Prairie</span>
+            </div>
+        </div>
         <div class="tower-btn locked" data-tower="cemetery">
             <div class="tower-preview"><img src="/images/td/towers/cemetery/tower_cemetery_front.png" alt="Fantôme"></div>
-            <div class="tower-cost">100g</div>
+            <div class="tower-cost">150g</div>
             <div class="tower-name">Fantôme</div>
-            <div class="tower-range">⊕2.8</div>
+            <div class="tower-range">⊕3</div>
             <div class="lock-overlay">
                 <span class="lock-icon">🔒</span>
                 <span class="unlock-cost">Cimetière</span>
             </div>
         </div>
-        <div class="tower-btn locked" data-tower="wind">
-            <div class="tower-preview">🌀</div>
-            <div class="tower-cost">125g</div>
-            <div class="tower-name">Eolienne</div>
-            <div class="tower-range">⊕2.5</div>
-            <div class="lock-overlay">
-                <span class="lock-icon">🔒</span>
-                <span class="unlock-cost">Nuages</span>
-            </div>
-        </div>
         <div class="tower-btn locked" data-tower="fire">
             <div class="tower-preview"><img src="/images/td/towers/fire/tower_fire_front.png" alt="Feu"></div>
-            <div class="tower-cost">150g</div>
+            <div class="tower-cost">210g</div>
             <div class="tower-name">Feu</div>
-            <div class="tower-range">⊕2.5</div>
+            <div class="tower-range">⊕2.8</div>
             <div class="lock-overlay">
                 <span class="lock-icon">🔒</span>
                 <span class="unlock-cost">Volcan</span>
+            </div>
+        </div>
+        <div class="tower-btn locked" data-tower="ice">
+            <div class="tower-preview"><img src="/images/td/towers/ice/tower_ice_front.png" alt="Glace"></div>
+            <div class="tower-cost">100g</div>
+            <div class="tower-name">Glace</div>
+            <div class="tower-range">⊕3</div>
+            <div class="lock-overlay">
+                <span class="lock-icon">🔒</span>
+                <span class="unlock-cost">Glacier</span>
             </div>
         </div>
     </div>

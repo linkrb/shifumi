@@ -131,16 +131,20 @@ export class TDRenderer {
             this.assets['wind_propeller'] = tex;
         } catch (e) { }
 
-        // Fire tower animation frames
-        for (let i = 0; i < 8; i++) {
-            try {
-                const tex = await PIXI.Assets.load(`/images/td/towers/fire/tower_fire_anim_${i}.png`);
-                this.assets[`tower_fire_anim_${i}`] = tex;
-            } catch (e) { }
+        // Fire tower animation frames (lvl1 + lvl2 + lvl3, variants × 16 frames)
+        for (const lvl of ['', '_lvl2', '_lvl3']) {
+            for (const variant of ['left', 'front', 'back_left', 'back_front']) {
+                for (let i = 0; i < 16; i++) {
+                    try {
+                        const tex = await PIXI.Assets.load(`/images/td/towers/fire/anim${lvl}_${variant}/${i}.png`);
+                        this.assets[`tower_fire_anim${lvl}_${variant}_${i}`] = tex;
+                    } catch (e) { }
+                }
+            }
         }
 
         const tileAssets = ['tile_grass', 'tile_path', 'castle', 'coin', 'heart', 'tree', 'tree_pine'];
-        const projAssets = ['proj_archer', 'proj_cannon', 'proj_ice', 'proj_sniper', 'proj_wind', 'proj_cemetery', 'hands_cemetery'];
+        const projAssets = ['proj_archer', 'proj_cannon', 'proj_ice', 'proj_sniper', 'proj_wind', 'proj_cemetery', 'proj_fire', 'hands_cemetery'];
         for (const name of [...tileAssets, ...projAssets]) {
             try {
                 const texture = await PIXI.Assets.load(`/images/td/${name}.png`);
@@ -414,9 +418,9 @@ export class TDRenderer {
         let sprite;
         let baseScaleX, baseScaleY;
 
-        // Fire tower lvl1: AnimatedSprite avec les 8 frames d'animation
+        // Fire tower: AnimatedSprite avec les 16 frames d'animation (lvl1, 4 variants)
         const fireFrames = towerType === 'fire'
-            ? Array.from({length: 8}, (_, i) => this.assets[`tower_fire_anim_${i}`]).filter(Boolean)
+            ? this._getFireFrames('', orientation)
             : [];
 
         if (fireFrames.length > 0) {
@@ -620,7 +624,7 @@ export class TDRenderer {
         if (this.assets[assetKey]) {
             const sprite = new PIXI.Sprite(this.assets[assetKey]);
             sprite.anchor.set(0.5, 0.5);
-            const size = towerType === 'cannon' ? 28 : 22;
+            const size = towerType === 'cannon' ? 28 : towerType === 'fire' ? 30 : 22;
             sprite.width = size;
             sprite.height = size;
             return sprite;
@@ -1003,17 +1007,63 @@ export class TDRenderer {
         if (tower.sprite) tower.sprite.tint = 0xffffff;
     }
 
+    _getFireFrames(lvlKey, orientation) {
+        // Variant préféré selon l'orientation
+        const preferred = orientation === 'front' ? 'front'
+            : orientation === 'back' ? 'back_front'
+            : orientation === 'side' ? 'back_left'
+            : 'left';
+        // Fallback: back_front → front, back_left → left
+        const fallback = preferred === 'back_front' ? 'front'
+            : preferred === 'back_left' ? 'left'
+            : preferred;
+        const tryVariant = (v) =>
+            Array.from({length: 16}, (_, i) => this.assets[`tower_fire_anim${lvlKey}_${v}_${i}`]).filter(Boolean);
+        const frames = tryVariant(preferred);
+        return frames.length === 16 ? frames : tryVariant(fallback);
+    }
+
     updateTowerSprite(tower) {
         if (tower.level <= 1) return;
         if (!tower.sprite) return;
 
         const orientation = tower.orientation || 'front';
+
+        // Fire tower lvl2+: AnimatedSprite avec fallback variant
+        if (tower.type === 'fire' && tower.level >= 2) {
+            const lvlKey = `_lvl${tower.level}`;
+            const frames = this._getFireFrames(lvlKey, orientation);
+            if (frames.length > 0) {
+                if (tower.sprite instanceof PIXI.AnimatedSprite) tower.sprite.stop();
+                const oldSprite = tower.sprite;
+                const newSprite = new PIXI.AnimatedSprite(frames);
+                newSprite.anchor.set(0.5, 0.85);
+                const tRef = Math.max(TILE_WIDTH, TILE_HEIGHT);
+                const tScale = (this.currentTheme && this.currentTheme.towerScale) || 1.0;
+                const lvlScale = tower.level >= 3 ? 1.35 : 1.0;
+                const targetSize = tRef * 1.1 * tScale * lvlScale;
+                const texW = frames[0].width || 256;
+                const texH = frames[0].height || 256;
+                newSprite.scale.set(-(targetSize / texW), targetSize / texH);
+                newSprite.x = oldSprite.x;
+                newSprite.y = oldSprite.y;
+                newSprite.animationSpeed = 0.08;
+                newSprite.play();
+                oldSprite.parent.addChild(newSprite);
+                oldSprite.parent.removeChild(oldSprite);
+                tower.sprite = newSprite;
+                tower.baseScaleX = newSprite.scale.x;
+                tower.baseScaleY = newSprite.scale.y;
+                return;
+            }
+        }
+
+        // Autres tours : sprite statique
         const dirKey = `tower_${tower.type}_lvl${tower.level}_${orientation}`;
         const lvlKey = `tower_${tower.type}_lvl${tower.level}`;
         const texture = this.assets[dirKey] || this.assets[lvlKey];
         if (!texture) return;
 
-        // AnimatedSprite (ex: fire lvl1) → stop et affiche sprite statique
         if (tower.sprite instanceof PIXI.AnimatedSprite) {
             tower.sprite.stop();
         }

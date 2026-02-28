@@ -15,6 +15,8 @@ export class TowerDefenseGame {
         this.selectedPlacedTower = null;
         this.hoveredTile = null;
         this.shopOpen = false;
+        this._continuing = false; // true = on continue la campagne (garde or/santé/unlocks)
+        this.completedLevels = new Set();
     }
 
     async init(container) {
@@ -141,6 +143,7 @@ export class TowerDefenseGame {
         };
 
         this.engine.onLevelComplete = (level) => {
+            this.completedLevels.add(level);
             this.checkWorldUnlock(level);
             this.showLevelTransition(level);
         };
@@ -375,7 +378,8 @@ export class TowerDefenseGame {
         btn.addEventListener('click', () => {
             const speed = this.engine.toggleSpeed();
             btn.textContent = `x${speed}`;
-            btn.classList.toggle('fast', speed === 2);
+            btn.classList.toggle('fast', speed >= 2);
+            btn.classList.toggle('turbo', speed === 3);
         });
     }
 
@@ -425,19 +429,8 @@ export class TowerDefenseGame {
 
     // ===== WORLD UNLOCK SYSTEM =====
 
-    loadUnlockedTowers() {
-        try {
-            const saved = localStorage.getItem('td_unlocked_towers');
-            if (saved) {
-                JSON.parse(saved).forEach(type => this.engine.unlockedTowers.add(type));
-            }
-        } catch (e) { /* ignore parse errors */ }
-    }
-
-    saveUnlockedTowers() {
-        localStorage.setItem('td_unlocked_towers',
-            JSON.stringify([...this.engine.unlockedTowers]));
-    }
+    loadUnlockedTowers() { /* localStorage disabled */ }
+    saveUnlockedTowers() { /* localStorage disabled */ }
 
     checkWorldUnlock(levelIndex) {
         const towerType = getTowerUnlockedByWorld(levelIndex);
@@ -563,11 +556,21 @@ export class TowerDefenseGame {
     jumpToLevel(levelIndex) {
         if (levelIndex < 0 || levelIndex >= LEVELS.length) return;
 
-        // Set level to target - 1 so nextLevel() increments to the right one
-        // But if jumping to level 0, we need to reset directly
-        this.engine.resetGameState(levelIndex);
-        this.engine.gold = 150;
-        this.engine.health = 15;
+        const continuing = this._continuing;
+        this._continuing = false;
+
+        if (continuing) {
+            // Continuation : garde or, santé, tours débloquées — remet juste la vague locale à 0
+            this.engine.resetGameState(levelIndex, false);
+        } else {
+            // Nouveau jeu : reset complet
+            this.engine.resetGameState(levelIndex, true);
+            this.engine.gold = 150;
+            this.engine.health = 15;
+            this.engine.unlockedTowers.clear();
+            this.completedLevels.clear();
+            this.updateWorldmapZones();
+        }
 
         this.renderer.setTheme(this.engine.currentLevelData);
         this.renderer.clearStage();
@@ -682,28 +685,28 @@ export class TowerDefenseGame {
     }
 
     showVictory() {
-        const totalWaves = LEVELS.reduce((sum, l) => sum + l.waves.length, 0);
         document.getElementById('game-over-title').textContent = '🏆 Victoire !';
-        document.getElementById('final-wave').textContent = `${totalWaves}/${totalWaves}`;
+        document.getElementById('final-wave').textContent = `${this.engine.globalWave}/${this.engine.globalWave}`;
         document.getElementById('game-over').classList.add('visible');
     }
 
     showLevelTransition(completedLevel) {
-        const nextLevel = LEVELS[completedLevel + 1];
-        const overlay = document.getElementById('level-transition');
-        if (!overlay) return;
+        // Retour à la worldmap pour choisir le prochain niveau
+        this._continuing = true;
+        this.updateWorldmapZones();
+        const selector = document.getElementById('level-selector');
+        if (selector) selector.classList.add('visible');
+    }
 
-        document.getElementById('level-transition-title').textContent =
-            `Niveau ${completedLevel + 2} : ${nextLevel.name}`;
-        overlay.classList.add('visible');
-
-        const btn = document.getElementById('level-continue-btn');
-        const handler = () => {
-            btn.removeEventListener('click', handler);
-            overlay.classList.remove('visible');
-            this.startNextLevel();
-        };
-        btn.addEventListener('click', handler);
+    updateWorldmapZones() {
+        document.querySelectorAll('.zone-poly, .level-select-btn').forEach(el => {
+            const levelIndex = parseInt(el.dataset.level, 10);
+            if (this.completedLevels.has(levelIndex)) {
+                el.classList.add('completed');
+            } else {
+                el.classList.remove('completed');
+            }
+        });
     }
 
     startNextLevel() {

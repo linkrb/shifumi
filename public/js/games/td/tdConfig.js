@@ -5,13 +5,20 @@ export const GRID_WIDTH = 7;
 export const GRID_HEIGHT = 12;
 
 export const TOWER_TYPES = {
-    archer: { cost: 50, damage: 20, range: 3, cooldown: 750, speed: 42, color: 0x98D4BB },
-    cannon: { cost: 100, damage: 55, range: 2.5, cooldown: 1300, speed: 28, color: 0xFF7F7F, splash: 1.2 },
-    ice: { cost: 75, damage: 8, range: 2.5, cooldown: 900, speed: 36, color: 0x87CEEB, slow: 0.5, unlockedByWorld: 3 },
-    sniper: { cost: 250, damage: 75, range: 4.5, cooldown: 2500, speed: 60, color: 0xE6E6FA },
-    cemetery: { cost: 100, damage: 25, range: 2.8, cooldown: 3500, speed: 34, color: 0x4ECDC4, grasp: true, graspDuration: 2500, graspDot: 8, unlockedByWorld: 1, displayScale: 1.25 },
-    wind: { cost: 125, damage: 15, range: 2.5, cooldown: 1200, speed: 38, color: 0xA8E6CF, pushback: 0.8, unlockedByWorld: 4 },
-    fire: { cost: 150, damage: 40, range: 2.5, cooldown: 1400, speed: 32, color: 0xFF6B35, splash: 1.2, burn: true, burnDuration: 2000, burnDot: 8, unlockedByWorld: 2 }
+    // === TOURS DE DÉPART ===
+    archer:   { cost: 50,  damage: 20, range: 3,   cooldown: 750,  speed: 42, color: 0x98D4BB },
+    cannon:   { cost: 100, damage: 55, range: 2.5,  cooldown: 1300, speed: 33, color: 0xFF7F7F, splash: 1.2 },
+    sniper:   { cost: 250, damage: 75, range: 4.5,  cooldown: 2500, speed: 60, color: 0xE6E6FA },
+
+    // === TOURS DÉBLOQUÉES (clairement supérieures aux tours de départ) ===
+    // Éolienne — débloquée Prairie : AoE + pushback, DPS 30 + zone → meilleure que Archer
+    wind:     { cost: 150, damage: 28, range: 2.8,  cooldown: 950,  speed: 38, color: 0xA8E6CF, pushback: 0.8, unlockedByWorld: 0 },
+    // Fantôme — débloquée Cimetière : grasp lourd + DoT fort, multiplicateur de DPS sur cible immobilisée
+    cemetery: { cost: 150, damage: 40, range: 3.0,  cooldown: 2800, speed: 34, color: 0x4ECDC4, grasp: true, graspDuration: 3000, graspDot: 15, unlockedByWorld: 1, displayScale: 1.25 },
+    // Feu — débloquée Volcan : gros splash + brûlure, DPS 55 + zone + DoT → meilleure que Canon
+    fire:     { cost: 210, damage: 60, range: 2.8,  cooldown: 1100, speed: 32, color: 0xFF6B35, splash: 1.5, burn: true, burnDuration: 2500, burnDot: 12, unlockedByWorld: 2 },
+    // Glace — débloquée Glacier : slow puissant 0.3x, range étendue → multiplie DPS de toutes les tours
+    ice:      { cost: 100, damage: 12, range: 3.0,  cooldown: 700,  speed: 36, color: 0x87CEEB, slow: 0.3, unlockedByWorld: 3 },
 };
 
 export const ENEMY_TYPES = {
@@ -94,16 +101,16 @@ export const LEVELS = [
             {x:6, y:11}
         ],
         waves: [
-            [{ type: 'basic', count: 8 }, { type: 'fast', count: 4 }],
-            [{ type: 'tank', count: 3 }, { type: 'basic', count: 8 }],
-            [{ type: 'basic', count: 12 }, { type: 'fast', count: 6 }],
-            [{ type: 'tank', count: 4 }, { type: 'fast', count: 6 }],
-            [{ type: 'basic', count: 10 }, { type: 'fast', count: 8 }, { type: 'tank', count: 3 }],
-            [{ type: 'flying', count: 10 }, { type: 'fast', count: 12 }, { type: 'tank', count: 4 }],
-            [{ type: 'basic', count: 15 }, { type: 'tank', count: 7 }, { type: 'flying', count: 6 }],
+            [{ type: 'basic', count: 6 }, { type: 'fast', count: 3 }],
+            [{ type: 'basic', count: 9 }, { type: 'fast', count: 4 }],
+            [{ type: 'basic', count: 12 }, { type: 'fast', count: 5 }],
+            [{ type: 'tank', count: 3 }, { type: 'fast', count: 5 }],
+            [{ type: 'basic', count: 10 }, { type: 'fast', count: 7 }, { type: 'tank', count: 3 }],
+            [{ type: 'flying', count: 8 }, { type: 'fast', count: 10 }, { type: 'tank', count: 4 }],
+            [{ type: 'basic', count: 14 }, { type: 'tank', count: 7 }, { type: 'flying', count: 6 }],
             [{ type: 'fast', count: 20 }, { type: 'flying', count: 12 }, { type: 'tank', count: 5 }],
             [{ type: 'tank', count: 10 }, { type: 'fast', count: 18 }, { type: 'flying', count: 8 }],
-            [{ type: 'boss', count: 2 }, { type: 'tank', count: 8 }, { type: 'fast', count: 15 }, { type: 'flying', count: 10 }],
+            [{ type: 'boss', count: 2 }, { type: 'tank', count: 8 }, { type: 'fast', count: 16 }, { type: 'flying', count: 10 }],
         ]
     },
     {
@@ -139,16 +146,16 @@ export const LEVELS = [
             {x:6, y:10}, {x:6, y:11}
         ],
         waves: [
-            [{ type: 'tank', count: 6 }, { type: 'basic', count: 8 }],
-            [{ type: 'fast', count: 12 }, { type: 'tank', count: 4 }],
-            [{ type: 'basic', count: 15 }, { type: 'fast', count: 8 }],
-            [{ type: 'tank', count: 8 }, { type: 'flying', count: 4 }],
+            [{ type: 'basic', count: 8 }, { type: 'fast', count: 4 }],
+            [{ type: 'fast', count: 10 }, { type: 'basic', count: 8 }],
+            [{ type: 'tank', count: 3 }, { type: 'basic', count: 10 }, { type: 'fast', count: 3 }],
+            [{ type: 'tank', count: 5 }, { type: 'fast', count: 8 }],
             [{ type: 'basic', count: 12 }, { type: 'fast', count: 10 }, { type: 'tank', count: 5 }],
-            [{ type: 'flying', count: 12 }, { type: 'tank', count: 8 }, { type: 'fast', count: 10 }],
-            [{ type: 'basic', count: 18 }, { type: 'fast', count: 15 }, { type: 'flying', count: 8 }, { type: 'tank', count: 6 }],
-            [{ type: 'fast', count: 22 }, { type: 'flying', count: 14 }, { type: 'tank', count: 6 }],
-            [{ type: 'tank', count: 12 }, { type: 'fast', count: 20 }, { type: 'flying', count: 10 }],
-            [{ type: 'boss', count: 3 }, { type: 'tank', count: 10 }, { type: 'fast', count: 18 }, { type: 'flying', count: 12 }],
+            [{ type: 'flying', count: 10 }, { type: 'tank', count: 7 }, { type: 'fast', count: 10 }],
+            [{ type: 'basic', count: 18 }, { type: 'fast', count: 14 }, { type: 'flying', count: 8 }, { type: 'tank', count: 5 }],
+            [{ type: 'fast', count: 22 }, { type: 'flying', count: 14 }, { type: 'tank', count: 7 }],
+            [{ type: 'tank', count: 13 }, { type: 'fast', count: 20 }, { type: 'flying', count: 11 }],
+            [{ type: 'boss', count: 3 }, { type: 'tank', count: 11 }, { type: 'fast', count: 18 }, { type: 'flying', count: 13 }],
         ]
     },
     {
@@ -186,16 +193,16 @@ export const LEVELS = [
             {x:6, y:9}, {x:6, y:10}, {x:6, y:11}
         ],
         waves: [
-            [{ type: 'basic', count: 10 }, { type: 'fast', count: 4 }],
-            [{ type: 'fast', count: 10 }, { type: 'basic', count: 8 }],
-            [{ type: 'tank', count: 4 }, { type: 'basic', count: 10 }],
-            [{ type: 'flying', count: 8 }, { type: 'fast', count: 8 }],
-            [{ type: 'basic', count: 12 }, { type: 'tank', count: 5 }, { type: 'fast', count: 8 }],
-            [{ type: 'flying', count: 12 }, { type: 'fast', count: 12 }, { type: 'tank', count: 4 }],
-            [{ type: 'tank', count: 8 }, { type: 'flying', count: 10 }, { type: 'fast', count: 12 }],
-            [{ type: 'basic', count: 20 }, { type: 'fast', count: 15 }, { type: 'flying', count: 8 }],
-            [{ type: 'tank', count: 12 }, { type: 'fast', count: 18 }, { type: 'flying', count: 10 }],
-            [{ type: 'boss', count: 3 }, { type: 'tank', count: 10 }, { type: 'flying', count: 14 }, { type: 'fast', count: 16 }],
+            [{ type: 'basic', count: 10 }, { type: 'fast', count: 5 }],
+            [{ type: 'fast', count: 12 }, { type: 'basic', count: 10 }],
+            [{ type: 'tank', count: 4 }, { type: 'basic', count: 10 }, { type: 'fast', count: 4 }],
+            [{ type: 'flying', count: 8 }, { type: 'fast', count: 10 }],
+            [{ type: 'basic', count: 14 }, { type: 'tank', count: 6 }, { type: 'fast', count: 9 }],
+            [{ type: 'flying', count: 12 }, { type: 'fast', count: 12 }, { type: 'tank', count: 5 }],
+            [{ type: 'tank', count: 10 }, { type: 'flying', count: 11 }, { type: 'fast', count: 13 }],
+            [{ type: 'fast', count: 24 }, { type: 'flying', count: 15 }, { type: 'tank', count: 7 }],
+            [{ type: 'tank', count: 14 }, { type: 'fast', count: 20 }, { type: 'flying', count: 12 }],
+            [{ type: 'boss', count: 3 }, { type: 'tank', count: 12 }, { type: 'flying', count: 15 }, { type: 'fast', count: 18 }],
         ]
     }
 ];
@@ -260,6 +267,66 @@ export function resolvePaths(path) {
 // Backward-compatible aliases (level 0)
 export const PATH = LEVELS[0].path;
 export const WAVES = LEVELS[0].waves;
+
+// ============== GLOBAL WAVE PROGRESSION ==============
+// 40 waves total across 4 levels (10 per level).
+// Difficulty is continuous: globalWave never resets between levels.
+// Each tier starts easier than the previous tier ended ("gear shift")
+// so the player can rebuild towers after the level transition.
+//
+// Tier 1 (waves 0-9):  easy intro → moderate
+// Tier 2 (waves 10-19): gear shift down → ramps to hard
+// Tier 3 (waves 20-29): gear shift down → ramps to very hard
+// Tier 4 (waves 30-39): gear shift down → brutal finale
+export const GLOBAL_WAVES = [
+    // === TIER 1 (waves 1-10) ===
+    /* 00 */ [{ type: 'basic', count: 5 }],
+    /* 01 */ [{ type: 'basic', count: 8 }],
+    /* 02 */ [{ type: 'basic', count: 5 }, { type: 'fast', count: 4 }],
+    /* 03 */ [{ type: 'basic', count: 8 }, { type: 'tank', count: 2 }],
+    /* 04 */ [{ type: 'basic', count: 6 }, { type: 'fast', count: 5 }, { type: 'tank', count: 2 }],
+    /* 05 */ [{ type: 'fast', count: 12 }, { type: 'flying', count: 4 }, { type: 'tank', count: 3 }],
+    /* 06 */ [{ type: 'basic', count: 15 }, { type: 'fast', count: 8 }, { type: 'flying', count: 5 }, { type: 'tank', count: 3 }],
+    /* 07 */ [{ type: 'fast', count: 18 }, { type: 'flying', count: 10 }, { type: 'tank', count: 4 }],
+    /* 08 */ [{ type: 'tank', count: 8 }, { type: 'fast', count: 15 }, { type: 'flying', count: 6 }],
+    /* 09 */ [{ type: 'boss', count: 2 }, { type: 'tank', count: 6 }, { type: 'fast', count: 12 }, { type: 'flying', count: 8 }],
+
+    // === TIER 2 (waves 11-20) — gear shift: starts ~wave 3 difficulty ===
+    /* 10 */ [{ type: 'basic', count: 5 }, { type: 'fast', count: 3 }],
+    /* 11 */ [{ type: 'basic', count: 8 }, { type: 'fast', count: 4 }],
+    /* 12 */ [{ type: 'basic', count: 7 }, { type: 'fast', count: 5 }, { type: 'tank', count: 2 }],
+    /* 13 */ [{ type: 'tank', count: 3 }, { type: 'fast', count: 6 }, { type: 'basic', count: 5 }],
+    /* 14 */ [{ type: 'basic', count: 12 }, { type: 'fast', count: 10 }, { type: 'tank', count: 5 }],
+    /* 15 */ [{ type: 'flying', count: 10 }, { type: 'fast', count: 12 }, { type: 'tank', count: 6 }],
+    /* 16 */ [{ type: 'basic', count: 18 }, { type: 'fast', count: 14 }, { type: 'flying', count: 8 }, { type: 'tank', count: 6 }],
+    /* 17 */ [{ type: 'fast', count: 22 }, { type: 'flying', count: 14 }, { type: 'tank', count: 8 }],
+    /* 18 */ [{ type: 'tank', count: 13 }, { type: 'fast', count: 20 }, { type: 'flying', count: 10 }],
+    /* 19 */ [{ type: 'boss', count: 2 }, { type: 'tank', count: 11 }, { type: 'fast', count: 18 }, { type: 'flying', count: 12 }],
+
+    // === TIER 3 (waves 21-30) — gear shift: starts ~wave 4 difficulty ===
+    /* 20 */ [{ type: 'basic', count: 8 }, { type: 'fast', count: 6 }, { type: 'tank', count: 2 }],
+    /* 21 */ [{ type: 'basic', count: 12 }, { type: 'fast', count: 8 }, { type: 'tank', count: 3 }],
+    /* 22 */ [{ type: 'tank', count: 5 }, { type: 'fast', count: 10 }, { type: 'basic', count: 10 }],
+    /* 23 */ [{ type: 'tank', count: 7 }, { type: 'fast', count: 12 }, { type: 'flying', count: 6 }],
+    /* 24 */ [{ type: 'basic', count: 15 }, { type: 'fast', count: 15 }, { type: 'tank', count: 8 }],
+    /* 25 */ [{ type: 'flying', count: 14 }, { type: 'tank', count: 11 }, { type: 'fast', count: 14 }],
+    /* 26 */ [{ type: 'basic', count: 22 }, { type: 'fast', count: 18 }, { type: 'flying', count: 12 }, { type: 'tank', count: 8 }],
+    /* 27 */ [{ type: 'fast', count: 28 }, { type: 'flying', count: 18 }, { type: 'tank', count: 11 }],
+    /* 28 */ [{ type: 'tank', count: 16 }, { type: 'fast', count: 24 }, { type: 'flying', count: 14 }],
+    /* 29 */ [{ type: 'boss', count: 3 }, { type: 'tank', count: 13 }, { type: 'fast', count: 22 }, { type: 'flying', count: 16 }],
+
+    // === TIER 4 (waves 31-40) — gear shift: starts ~wave 5 difficulty ===
+    /* 30 */ [{ type: 'basic', count: 10 }, { type: 'fast', count: 8 }, { type: 'tank', count: 3 }],
+    /* 31 */ [{ type: 'basic', count: 14 }, { type: 'fast', count: 12 }, { type: 'tank', count: 5 }],
+    /* 32 */ [{ type: 'tank', count: 8 }, { type: 'fast', count: 14 }, { type: 'flying', count: 8 }, { type: 'basic', count: 8 }],
+    /* 33 */ [{ type: 'tank', count: 10 }, { type: 'fast', count: 16 }, { type: 'flying', count: 10 }],
+    /* 34 */ [{ type: 'basic', count: 20 }, { type: 'fast', count: 20 }, { type: 'tank', count: 11 }],
+    /* 35 */ [{ type: 'flying', count: 18 }, { type: 'tank', count: 13 }, { type: 'fast', count: 18 }],
+    /* 36 */ [{ type: 'basic', count: 26 }, { type: 'fast', count: 24 }, { type: 'flying', count: 16 }, { type: 'tank', count: 12 }],
+    /* 37 */ [{ type: 'fast', count: 32 }, { type: 'flying', count: 22 }, { type: 'tank', count: 15 }],
+    /* 38 */ [{ type: 'tank', count: 20 }, { type: 'fast', count: 28 }, { type: 'flying', count: 18 }],
+    /* 39 */ [{ type: 'boss', count: 4 }, { type: 'tank', count: 16 }, { type: 'fast', count: 26 }, { type: 'flying', count: 20 }],
+];
 
 export const TOWER_DISPLAY = {
     archer:   { icon: '🏹', name: 'Archer',    unlockName: null },
