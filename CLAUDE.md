@@ -217,6 +217,50 @@ public/images/td/
 4. **test-td-pixi.html**: Add `.tower-btn[data-tower="newtype"]` in tower bar, preview gradient CSS
 5. **TowerDefenseGame.js**: Wire any new callbacks, update `icons`/`names` maps in `showTowerInfo` and `setupTowerButtons`
 
+## La Brémanie (Narrative Layer) — branche `feat/bremanie`
+
+Surcouche narrative sur le Tower Defense. Univers familial : **Romain** (le père/roi), **Nathan** (fils/héros), **Anna** (fille/archère).
+
+### Architecture
+```
+public/bremanie/
+├── bremanie.html              # Splash screen d'entrée (Cinzel Decorative, particles)
+├── dialogue-test.html         # Page de test du moteur de dialogue
+├── images/
+│   ├── romain/                # 8 émotions × portrait rembg (neutral, determined, worried,
+│   ├── nathan/                #   angry, proud, laughing, sad, surprised)
+│   ├── anna/                  # Canvas normalisé 520×560, ancrage bas
+│   └── scenes/                # Illustrations plein écran (anna_bow.png, nathan_field.png)
+├── dialogues/                 # Scripts de dialogue en format texte
+│   ├── README.md              # Documentation du format (référence)
+│   ├── prologue/intro.txt
+│   └── level1/intro.txt
+└── js/
+    ├── DialogueEngine.js      # Moteur de dialogue Fire Emblem style
+    └── tdConfig/Engine/Renderer/TowerDefenseGame.js  # Copies isolées du TD
+```
+
+### DialogueEngine
+- **Jouer une scène** : `await engine.load('prologue/intro', callback)`
+- **Format script** : fichiers `.txt` lisibles, pas de JSON à la main
+- **Directives** : `@bg image` (fond, persos visibles), `@scene image` (cinématique, persos cachés)
+- **Narration** : ligne préfixée `>` → italique centré, sans namebox
+- **Dialogue** : `char(side):emotion Texte` — côté mémorisé automatiquement
+- **Émotions** : neutral, determined, worried, angry, proud, laughing, sad, surprised
+- **Mobile-first** : tap pour avancer, skip typewriter au 1er tap
+
+### Personnages & couleurs namebox
+| Clé | Nom | Couleur |
+|-----|-----|---------|
+| `romain` | Romain | Bleu royal `#2d4f8a` |
+| `nathan` | Nathan | Or `#6b4a12` |
+| `anna` | Anna | Rouge `#7a1f1f` |
+
+### Portraits
+- Générés via Gemini (Fire Emblem style), rembg pour fond transparent
+- Normalisés sur canvas uniforme avec ancrage bas (même position quelle que soit l'émotion)
+- Miroir CSS `scaleX(-1)` sur les deux côtés (tous les persos regardent naturellement à gauche)
+
 ## Environment Variables
 
 - `PORT` - Server port (default: 3000)
