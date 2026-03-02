@@ -30,12 +30,18 @@
             transition: opacity 0.6s ease;
             display: flex;
             flex-direction: column;
+            z-index: 1;
         }
 
         .screen.active {
             opacity: 1;
             pointer-events: all;
         }
+
+        /* Le jeu reste toujours derrière les écrans narratifs */
+        #screen-game   { z-index: 1; }
+        #screen-title  { z-index: 2; }
+        #screen-splash { z-index: 3; }
 
         /* ══════════════════════════════════════════════════════
            ÉCRAN 1 — SPLASH (Press Start)
@@ -1029,5 +1035,12 @@
     </script>
 
     <script type="module" src="/bremanie/js/main.js"></script>
+
+    <!-- Overlay fondu au noir -->
+    <div id="fade-black" style="
+        position: fixed; inset: 0; z-index: 8000;
+        background: #000; opacity: 0; pointer-events: none;
+        transition: opacity 2s ease;
+    "></div>
 </body>
 </html>
