@@ -21,7 +21,12 @@ export class TDEngine {
         this.enemyId = 0;
         this.towerId = 0;
         this.gameSpeed = 1;
-        this.unlockedTowers = new Set();
+        // Toutes les tours avec unlockedByWorld sont débloquées par défaut (système à refaire)
+        this.unlockedTowers = new Set(
+            Object.entries(TOWER_TYPES)
+                .filter(([, c]) => c.unlockedByWorld !== undefined)
+                .map(([t]) => t)
+        );
         this.paused = false;
         this._gameOver = false;
         this.devMode = false;

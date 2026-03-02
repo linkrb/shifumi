@@ -28,9 +28,12 @@ export class TowerDefenseGame {
         // Triggers : clé = "level_wave" (ex: "0_1" = level 0 vague 1), valeur = nom du script
         this._dialogueTriggers = {};
 
-        // Callbacks SPA — définis par main.js
-        this.onScriptedDefeat = null;
-        this.onTutorialWin    = null;
+        // Callbacks SPA — définis par main.js ou game.html
+        this.onScriptedDefeat   = null;
+        this.onTutorialVictory  = null;  // (next) — badge victoire interactif avant dialogue
+        this.onTutorialWin      = null;  // () — après dialogue tutorial_win
+        this.onWaveStarted      = null;  // (waveNumber) — badge, musique, etc.
+        this.onTowerPlaced      = null;  // () — son de pose
     }
 
     // Affiche un dialogue en pausant le jeu, puis reprend à la fin
@@ -51,7 +54,6 @@ export class TowerDefenseGame {
     async init(container) {
         this.container = container || document.getElementById('game-container');
 
-        this.loadUnlockedTowers();
         await this.renderer.init(this.container);
         this.renderer.setTheme(this.engine.currentLevelData);
         this.renderer.drawGround(this.engine.grid);
@@ -87,15 +89,15 @@ export class TowerDefenseGame {
     _enterTutorialMode() {
         this._tutorialMode = true;
 
-        // Or illimité — les pouvoirs de Nathan à pleine puissance
-        this.engine.gold = 9999;
+        // Une seule vague : 8 ennemis basiques
+        this.engine.setScriptedBattle([
+            [{ type: 'basic', count: 6 }]
+        ]);
+
+        // Or de départ après setScriptedBattle (qui remet gold=0)
+        this.engine.gold = 150;
         this.engine.health = 15;
         this.engine.maxHealth = 15;
-
-        // Une seule vague chill : 8 ennemis basiques
-        this.engine.setScriptedBattle([
-            [{ type: 'basic', count: 8 }]
-        ]);
 
         // N'afficher que la tour Archer
         document.querySelectorAll('.tower-btn').forEach(btn => {
@@ -114,11 +116,14 @@ export class TowerDefenseGame {
         hide('#shop-btn');
         hide('#sell-btn');
         hide('#speed-btn');
+        hide('#wave-btn');
         hide('#dev-panel');
         hide('#level-selector');
 
-        // Auto-lancer la vague après un court délai dramatique
-        setTimeout(() => this.engine.startWave(), 2500);
+        // Auto-lancer la vague (sauf en mode dev)
+        if (!new URLSearchParams(location.search).get('dev')) {
+            setTimeout(() => this.engine.startWave(), 2500);
+        }
     }
 
     wireCallbacks() {
@@ -189,10 +194,7 @@ export class TowerDefenseGame {
         };
 
         this.engine.onWaveStarted = (waveNumber) => {
-            const announce = document.getElementById('wave-announce');
-            announce.textContent = `🌊 Vague ${waveNumber}`;
-            announce.classList.add('visible');
-            setTimeout(() => announce.classList.remove('visible'), 1500);
+            this.onWaveStarted?.(waveNumber);
             this.updateUI();
 
             // Dialogue trigger sur cette vague ?
@@ -216,12 +218,10 @@ export class TowerDefenseGame {
 
         this.engine.onLevelComplete = (level) => {
             this.completedLevels.add(level);
-            this.checkWorldUnlock(level);
             this.showLevelTransition(level);
         };
 
         this.engine.onVictory = () => {
-            this.checkWorldUnlock(this.engine.level);
             this.showVictory();
         };
 
@@ -339,6 +339,7 @@ export class TowerDefenseGame {
         const tower = this.engine.placeTower(x, y, this.selectedTower, sprite, baseScaleX, baseScaleY);
         this.renderer.addTowerToStage(tower);
         this.renderer.drawTowerXpBar(tower);
+        this.onTowerPlaced?.();
 
         this.renderer.hideRangePreview();
         this.renderer.hideGhostTower();
@@ -578,10 +579,17 @@ export class TowerDefenseGame {
 
         btn.addEventListener('click', () => this.toggleDevMode());
 
-        // Keyboard shortcut: D to toggle
+        // Keyboard shortcut: D to toggle devmode, G to toggle debug grid
         document.addEventListener('keydown', (e) => {
             if (e.key === 'd' || e.key === 'D') {
                 this.toggleDevMode();
+            }
+            if (e.key === 'g' || e.key === 'G') {
+                const path = this.engine.currentLevelData?.path || [];
+                this.renderer.toggleDebugGrid(path);
+            }
+            if (e.key === 'h' || e.key === 'H') {
+                this.renderer.toggleCleanView();
             }
         });
     }
@@ -595,7 +603,6 @@ export class TowerDefenseGame {
         const spawnPanel = document.getElementById('dev-spawn-panel');
 
         if (engine.devMode) {
-            // Save real gold, set display to infinity
             this._savedGold = engine.gold;
             // Unlock all world-locked towers
             for (const [type, config] of Object.entries(TOWER_TYPES)) {
@@ -770,10 +777,17 @@ export class TowerDefenseGame {
 
     showVictory() {
         if (this._tutorialMode) {
-            // Premier combat remporté — callback SPA → mode normal
-            this.showDialogue('chapter1/tutorial_win', () => {
-                this.onTutorialWin?.();
-            });
+            // Badge victoire interactif → clic → dialogue → fin
+            const doDialogue = () => {
+                this.showDialogue('chapter1/tutorial_win', () => {
+                    this.onTutorialWin?.();
+                });
+            };
+            if (this.onTutorialVictory) {
+                this.onTutorialVictory(doDialogue);
+            } else {
+                doDialogue();
+            }
             return;
         }
         document.getElementById('game-over-title').textContent = '🏆 Victoire !';
@@ -807,7 +821,9 @@ export class TowerDefenseGame {
         this._tutorialMode = false;
         this._resetForMode();
         this.engine.setScriptedBattle([
-            [{ type: 'boss', count: 3 }, { type: 'tank', count: 8 }, { type: 'fast', count: 15 }],
+            [{ type: 'basic', count: 20 }],
+            [{ type: 'basic', count: 35 }],
+            [{ type: 'basic', count: 50 }],
         ]);
         this._setupScriptedMode(); // cache l'UI + auto-start
     }
@@ -835,6 +851,7 @@ export class TowerDefenseGame {
         show('#shop-btn');
         show('#sell-btn');
         show('#speed-btn');
+        show('#wave-btn');
         document.getElementById('game-over')?.classList.remove('visible');
         document.getElementById('level-selector')?.classList.remove('visible');
 
@@ -844,6 +861,9 @@ export class TowerDefenseGame {
         this.engine.health = 15;
         this.engine.maxHealth = 15;
         this.engine.unlockedTowers.clear();
+        for (const [type, config] of Object.entries(TOWER_TYPES)) {
+            if (config.unlockedByWorld !== undefined) this.engine.unlockedTowers.add(type);
+        }
         this.completedLevels.clear();
 
         this.renderer.clearStage();
