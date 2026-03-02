@@ -5,6 +5,7 @@ import {
 } from './tdConfig.js';
 import { TDRenderer } from './TDRenderer.js';
 import { TDEngine } from './TDEngine.js';
+import { DialogueEngine } from '/bremanie/js/DialogueEngine.js';
 
 export class TowerDefenseGame {
     constructor() {
@@ -17,6 +18,34 @@ export class TowerDefenseGame {
         this.shopOpen = false;
         this._continuing = false; // true = on continue la campagne (garde or/santé/unlocks)
         this.completedLevels = new Set();
+
+        // Système de dialogues en jeu
+        this.dialogueEngine = new DialogueEngine({
+            basePath:     '/bremanie/images/',
+            dialoguePath: '/bremanie/dialogues/',
+            typeSpeed: 25,
+        });
+        // Triggers : clé = "level_wave" (ex: "0_1" = level 0 vague 1), valeur = nom du script
+        this._dialogueTriggers = {};
+
+        // Callbacks SPA — définis par main.js
+        this.onScriptedDefeat = null;
+        this.onTutorialWin    = null;
+    }
+
+    // Affiche un dialogue en pausant le jeu, puis reprend à la fin
+    showDialogue(scriptName, onEnd) {
+        this.engine.paused = true;
+        this.dialogueEngine.load(scriptName, () => {
+            this.engine.paused = false;
+            if (onEnd) onEnd();
+        });
+    }
+
+    // Enregistre un dialogue à déclencher sur une vague précise d'un niveau
+    // ex: game.onWaveDialogue(0, 1, 'chapter1/wave1_comment')
+    onWaveDialogue(level, wave, scriptName) {
+        this._dialogueTriggers[`${level}_${wave}`] = scriptName;
     }
 
     async init(container) {
@@ -53,6 +82,43 @@ export class TowerDefenseGame {
         });
 
         this.updateUI();
+    }
+
+    _enterTutorialMode() {
+        this._tutorialMode = true;
+
+        // Or illimité — les pouvoirs de Nathan à pleine puissance
+        this.engine.gold = 9999;
+        this.engine.health = 15;
+        this.engine.maxHealth = 15;
+
+        // Une seule vague chill : 8 ennemis basiques
+        this.engine.setScriptedBattle([
+            [{ type: 'basic', count: 8 }]
+        ]);
+
+        // N'afficher que la tour Archer
+        document.querySelectorAll('.tower-btn').forEach(btn => {
+            if (btn.dataset.tower !== 'archer') btn.style.display = 'none';
+        });
+        const shopBtn = document.getElementById('shop-btn');
+        if (shopBtn) shopBtn.style.display = 'none';
+
+        this.updateUI();
+    }
+
+    _setupScriptedMode() {
+        // Masquer toute l'UI interactive
+        const hide = (sel) => document.querySelector(sel)?.style.setProperty('display', 'none');
+        hide('.tower-bar');
+        hide('#shop-btn');
+        hide('#sell-btn');
+        hide('#speed-btn');
+        hide('#dev-panel');
+        hide('#level-selector');
+
+        // Auto-lancer la vague après un court délai dramatique
+        setTimeout(() => this.engine.startWave(), 2500);
     }
 
     wireCallbacks() {
@@ -128,6 +194,12 @@ export class TowerDefenseGame {
             announce.classList.add('visible');
             setTimeout(() => announce.classList.remove('visible'), 1500);
             this.updateUI();
+
+            // Dialogue trigger sur cette vague ?
+            const key = `${this.engine.level}_${waveNumber}`;
+            if (this._dialogueTriggers[key]) {
+                this.showDialogue(this._dialogueTriggers[key]);
+            }
         };
 
         this.engine.onWaveCompleted = () => {
@@ -493,8 +565,7 @@ export class TowerDefenseGame {
             });
         });
 
-        // Show worldmap on startup
-        overlay.classList.add('visible');
+        // La worldmap est affichée par setNormalMode(), pas au démarrage
     }
 
     setupDevMode() {
@@ -679,12 +750,32 @@ export class TowerDefenseGame {
     // ===== GAME OVER / VICTORY =====
 
     showGameOver() {
+        if (this._scriptedMode) {
+            // Fondu au noir puis callback SPA → cutscène Nathan
+            const screenGame = document.getElementById('screen-game');
+            if (screenGame) {
+                screenGame.style.transition = 'opacity 1.5s ease';
+                screenGame.style.opacity = '0';
+            }
+            setTimeout(() => {
+                if (screenGame) { screenGame.style.opacity = ''; screenGame.style.transition = ''; }
+                this.onScriptedDefeat?.();
+            }, 1500);
+            return;
+        }
         document.getElementById('game-over-title').textContent = '💀 Défaite';
         document.getElementById('final-wave').textContent = this.engine.wave;
         document.getElementById('game-over').classList.add('visible');
     }
 
     showVictory() {
+        if (this._tutorialMode) {
+            // Premier combat remporté — callback SPA → mode normal
+            this.showDialogue('chapter1/tutorial_win', () => {
+                this.onTutorialWin?.();
+            });
+            return;
+        }
         document.getElementById('game-over-title').textContent = '🏆 Victoire !';
         document.getElementById('final-wave').textContent = `${this.engine.globalWave}/${this.engine.globalWave}`;
         document.getElementById('game-over').classList.add('visible');
@@ -707,6 +798,61 @@ export class TowerDefenseGame {
                 el.classList.remove('completed');
             }
         });
+    }
+
+    // ===== MODES SPA =====
+
+    setScriptedMode() {
+        this._scriptedMode = true;
+        this._tutorialMode = false;
+        this._resetForMode();
+        this.engine.setScriptedBattle([
+            [{ type: 'boss', count: 3 }, { type: 'tank', count: 8 }, { type: 'fast', count: 15 }],
+        ]);
+        this._setupScriptedMode(); // cache l'UI + auto-start
+    }
+
+    setTutorialMode() {
+        this._scriptedMode = false;
+        this._tutorialMode = false;
+        this._resetForMode();
+        this._enterTutorialMode();
+    }
+
+    setNormalMode() {
+        this._scriptedMode = false;
+        this._tutorialMode = false;
+        this._resetForMode();
+        document.querySelectorAll('.tower-btn').forEach(btn => btn.style.removeProperty('display'));
+        document.getElementById('shop-btn')?.style.removeProperty('display');
+        document.getElementById('level-selector')?.classList.add('visible');
+    }
+
+    _resetForMode() {
+        // Restaure l'UI
+        const show = (sel) => document.querySelector(sel)?.style.removeProperty('display');
+        show('.tower-bar');
+        show('#shop-btn');
+        show('#sell-btn');
+        show('#speed-btn');
+        document.getElementById('game-over')?.classList.remove('visible');
+        document.getElementById('level-selector')?.classList.remove('visible');
+
+        // Reset état jeu
+        this.engine.resetGameState(0, true);
+        this.engine.gold = 150;
+        this.engine.health = 15;
+        this.engine.maxHealth = 15;
+        this.engine.unlockedTowers.clear();
+        this.completedLevels.clear();
+
+        this.renderer.clearStage();
+        this.renderer.drawGround(this.engine.grid);
+        this.renderer.calculateOffset();
+        this.selectedPlacedTower = null;
+        this.hoveredTile = null;
+        this.hideTowerInfo();
+        this.updateUI();
     }
 
     startNextLevel() {
