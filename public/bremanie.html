@@ -393,6 +393,11 @@
                 linear-gradient(rgba(10,8,20,0.35), rgba(10,8,20,0.35)),
                 url('/bremanie/images/scenes/chapter1_attack.jpg') center center / cover no-repeat;
         }
+        #screen-game.combat-mode.chapter2-mode {
+            background:
+                linear-gradient(rgba(5,15,5,0.35), rgba(5,15,5,0.35)),
+                url('/bremanie/images/scenes/forest.jpg') center center / cover no-repeat;
+        }
         #screen-game.combat-mode #game-container { background: transparent; }
 
         /* TOP BAR — masqué, remplacé par portrait + stats flottants */
@@ -408,6 +413,7 @@
             height: 68px;
             border-radius: 50%;
             border: 3px solid #c9a84c;
+            background: #ffffff;
             box-shadow:
                 0 0 0 1px rgba(201,168,76,0.4),
                 0 4px 16px rgba(0,0,0,0.7),
@@ -647,36 +653,7 @@
 
         .tower-btn .tower-preview img { width: 100%; height: 100%; object-fit: contain; }
 
-        .tower-btn[data-tower="archer"]   .tower-preview { background: linear-gradient(135deg, #98D4BB, #7ac4a8); }
-        .tower-btn[data-tower="cannon"]   .tower-preview { background: linear-gradient(135deg, #FF7F7F, #ee6b6b); }
-        .tower-btn[data-tower="ice"]      .tower-preview { background: linear-gradient(135deg, #87CEEB, #6bb8d9); }
-        .tower-btn[data-tower="sniper"]   .tower-preview { background: linear-gradient(135deg, #E6E6FA, #d4d4f0); }
-        .tower-btn[data-tower="wind"]     .tower-preview { background: linear-gradient(135deg, #A8E6CF, #85d4b5); }
-        .tower-btn[data-tower="cemetery"] .tower-preview { background: linear-gradient(135deg, #4ECDC4, #2a9d8f); }
-        .tower-btn[data-tower="fire"]     .tower-preview { background: linear-gradient(135deg, #FF6B35, #c94e1a); }
-
-        .tower-btn.locked { opacity: 0.7; }
-        .tower-btn.locked .tower-preview { filter: brightness(0.6); }
-
-        .lock-overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(0,0,0,0.45);
-            border-radius: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 2px;
-        }
-
-        .lock-overlay .lock-icon { font-size: 1.1rem; }
-        .lock-overlay .unlock-cost {
-            font-size: 0.6rem; font-weight: 800;
-            color: #FFD700; text-shadow: 0 1px 3px rgba(0,0,0,0.6);
-        }
-
-        .tower-btn.hidden-tower { display: none; }
+        .tower-btn[data-tower="archer"] .tower-preview { background: linear-gradient(135deg, #98D4BB, #7ac4a8); }
 
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
@@ -684,24 +661,6 @@
             75%       { transform: translateX(4px) rotate(2deg); }
         }
         .tower-btn.shake { animation: shake 0.3s ease; }
-
-        .unlock-notif {
-            position: absolute;
-            bottom: 110px; left: 50%;
-            transform: translateX(-50%) translateY(20px);
-            background: linear-gradient(135deg, #4ECDC4, #44a08d);
-            color: white; padding: 10px 24px; border-radius: 20px;
-            font-weight: 800; font-size: 0.95rem;
-            box-shadow: 0 4px 20px rgba(78,205,196,0.5);
-            animation: notifPop 3s ease forwards;
-            pointer-events: none; z-index: 200;
-        }
-        @keyframes notifPop {
-            0%   { opacity: 0; transform: translateX(-50%) translateY(20px); }
-            15%  { opacity: 1; transform: translateX(-50%) translateY(0); }
-            75%  { opacity: 1; transform: translateX(-50%) translateY(0); }
-            100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
-        }
 
         .tower-btn .tower-cost { font-size: 0.75rem; font-weight: 800; color: #FFD700; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
         .tower-btn .tower-name { font-size: 0.65rem; font-weight: 600; color: #666; }
@@ -883,46 +842,6 @@
         }
         .dev-spawn-btn:hover { background: rgba(78,205,196,0.2); border-color: #4ECDC4; color: #fff; }
 
-        /* LEVEL SELECTOR */
-        .level-selector {
-            position: absolute; inset: 0; background: rgba(0,0,0,0.88); z-index: 180;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
-            opacity: 0; pointer-events: none; transition: opacity 0.3s; backdrop-filter: blur(6px);
-        }
-        .level-selector.visible { opacity: 1; pointer-events: auto; }
-        .level-selector-title { color: #FFD700; font-size: 1.1rem; font-weight: 800; letter-spacing: 0.05em; text-shadow: 0 2px 8px rgba(0,0,0,0.6); }
-
-        /* WORLDMAP */
-        .worldmap-container { position: relative; width: min(88vw, 82vh); height: min(88vw, 82vh); }
-        .worldmap-img { width: 100%; height: 100%; display: block; border-radius: 18px; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
-        .worldmap-zones { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 18px; overflow: hidden; cursor: pointer; }
-        .zone-poly { fill: transparent; stroke: transparent; stroke-width: 0; transition: fill 0.25s, filter 0.25s, stroke-width 0.25s; cursor: pointer; }
-        .zone-poly.completed { fill: rgba(0,0,0,0.45); stroke: rgba(255,255,255,0.15); stroke-width: 1; cursor: not-allowed; pointer-events: none; }
-        .zone-poly:hover, .zone-poly.active { stroke: rgba(255,255,255,0.4); stroke-width: 1.5; }
-        .zone-poly[data-zone="prairie"]:hover, .zone-poly[data-zone="prairie"].active { fill: rgba(80,200,80,0.30); filter: drop-shadow(0 0 16px rgba(80,200,80,0.8)); }
-        .zone-poly[data-zone="volcan"]:hover, .zone-poly[data-zone="volcan"].active { fill: rgba(255,100,30,0.30); filter: drop-shadow(0 0 16px rgba(255,100,30,0.8)); }
-        .zone-poly[data-zone="glacier"]:hover, .zone-poly[data-zone="glacier"].active { fill: rgba(100,190,255,0.30); filter: drop-shadow(0 0 16px rgba(100,190,255,0.8)); }
-        .zone-poly[data-zone="cimetiere"]:hover, .zone-poly[data-zone="cimetiere"].active { fill: rgba(180,80,220,0.30); filter: drop-shadow(0 0 16px rgba(180,80,220,0.8)); }
-        .level-select-btn {
-            position: absolute; transform: translate(-50%, -50%);
-            width: 72px; height: 72px; border-radius: 50%;
-            background: rgba(255,255,255,0.12); border: 3px solid rgba(255,255,255,0.45);
-            cursor: pointer; transition: all 0.2s;
-            display: flex; align-items: center; justify-content: center; padding: 0; z-index: 2;
-        }
-        .level-select-btn:hover { background: rgba(255,255,255,0.3); border-color: #FFD700; transform: translate(-50%,-50%) scale(1.15); box-shadow: 0 0 22px rgba(255,215,0,0.55); }
-        .zone-label { color: white; font-weight: 800; font-size: 0.6rem; text-shadow: 0 1px 5px rgba(0,0,0,0.9); text-align: center; line-height: 1.2; pointer-events: none; }
-
-        /* WORLDMAP ENEMIES */
-        @keyframes mapFloat { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-9px); } }
-        @keyframes mapFloatMirror { 0%,100% { transform: translateY(0px) scaleX(-1); } 50% { transform: translateY(-9px) scaleX(-1); } }
-        @keyframes mapPatrolLR { 0% { transform: translateX(0px) translateY(0px) scaleX(1); } 48% { transform: translateX(38px) translateY(-5px) scaleX(1); } 50% { transform: translateX(38px) translateY(-5px) scaleX(-1); } 98% { transform: translateX(0px) translateY(0px) scaleX(-1); } 100% { transform: translateX(0px) translateY(0px) scaleX(1); } }
-        @keyframes mapBirdFly { 0% { transform: translateX(0px) translateY(0px) scaleX(-1); } 48% { transform: translateX(65px) translateY(-12px) scaleX(-1); } 50% { transform: translateX(65px) translateY(-12px) scaleX(1); } 98% { transform: translateX(0px) translateY(0px) scaleX(1); } 100% { transform: translateX(0px) translateY(0px) scaleX(-1); } }
-        .map-enemy { position: absolute; width: 44px; height: 44px; object-fit: contain; pointer-events: none; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.55)); animation: mapFloat 2.4s ease-in-out infinite; }
-        .map-enemy.mirror { animation-name: mapFloatMirror; }
-        .map-enemy.patrol { animation-name: mapPatrolLR; }
-        .map-enemy.bird { animation-name: mapBirdFly; }
-
         /* LOADER */
         .loader-overlay {
             position: absolute; inset: 0;
@@ -1020,10 +939,6 @@
                 <span class="stat-value" id="health">15</span>
             </div>
             <div class="stat">
-                <span style="font-size:0.85rem">📍</span>
-                <span class="stat-value" id="level">1</span>
-            </div>
-            <div class="stat">
                 <img class="stat-icon" src="/bremanie/images/td/icon_wave.png" alt="Wave">
                 <span class="stat-value" id="wave">0</span>
             </div>
@@ -1038,24 +953,12 @@
 
         <div id="game-container">
             <div class="action-buttons" id="action-buttons">
-                <button class="shop-btn" id="shop-btn">Shop</button>
                 <button class="speed-btn" id="speed-btn">x1</button>
                 <button class="wave-btn" id="wave-btn">Vague 1 ▶</button>
             </div>
             <div class="buffs" id="buffs"></div>
             <div class="selection-info" id="selection-info">Touchez une case verte pour placer</div>
 
-            <div class="shop-overlay" id="shop-overlay">
-                <div class="shop-title">Boutique</div>
-                <div class="shop-items">
-                    <div class="shop-item" data-item="heart"><div class="item-icon">❤️</div><div class="item-name">+1 Vie</div><div class="item-desc">Regagne 1 point de vie</div><div class="item-cost">50g</div></div>
-                    <div class="shop-item" data-item="repair"><div class="item-icon">💖</div><div class="item-name">Repair +5</div><div class="item-desc">Regagne 5 points de vie</div><div class="item-cost">150g</div></div>
-                    <div class="shop-item" data-item="nuke"><div class="item-icon">💥</div><div class="item-name">Nuke</div><div class="item-desc">Tue tous les ennemis visibles</div><div class="item-cost">250g</div></div>
-                    <div class="shop-item" data-item="damage"><div class="item-icon">⚔️</div><div class="item-name">Rage</div><div class="item-desc">Degats x1.5 pendant 1 vague</div><div class="item-cost">100g</div></div>
-                    <div class="shop-item" data-item="slow"><div class="item-icon">🧊</div><div class="item-name">Blizzard</div><div class="item-desc">Ralentit tout pendant 1 vague</div><div class="item-cost">80g</div></div>
-                </div>
-                <button class="shop-close" id="shop-close">Fermer</button>
-            </div>
 
             <div class="tower-info" id="tower-info">
                 <div class="tower-info-name" id="tower-info-name">Archer</div>
@@ -1066,7 +969,6 @@
                     <div class="tower-info-stat"><span class="label">XP</span><span class="value" id="ti-xp">0/100</span></div>
                 </div>
                 <div class="tower-xp-bar-container"><div class="tower-xp-bar" id="ti-xp-bar"></div></div>
-                <button class="sell-btn" id="sell-btn">Vendre 30💰</button>
             </div>
 
             <!-- Pastille Combat (remplace le wave-announce) -->
@@ -1097,57 +999,12 @@
                 <button class="dev-spawn-btn" data-enemy="flying">🦋 Flying</button>
             </div>
 
-            <div class="level-selector" id="level-selector">
-                <div class="level-selector-title">✦ Choisissez votre monde ✦</div>
-                <div class="worldmap-container">
-                    <img src="/bremanie/images/td/worldmap.png" class="worldmap-img" alt="Carte du monde" draggable="false">
-                    <img class="map-enemy patrol" src="/bremanie/images/td/levels/prairie/enemy_basic.png"  style="left:6%;top:72%;animation-delay:0s;animation-duration:3.8s">
-                    <img class="map-enemy mirror"  src="/bremanie/images/td/levels/prairie/enemy_fast.png"  style="left:15%;top:78%;animation-delay:0.6s;animation-duration:1.8s">
-                    <img class="map-enemy"          src="/bremanie/images/td/levels/volcano/enemy_fast.png"  style="left:28%;top:30%;animation-delay:0.3s;animation-duration:1.6s">
-                    <img class="map-enemy bird"     src="/bremanie/images/td/levels/ice/enemy_flying.png"   style="left:66%;top:23%;width:68px;height:68px;animation-delay:0.4s;animation-duration:3.2s">
-                    <img class="map-enemy mirror"   src="/bremanie/images/td/levels/cemetery/enemy_fast.png" style="left:52%;top:83%;animation-delay:1.4s;animation-duration:1.9s">
-                    <svg class="worldmap-zones" viewBox="0 0 100 100" preserveAspectRatio="none">
-                        <polygon class="zone-poly" data-level="0" data-zone="prairie"   points="0,50 52,46 52,100 0,100"/>
-                        <polygon class="zone-poly" data-level="2" data-zone="volcan"    points="0,0 62,0 62,42 0,48"/>
-                        <polygon class="zone-poly" data-level="3" data-zone="glacier"   points="58,0 100,0 100,52 58,44"/>
-                        <polygon class="zone-poly" data-level="1" data-zone="cimetiere" points="48,42 100,48 100,100 48,100"/>
-                    </svg>
-                </div>
-            </div>
         </div>
 
         <div class="tower-bar">
             <div class="tower-btn selected" data-tower="archer">
                 <div class="tower-preview"><img src="/bremanie/images/td/towers/archer/tower_archer_front.png" alt="Archer"></div>
                 <div class="tower-cost">50g</div><div class="tower-name">Archer</div><div class="tower-range">⊕3</div>
-            </div>
-            <div class="tower-btn" data-tower="cannon">
-                <div class="tower-preview"><img src="/bremanie/images/td/towers/cannon/tower_cannon_front.png" alt="Canon"></div>
-                <div class="tower-cost">100g</div><div class="tower-name">Canon</div><div class="tower-range">⊕2.5</div>
-            </div>
-            <div class="tower-btn" data-tower="sniper">
-                <div class="tower-preview"><img src="/bremanie/images/td/towers/sniper/tower_sniper_front.png" alt="Sniper"></div>
-                <div class="tower-cost">250g</div><div class="tower-name">Sniper</div><div class="tower-range">⊕4.5</div>
-            </div>
-            <div class="tower-btn locked" data-tower="wind">
-                <div class="tower-preview"><img src="/bremanie/images/td/towers/wind/tower_wind_front.png" alt="Eolienne"></div>
-                <div class="tower-cost">150g</div><div class="tower-name">Eolienne</div><div class="tower-range">⊕2.8</div>
-                <div class="lock-overlay"><span class="lock-icon">🔒</span><span class="unlock-cost">Prairie</span></div>
-            </div>
-            <div class="tower-btn locked" data-tower="cemetery">
-                <div class="tower-preview"><img src="/bremanie/images/td/towers/cemetery/tower_cemetery_front.png" alt="Fantôme"></div>
-                <div class="tower-cost">150g</div><div class="tower-name">Fantôme</div><div class="tower-range">⊕3</div>
-                <div class="lock-overlay"><span class="lock-icon">🔒</span><span class="unlock-cost">Cimetière</span></div>
-            </div>
-            <div class="tower-btn locked" data-tower="fire">
-                <div class="tower-preview"><img src="/bremanie/images/td/towers/fire/tower_fire_front.png" alt="Feu"></div>
-                <div class="tower-cost">210g</div><div class="tower-name">Feu</div><div class="tower-range">⊕2.8</div>
-                <div class="lock-overlay"><span class="lock-icon">🔒</span><span class="unlock-cost">Volcan</span></div>
-            </div>
-            <div class="tower-btn locked" data-tower="ice">
-                <div class="tower-preview"><img src="/bremanie/images/td/towers/ice/tower_ice_front.png" alt="Glace"></div>
-                <div class="tower-cost">100g</div><div class="tower-name">Glace</div><div class="tower-range">⊕3</div>
-                <div class="lock-overlay"><span class="lock-icon">🔒</span><span class="unlock-cost">Glacier</span></div>
             </div>
         </div>
     </div>
