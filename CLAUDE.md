@@ -189,6 +189,11 @@ public/
 - **Tower XP**: Towers gain XP on hit (1 per hit), level up at thresholds (max level 3)
 - **Unlock system**: Some towers (wind) require a one-time gold unlock via `unlockTower()`, gated by level
 - **Enemies**: 5 types (basic, fast, tank, boss, flying). HP scales +12% per wave
+- **Taille ennemis par niveau** : 3 niveaux de granularité dans le thème :
+  - `enemyScale` : multiplicateur global pour tous les ennemis du niveau
+  - `enemyScales: { type: n }` : multiplicateur par type logique (basic, fast, tank…)
+  - `spriteScales: { sprite_name: n }` : multiplicateur par sprite individuel (ex. `enemy_fox: 0.7`) — utile quand plusieurs sprites partagent le même type logique
+  - `enemyAnchors: { type: n }` : override anchorY par type (utile pour sprites tight-croppés où les pattes sont en bas)
 - **Shop**: 5 consumables (heart, repair, nuke, rage buff, blizzard buff)
 - **Engine/Renderer split**: TDEngine has no DOM/PixiJS dependencies; TowerDefenseGame wires callbacks
 
@@ -206,7 +211,8 @@ public/images/td/
 
 **Règles pour les assets image :**
 - **Toujours redimensionner** avant d'intégrer dans le projet. Les images AI générées (Gemini) peuvent faire 1024–2048px — c'est beaucoup trop pour un sprite de jeu.
-- Tailles cibles : `256×256` pour tours/ennemis/effets, `128×128` pour tuiles, `512×512` max pour décors larges
+- Tailles cibles : `256×256` pour tours/ennemis/effets, `512×512` max pour décors larges
+- **Tuiles de sol** : exactement `256×156` (`TILE_WIDTH × TH_face`). Toujours redimensionner avec `PIL.Image.resize((256, 156), Image.LANCZOS)` avant intégration.
 - Utiliser `rembg` (Python) pour supprimer les fonds + `PIL.Image.resize()` pour redimensionner
 - Ne jamais committer un asset > 512px sans raison explicite
 
