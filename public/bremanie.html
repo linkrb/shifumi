@@ -846,7 +846,7 @@
 
         /* LOADER */
         .loader-overlay {
-            position: absolute; inset: 0;
+            position: fixed; inset: 0;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             z-index: 9999; transition: opacity 0.5s;
@@ -923,11 +923,6 @@
 
     <!-- ══ ÉCRAN 3 : JEU TD ══════════════════════════════════ -->
     <div id="screen-game" class="screen">
-
-        <div class="loader-overlay" id="loader">
-            <div class="loader-spinner"></div>
-            <div class="loader-text">Chargement...</div>
-        </div>
 
         <!-- Portrait Nathan (visible en mode combat) -->
         <div class="hero-portrait">
@@ -1043,14 +1038,12 @@
     <script type="module">
         import { SaveManager } from '/bremanie/js/SaveManager.js';
         const save = SaveManager.load();
-        if (save && save.stage !== 'complete') {
+        if (save) {
             const btn = document.getElementById('btn-resume');
             btn.style.display = 'inline-block';
             document.getElementById('resume-desc').textContent = SaveManager.describe(save);
             btn.addEventListener('click', async () => {
-                // resumeFromSave est exposé via ctx → chapter1/2 setup mais accessible depuis window
-                // On le récupère depuis l'event btnStart qui est dans main.js
-                // Approche : on passe par un événement custom
+                document.getElementById('loader').classList.remove('hidden');
                 const audio = window._bremanieAudio;
                 if (audio) audio.stop(1500);
                 const fade = document.getElementById('fade-black');
@@ -1068,6 +1061,11 @@
     </script>
 
     <!-- Overlay fondu au noir -->
+    <div class="loader-overlay hidden" id="loader">
+        <div class="loader-spinner"></div>
+        <div class="loader-text">Chargement...</div>
+    </div>
+
     <div id="fade-black" style="
         position: fixed; inset: 0; z-index: 8000;
         background: #000; opacity: 0; pointer-events: none;
