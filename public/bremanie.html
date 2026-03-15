@@ -655,6 +655,7 @@
 
         .tower-btn[data-tower="archer"] .tower-preview { background: linear-gradient(135deg, #98D4BB, #7ac4a8); }
         .tower-btn[data-tower="mage"]   .tower-preview { background: linear-gradient(135deg, #AA66FF, #7733CC); }
+        .tower-btn[data-tower="light"]  .tower-preview { background: linear-gradient(135deg, #FFE066, #FFB300); }
 
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
@@ -897,6 +898,10 @@
             <h1 class="splash-title">La Brémanie</h1>
             <p class="splash-subtitle">Défendez le Royaume des Ténèbres</p>
             <button class="btn-start" id="btn-start">Commencer l'Aventure</button>
+            <button class="btn-start btn-resume" id="btn-resume" style="display:none; margin-top:1.2rem; font-size:0.82em; border-color:rgba(201,168,76,0.35); color:rgba(245,230,184,0.85);">
+                ↩ Reprendre<br>
+                <small id="resume-desc" style="font-size:0.8em; opacity:0.65; letter-spacing:0.12em;"></small>
+            </button>
         </div>
 
         <div class="splash-footer">Un royaume. Une famille. Un destin.</div>
@@ -1009,7 +1014,11 @@
             </div>
             <div class="tower-btn" data-tower="mage">
                 <div class="tower-preview"><img src="/bremanie/images/td/towers/mage/tower_mage_front.png" alt="Mage"></div>
-                <div class="tower-cost">120g</div><div class="tower-name">Mage</div><div class="tower-range">⊕2.5</div>
+                <div class="tower-cost">75g</div><div class="tower-name">Mage</div><div class="tower-range">⊕2.5</div>
+            </div>
+            <div class="tower-btn" data-tower="light">
+                <div class="tower-preview"><img src="/bremanie/images/td/towers/light/tower_light_front.png" alt="Lumière"></div>
+                <div class="tower-cost">40g</div><div class="tower-name">Lumière</div><div class="tower-range">⊕2.5</div>
             </div>
         </div>
     </div>
@@ -1031,6 +1040,32 @@
     </script>
 
     <script type="module" src="/bremanie/js/main.js"></script>
+    <script type="module">
+        import { SaveManager } from '/bremanie/js/SaveManager.js';
+        const save = SaveManager.load();
+        if (save && save.stage !== 'complete') {
+            const btn = document.getElementById('btn-resume');
+            btn.style.display = 'inline-block';
+            document.getElementById('resume-desc').textContent = SaveManager.describe(save);
+            btn.addEventListener('click', async () => {
+                // resumeFromSave est exposé via ctx → chapter1/2 setup mais accessible depuis window
+                // On le récupère depuis l'event btnStart qui est dans main.js
+                // Approche : on passe par un événement custom
+                const audio = window._bremanieAudio;
+                if (audio) audio.stop(1500);
+                const fade = document.getElementById('fade-black');
+                fade.style.transition = 'opacity 1.5s ease';
+                fade.style.pointerEvents = 'all';
+                fade.style.opacity = '1';
+                setTimeout(() => {
+                    window._bremanieResume?.(save);
+                    fade.style.transition = 'opacity 1s ease';
+                    fade.style.opacity = '0';
+                    setTimeout(() => { fade.style.pointerEvents = 'none'; }, 1000);
+                }, 1500);
+            });
+        }
+    </script>
 
     <!-- Overlay fondu au noir -->
     <div id="fade-black" style="
