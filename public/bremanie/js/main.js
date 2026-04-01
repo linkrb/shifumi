@@ -372,36 +372,40 @@ ps.addEventListener('pointerdown', () => {
 
 // ── Sélection de chapitre ─────────────────────────────────────
 
-function showChapterSelect() {
-    const stage = SaveManager.load()?.stage;
-    const maxUnlocked =
-        stage === 'complete'       ? 4 :
-        stage === 'chapter4_start' ? 4 :
-        stage === 'chapter3_start' ? 3 :
-        stage === 'chapter2_start' ? 2 : 1;
+const ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X',
+               'XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX'];
 
-    document.querySelectorAll('.cs-card[data-chapter]').forEach(card => {
-        const ch = parseInt(card.dataset.chapter);
-        card.classList.toggle('locked', ch > maxUnlocked);
+// Chapitres implémentés — ajouter une entrée par nouveau chapitre
+const CHAPTERS = [
+    { num: 1, title: 'Le Réveil',             sub: "L'ombre du Nécromancien", start: () => chapter1.startPrologue()   },
+    { num: 2, title: 'La Forêt Enchantée',    sub: 'Les périls de la forêt',  start: () => chapter2.startChapter2()  },
+    { num: 3, title: "L'Assaut du Château",   sub: 'Le château assiégé',      start: () => chapter3.startChapter3()  },
+    { num: 4, title: 'Évasion sous la Lune',  sub: 'La fuite nocturne',       start: () => chapter4.startChapter4()  },
+];
+
+function showChapterSelect() {
+    const maxUnlocked = SaveManager.maxUnlocked(SaveManager.load());
+    const available   = CHAPTERS.filter(c => c.num <= maxUnlocked);
+
+    const grid = document.getElementById('cs-grid');
+    grid.innerHTML = '';
+    available.forEach(ch => {
+        const card = document.createElement('div');
+        card.className = 'cs-card';
+        card.dataset.chapter = ch.num;
+        card.innerHTML = `
+            <div class="cs-card-num">${ROMAN[ch.num - 1] ?? ch.num}</div>
+            <div class="cs-card-title">${ch.title}</div>
+            <div class="cs-card-sub">${ch.sub}</div>`;
+        card.addEventListener('click', () => {
+            audio.stop(1500);
+            fadeToBlack(1500).then(() => { ch.start(); fadeFromBlack(1000); });
+        });
+        grid.appendChild(card);
     });
 
     showScreen('screen-chapter-select');
 }
-
-document.querySelectorAll('.cs-card[data-chapter]').forEach(card => {
-    card.addEventListener('click', () => {
-        if (card.classList.contains('locked')) return;
-        const ch = parseInt(card.dataset.chapter);
-        audio.stop(1500);
-        fadeToBlack(1500).then(() => {
-            if      (ch === 1) chapter1.startPrologue();
-            else if (ch === 2) chapter2.startChapter2();
-            else if (ch === 3) chapter3.startChapter3();
-            else if (ch === 4) chapter4.startChapter4();
-            fadeFromBlack(1000);
-        });
-    });
-});
 
 document.getElementById('cs-back').addEventListener('click', () => {
     showScreen('screen-splash');

@@ -24,6 +24,9 @@
     padding: 2rem 1.2rem 1.5rem;
     width: 100%;
     max-width: 520px;
+    max-height: 100dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .cs-heading {
@@ -90,20 +93,7 @@
     }
 }
 
-.cs-card.locked {
-    filter: grayscale(0.65);
-    opacity: 0.42;
-    cursor: default;
-}
 
-.cs-card.cs-card-soon {
-    border-style: dashed;
-    border-color: rgba(201,168,76,0.18);
-    grid-column: 1 / -1;
-    max-width: 50%;
-    margin: 0 auto;
-    width: 100%;
-}
 
 .cs-card-num {
     font-family: 'Cinzel', serif;
@@ -129,16 +119,6 @@
     margin-top: 0.1rem;
 }
 
-.cs-lock {
-    display: none;
-    font-size: 1rem;
-    margin-top: 0.25rem;
-    opacity: 0.8;
-}
-
-.cs-card.locked .cs-lock {
-    display: block;
-}
 
 /* ── Bouton retour ──────────────────────────────────────────── */
 
