@@ -740,7 +740,7 @@ export class TowerDefenseGame {
         const allEnemies = [...this.engine.enemies].sort((a, b) => a.pathIndex - b.pathIndex);
         const targets = [];
         if (allEnemies.length > 0) {
-            const count = Math.min(6, allEnemies.length);
+            const count = Math.min(10, allEnemies.length);
             if (allEnemies.length <= count) {
                 targets.push(...allEnemies);
             } else {
@@ -781,7 +781,7 @@ export class TowerDefenseGame {
                         () => {
                             // Impact : dégâts sur cet ennemi
                             if (!this.engine.enemies.includes(enemy)) return;
-                            enemy.hp -= 150;
+                            enemy.hp -= 300;
                             if (this.engine.onEnemyDamaged) this.engine.onEnemyDamaged(enemy, 80);
                             if (enemy.hp <= 0) {
                                 this.engine.gold += enemy.reward;

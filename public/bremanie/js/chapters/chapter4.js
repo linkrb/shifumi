@@ -22,6 +22,7 @@ export function setup({ audio, showTitle, showDialogue, showGame, hideGame,
         audio.preload('punch_3', '/bremanie/audio/punch_3.mp3');
         audio.preload('night',              '/bremanie/audio/night_sound.mp3');
         audio.preload('wind',               '/bremanie/audio/wind.mp3');
+        audio.preload('boss_entry',               '/bremanie/audio/boss_entry.mp3');
     }
 
     function startChapter4() {
