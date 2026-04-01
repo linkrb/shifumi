@@ -4,7 +4,7 @@
 const KEY = 'bremanie_save_v1';
 
 // Score de progression — ne jamais écraser une sauvegarde plus avancée
-const PROGRESS = { chapter2_start: 10, chapter3_start: 30, complete: 100 };
+const PROGRESS = { chapter2_start: 10, chapter3_start: 30, chapter4_start: 50, complete: 100 };
 function progressOf(s) { return s ? (PROGRESS[s.stage] || 0) : -1; }
 
 export class SaveManager {
@@ -30,6 +30,7 @@ export class SaveManager {
         switch (save.stage) {
             case 'chapter2_start': return 'Chapitre II';
             case 'chapter3_start': return 'Chapitre III';
+            case 'chapter4_start': return 'Chapitre IV';
             case 'complete':       return 'Aventure terminée ✓';
             default: return '';
         }

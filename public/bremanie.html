@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="/bremanie/css/game.css">
     <link rel="stylesheet" href="/bremanie/css/towers.css">
     <link rel="stylesheet" href="/bremanie/css/hero-ability.css">
+    <link rel="stylesheet" href="/bremanie/css/chapter-select.css">
 </head>
 <body>
 
@@ -42,6 +43,51 @@
         </div>
 
         <div class="splash-footer">Un royaume. Une famille. Un destin.</div>
+    </div>
+
+    <!-- ══ ÉCRAN 1b : SÉLECTION DE CHAPITRE ════════════════════ -->
+    <div id="screen-chapter-select" class="screen">
+        <div class="cs-bg"></div>
+        <div class="vignette-splash"></div>
+        <div class="cs-content">
+            <div class="cs-heading">
+                <div class="cs-ornament">✦ &nbsp; ✦ &nbsp; ✦</div>
+                <h2 class="cs-title">Sélection du Chapitre</h2>
+            </div>
+            <div class="cs-grid">
+                <div class="cs-card locked" data-chapter="1">
+                    <div class="cs-card-num">I</div>
+                    <div class="cs-card-title">Le Réveil</div>
+                    <div class="cs-card-sub">L'ombre du Nécromancien</div>
+                    <div class="cs-lock">🔒</div>
+                </div>
+                <div class="cs-card locked" data-chapter="2">
+                    <div class="cs-card-num">II</div>
+                    <div class="cs-card-title">La Forêt Enchantée</div>
+                    <div class="cs-card-sub">Les périls de la forêt</div>
+                    <div class="cs-lock">🔒</div>
+                </div>
+                <div class="cs-card locked" data-chapter="3">
+                    <div class="cs-card-num">III</div>
+                    <div class="cs-card-title">L'Assaut du Château</div>
+                    <div class="cs-card-sub">Le château assiégé</div>
+                    <div class="cs-lock">🔒</div>
+                </div>
+                <div class="cs-card locked" data-chapter="4">
+                    <div class="cs-card-num">IV</div>
+                    <div class="cs-card-title">Évasion sous la Lune</div>
+                    <div class="cs-card-sub">La fuite nocturne</div>
+                    <div class="cs-lock">🔒</div>
+                </div>
+                <div class="cs-card cs-card-soon locked" data-chapter="5">
+                    <div class="cs-card-num">V</div>
+                    <div class="cs-card-title">À venir...</div>
+                    <div class="cs-card-sub">Bientôt disponible</div>
+                    <div class="cs-lock">🔒</div>
+                </div>
+            </div>
+            <button class="cs-back" id="cs-back">← Retour</button>
+        </div>
     </div>
 
     <!-- ══ ÉCRAN 2 : TITLE CARD ══════════════════════════════ -->
@@ -189,20 +235,8 @@
             const btn = document.getElementById('btn-resume');
             btn.style.display = 'inline-block';
             document.getElementById('resume-desc').textContent = SaveManager.describe(save);
-            btn.addEventListener('click', async () => {
-                document.getElementById('loader').classList.remove('hidden');
-                const audio = window._bremanieAudio;
-                if (audio) audio.stop(1500);
-                const fade = document.getElementById('fade-black');
-                fade.style.transition = 'opacity 1.5s ease';
-                fade.style.pointerEvents = 'all';
-                fade.style.opacity = '1';
-                setTimeout(() => {
-                    window._bremanieResume?.(save);
-                    fade.style.transition = 'opacity 1s ease';
-                    fade.style.opacity = '0';
-                    setTimeout(() => { fade.style.pointerEvents = 'none'; }, 1000);
-                }, 1500);
+            btn.addEventListener('click', () => {
+                window._bremanieChapterSelect?.();
             });
         }
     </script>

@@ -370,21 +370,55 @@ ps.addEventListener('pointerdown', () => {
     setTimeout(() => ps.remove(), 1500);
 });
 
+// ── Sélection de chapitre ─────────────────────────────────────
+
+function showChapterSelect() {
+    const stage = SaveManager.load()?.stage;
+    const maxUnlocked =
+        stage === 'complete'       ? 4 :
+        stage === 'chapter4_start' ? 4 :
+        stage === 'chapter3_start' ? 3 :
+        stage === 'chapter2_start' ? 2 : 1;
+
+    document.querySelectorAll('.cs-card[data-chapter]').forEach(card => {
+        const ch = parseInt(card.dataset.chapter);
+        card.classList.toggle('locked', ch > maxUnlocked);
+    });
+
+    showScreen('screen-chapter-select');
+}
+
+document.querySelectorAll('.cs-card[data-chapter]').forEach(card => {
+    card.addEventListener('click', () => {
+        if (card.classList.contains('locked')) return;
+        const ch = parseInt(card.dataset.chapter);
+        audio.stop(1500);
+        fadeToBlack(1500).then(() => {
+            if      (ch === 1) chapter1.startPrologue();
+            else if (ch === 2) chapter2.startChapter2();
+            else if (ch === 3) chapter3.startChapter3();
+            else if (ch === 4) chapter4.startChapter4();
+            fadeFromBlack(1000);
+        });
+    });
+});
+
+document.getElementById('cs-back').addEventListener('click', () => {
+    showScreen('screen-splash');
+});
+
 // ── Bouton "Commencer l'Aventure" ─────────────────────────────
 document.getElementById('btn-start').addEventListener('click', () => {
-    audio.stop(2000);
-    fadeToBlack(2000).then(() => {
-        chapter1.startPrologue();
-        fadeFromBlack(1000);
-    });
+    showChapterSelect();
 });
 
 // ── Loader ────────────────────────────────────────────────────
 document.getElementById('loader').classList.add('hidden');
 
 // ── Exposition globale pour le script inline du bouton Reprendre ──
-window._bremanieAudio  = audio;
-window._bremanieResume = resumeFromSave;
+window._bremanieAudio          = audio;
+window._bremanieResume         = resumeFromSave;
+window._bremanieChapterSelect  = showChapterSelect;
 
 // ── Dev / debug URL params ────────────────────────────────────
 // ?chapter=prologue   → titre Prologue
