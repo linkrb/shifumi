@@ -48,4 +48,11 @@ export class SaveManager {
         const n = chapterNumOf(save.stage);
         return n > 0 ? `Chapitre ${n}` : '';
     }
+
+    // Export base64 pour migration vers bremanie.fr
+    static exportB64() {
+        const save = SaveManager.load();
+        if (!save) return null;
+        return btoa(unescape(encodeURIComponent(JSON.stringify(save))));
+    }
 }

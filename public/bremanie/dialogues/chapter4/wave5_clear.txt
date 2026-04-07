@@ -5,12 +5,6 @@ anna:angry Mes tirs d'énergie n'arrivent pas à tous les toucher en plein vol !
 martin(right):determined Reste concentrée, Anna ! Ne tire pas à l'aveuglette, tu vas t'épuiser !
 martin:worried Des défenses au sol ne serviront à rien contre un essaim pareil. Il faut changer de stratégie !
 
-
-anna(left):worried Il y en a trop ! Ils sont trop agiles !
-anna:angry Mes tirs d'énergie n'arrivent pas à tous les toucher en plein vol !
-martin(right):determined Reste concentrée, Anna ! Ne tire pas à l'aveuglette, tu vas t'épuiser !
-martin:worried Des défenses au sol ne serviront à rien contre un essaim pareil. Il faut changer de stratégie !
-
 anna(left):sad Mais comment on fait pour frapper le ciel ?!
 martin(right):determined On envoie le ciel contre eux !
 martin:proud Réfléchis, Anna... qu'est-ce qui terrorise les corbeaux à l'état sauvage ? Qu'est-ce qui chasse en piqué ?
