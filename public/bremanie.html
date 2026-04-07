@@ -40,9 +40,6 @@
                 ↩ Reprendre<br>
                 <small id="resume-desc" style="font-size:0.8em; opacity:0.65; letter-spacing:0.12em;"></small>
             </button>
-            <button class="btn-start btn-resume" id="btn-migrate" style="display:none; margin-top:0.8rem; font-size:0.75em; border-color:rgba(201,168,76,0.2); color:rgba(201,168,76,0.6);">
-                → Migrer ma sauvegarde vers bremanie.fr
-            </button>
         </div>
 
         <div class="splash-footer">Un royaume. Une famille. Un destin.</div>
@@ -204,21 +201,20 @@
         import { SaveManager } from '/bremanie/js/SaveManager.js';
         const save = SaveManager.load();
         if (save) {
+            // Redirection automatique vers bremanie.fr si on n'y est pas déjà
+            if (!window.location.hostname.includes('bremanie.fr')) {
+                const b64 = SaveManager.exportB64();
+                if (b64) {
+                    window.location.replace(`https://bremanie.fr/?save=${encodeURIComponent(b64)}`);
+                }
+            }
+
             const btn = document.getElementById('btn-resume');
             btn.style.display = 'inline-block';
             document.getElementById('resume-desc').textContent = SaveManager.describe(save);
             btn.addEventListener('click', () => {
                 window._bremanieChapterSelect?.();
             });
-
-            const b64 = SaveManager.exportB64();
-            if (b64) {
-                const migrateBtn = document.getElementById('btn-migrate');
-                migrateBtn.style.display = 'inline-block';
-                migrateBtn.addEventListener('click', () => {
-                    window.location.href = `https://bremanie.fr/?save=${encodeURIComponent(b64)}`;
-                });
-            }
         }
     </script>
 
